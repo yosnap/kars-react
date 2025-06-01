@@ -1,8 +1,9 @@
 import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
+import PageBreadcrumbs from "../components/PageBreadcrumbs";
 
 interface Vehicle {
-  id: number;
+  id: string;
   "titol-anunci"?: string;
   "marques-cotxe"?: string;
 }
@@ -40,6 +41,11 @@ export default function Dashboard() {
 
   return (
     <div>
+      <PageBreadcrumbs
+        items={[
+          { label: { es: "Dashboard profesional", ca: "Tauler professional", en: "Professional dashboard", fr: "Tableau professionnel" }, href: "/dashboard" }
+        ]}
+      />
       <h1>Dashboard profesional</h1>
       <pre>{JSON.stringify(vehicles, null, 2)}</pre>
     </div>

@@ -2,9 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { axiosAdmin } from "../api/axiosClient";
+import PageBreadcrumbs from "../components/PageBreadcrumbs";
 
 interface Vehicle {
-  id: number;
+  id: string;
   [key: string]: unknown;
 }
 
@@ -40,6 +41,11 @@ const VehicleDetail = () => {
 
   return (
     <div className="container mx-auto py-8">
+      <PageBreadcrumbs
+        items={[
+          { label: { es: `Detalle vehículo ${id}`, ca: `Detall vehicle ${id}`, en: `Vehicle detail ${id}`, fr: `Détail véhicule ${id}` }, href: `/vehicle/${id}` }
+        ]}
+      />
       <h1 className="text-2xl font-bold mb-4">Detalle del Vehículo {vehicle.id}</h1>
       <pre>{JSON.stringify(vehicle, null, 2)}</pre>
     </div>

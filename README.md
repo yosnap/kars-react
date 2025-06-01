@@ -39,3 +39,10 @@ Abre [http://localhost:5173](http://localhost:5173) en tu navegador para ver la 
 
 ## 📄 Licencia
 [MIT](LICENSE)
+
+## 🆕 Cambios recientes
+- Refactor visual de la card de listado de vehículos: precio y tipo de usuario alineados a la derecha, botón "Veure més" debajo.
+- Navegación al detalle de vehículo usando `slug` en vez de `id` para URLs amigables.
+- Mejoras de layout y experiencia de usuario en el listado de vehículos.
+
+Consulta el archivo [CHANGELOG.md](./CHANGELOG.md) para ver el historial completo de cambios.

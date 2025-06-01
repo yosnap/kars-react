@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import PageBreadcrumbs from "../components/PageBreadcrumbs";
 
 export default function Login() {
   const { login, user } = useAuth();
@@ -21,6 +22,11 @@ export default function Login() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
+      <PageBreadcrumbs
+        items={[
+          { label: { es: "Iniciar sesión", ca: "Iniciar sessió", en: "Login", fr: "Connexion" }, href: "/login" }
+        ]}
+      />
       <form onSubmit={handleSubmit} className="bg-white p-8 rounded shadow w-80">
         <h2 className="text-xl font-bold mb-4">Iniciar sesión</h2>
         <input

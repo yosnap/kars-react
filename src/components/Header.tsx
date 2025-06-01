@@ -1,78 +1,177 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import { useLocation, Link } from "react-router-dom";
+import logoMotoraldia from "../assets/logo-motoraldia-2024.jpg";
+import { useFavorites } from "../hooks/useFavorites";
 
 export default function Header() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const dropdownButtonRef = useRef<HTMLButtonElement>(null);
+  const dropdownMenuRef = useRef<HTMLDivElement>(null);
+  const closeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const userDropdownButtonRef = useRef<HTMLButtonElement>(null);
+  const userDropdownMenuRef = useRef<HTMLDivElement>(null);
+  const userCloseTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const location = useLocation();
+  const { favorites } = useFavorites();
+
+  useEffect(() => {
+    // Close menu with Escape key
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setSearchDropdownOpen(false);
+    }
+    if (searchDropdownOpen) {
+      document.addEventListener("keydown", handleKeyDown);
+    } else {
+      document.removeEventListener("keydown", handleKeyDown);
+    }
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [searchDropdownOpen]);
+
+  function handleMouseEnterSearch() {
+    if (closeTimeout.current) clearTimeout(closeTimeout.current);
+    setSearchDropdownOpen(true);
+  }
+  function handleMouseLeaveSearch() {
+    closeTimeout.current = setTimeout(() => setSearchDropdownOpen(false), 250);
+  }
+
+  function handleMouseEnterUser() {
+    if (userCloseTimeout.current) clearTimeout(userCloseTimeout.current);
+    setUserDropdownOpen(true);
+  }
+  function handleMouseLeaveUser() {
+    userCloseTimeout.current = setTimeout(() => setUserDropdownOpen(false), 250);
+  }
 
   return (
-    <header className="bg-white shadow-md border-b">
+    <header className="rounded-b-2xl shadow-md">
       {/* Top Bar */}
-      <div className="bg-orange-600 text-white py-2">
+      <div className="bg-tertiary text-white py-2">
         <div className="max-w-7xl mx-auto px-4 flex justify-between items-center text-sm">
           <div className="flex items-center space-x-4">
-            <span>📞 +34 900 123 456</span>
-            <span>✉️ info@motoraldia.com</span>
+            <span className="flex items-center gap-1 opacity-80">
+              {/* Phone icon */}
+              <svg className="w-4 h-4 inline-block text-primary-foreground opacity-70" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M22 16.92V21a1 1 0 0 1-1.09 1A19.91 19.91 0 0 1 3 5.09 1 1 0 0 1 4 4h4.09a1 1 0 0 1 1 .75l1.13 4.52a1 1 0 0 1-.29 1L8.21 12.21a16 16 0 0 0 7.58 7.58l1.94-1.94a1 1 0 0 1 1-.29l4.52 1.13a1 1 0 0 1 .75 1V21z" /></svg>
+              +34 900 123 456
+            </span>
+            <span className="flex items-center gap-1 opacity-80">
+              {/* Email icon */}
+              <svg className="w-4 h-4 inline-block text-primary-foreground opacity-70" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2" /><polyline points="22,6 12,13 2,6" /></svg>
+              info@motoraldia.com
+            </span>
           </div>
           <div className="flex items-center space-x-4">
-            <button className="text-white hover:text-orange-200 font-semibold">Iniciar Sesión</button>
-            <button className="text-white hover:text-orange-200 font-semibold">Registrarse</button>
+            <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent h-9 rounded-md px-3 text-white hover:text-primary">Iniciar Sesión</button>
+            <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent h-9 rounded-md px-3 text-white hover:text-primary">Registrarse</button>
           </div>
         </div>
       </div>
 
       {/* Main Header */}
-      <div className="max-w-7xl mx-auto px-4 py-4">
+      <div className="container mx-auto px-4 py-4 bg-white">
         <div className="flex items-center justify-between">
           {/* Logo y badge */}
           <div className="flex items-center">
-            <a href="/" className="text-2xl font-bold text-orange-600 tracking-tight">
-              Motoraldia
-            </a>
-            <span className="ml-2 bg-gray-800 text-white text-xs px-2 py-1 rounded font-semibold">Premium</span>
+            <Link to="/">
+              <img
+                src={logoMotoraldia}
+                alt="Logo Motoraldia 2024"
+                className="h-[100px] w-auto mr-4"
+              />
+            </Link>
           </div>
 
-          {/* Search Bar */}
-          <div className="flex-1 max-w-2xl mx-8">
-            <div className="relative">
-              {/* Icono de búsqueda */}
-              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-              <input
-                type="text"
-                placeholder="Buscar marca, modelo, año..."
-                className="pl-10 pr-4 py-2 w-full border-2 border-gray-200 focus:border-orange-600 rounded"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-              />
+          {/* Search Bar (solo si no es home) */}
+          {location.pathname !== "/" && (
+            <div className="flex-1 max-w-2xl mx-8">
+              <div className="relative">
+                {/* Search icon */}
+                <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                <input
+                  className="flex h-10 rounded-md bg-background px-3 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm pl-10 pr-4 py-2 w-full border-2 border-gray-200 focus:border-primary"
+                  placeholder="Buscar marca, modelo, año..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Navigation Buttons */}
           <div className="flex items-center space-x-3">
-            <button className="flex items-center border border-gray-300 rounded px-3 py-1 text-gray-700 hover:text-orange-600">
-              {/* Icono bookmark */}
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 3a2 2 0 0 0-2 2v16l9-4 9 4V5a2 2 0 0 0-2-2H5z" /></svg>
-              Favoritos
-            </button>
-            <button className="flex items-center bg-orange-600 hover:bg-orange-700 text-white rounded px-4 py-2 font-semibold shadow">
-              {/* Icono calendar */}
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+            <Link
+              to="/favoritos"
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-12 rounded-xl px-5 shadow transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              {/* Bookmark icon */}
+              <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 3a2 2 0 0 0-2 2v16l9-4 9 4V5a2 2 0 0 0-2-2H5z" /></svg>
+              {favorites.length > 0 ? `Favoritos (${favorites.length})` : "Favoritos"}
+            </Link>
+            {/* Iconos de idiomas como select solo con bandera */}
+            <div className="ml-2">
+              <select
+                className="border rounded-xl px-3 py-2 bg-white text-sm shadow h-12 focus:outline-none"
+                defaultValue="es"
+                title="Seleccionar idioma"
+                style={{ backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat' }}
+              >
+                <option value="en">🇬🇧</option>
+                <option value="es">🇪🇸</option>
+                <option value="ca">🏴</option>
+                <option value="fr">🇫🇷</option>
+              </select>
+            </div>
+            <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium text-white h-12 px-6 bg-primary hover:bg-secondary shadow transition-colors focus:outline-none focus:ring-2 focus:ring-primary">
+              {/* Calendar icon */}
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
               Publicar Anuncio
             </button>
             {/* Dropdown usuario */}
-            <div className="relative">
+            <div className="relative"
+              onMouseEnter={handleMouseEnterUser}
+              onMouseLeave={handleMouseLeaveUser}
+            >
               <button
-                className="flex items-center border border-gray-300 rounded px-2 py-1 text-gray-700 hover:text-orange-600"
-                onClick={() => setDropdownOpen(open => !open)}
+                ref={userDropdownButtonRef}
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-12 rounded-xl px-5 shadow transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+                onClick={() => setUserDropdownOpen(open => !open)}
+                aria-haspopup="true"
+                aria-expanded={userDropdownOpen}
+                onFocus={handleMouseEnterUser}
+                onBlur={e => {
+                  if (
+                    !userDropdownMenuRef.current?.contains(e.relatedTarget as Node) &&
+                    e.relatedTarget !== userDropdownButtonRef.current
+                  ) {
+                    setUserDropdownOpen(false);
+                  }
+                }}
               >
-                {/* Icono usuario */}
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" /></svg>
+                {/* User icon */}
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" /></svg>
               </button>
-              {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow z-50">
-                  <a href="/dashboard" className="block px-4 py-2 hover:bg-orange-50 text-gray-700">Mi Dashboard</a>
-                  <a href="/mis-anuncios" className="block px-4 py-2 hover:bg-orange-50 text-gray-700">Mis Anuncios</a>
-                  <a href="/mis-favoritos" className="block px-4 py-2 hover:bg-orange-50 text-gray-700">Mis Favoritos</a>
-                  <a href="/configuracion" className="block px-4 py-2 hover:bg-orange-50 text-gray-700">Configuración</a>
+              {userDropdownOpen && (
+                <div
+                  ref={userDropdownMenuRef}
+                  className="absolute right-0 mt-2 w-48 bg-white border border-border rounded shadow z-50"
+                  tabIndex={-1}
+                  onMouseEnter={handleMouseEnterUser}
+                  onMouseLeave={handleMouseLeaveUser}
+                  onBlur={e => {
+                    if (
+                      !userDropdownButtonRef.current?.contains(e.relatedTarget as Node) &&
+                      e.relatedTarget !== userDropdownMenuRef.current
+                    ) {
+                      setUserDropdownOpen(false);
+                    }
+                  }}
+                >
+                  <a href="/dashboard" className="block px-4 py-2 hover:bg-primary/10 text-tertiary">Mi Dashboard</a>
+                  <a href="/mis-anuncios" className="block px-4 py-2 hover:bg-primary/10 text-tertiary">Mis Anuncios</a>
+                  <a href="/mis-favoritos" className="block px-4 py-2 hover:bg-primary/10 text-tertiary">Mis Favoritos</a>
+                  <a href="/configuracion" className="block px-4 py-2 hover:bg-primary/10 text-tertiary">Configuración</a>
                 </div>
               )}
             </div>
@@ -81,35 +180,75 @@ export default function Header() {
       </div>
 
       {/* Navigation Menu */}
-      <nav className="border-t bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4">
+      <nav className="border bg-gray-50">
+        <div className="container mx-auto px-4">
           <div className="flex items-center justify-between py-3">
             <div className="flex space-x-8">
-              <a href="/" className="text-gray-700 hover:text-orange-600 font-medium">Inicio</a>
-              {/* Dropdown Què busques? */}
-              <div className="relative group">
-                <button className="flex items-center text-gray-700 hover:text-orange-600 font-medium transition-colors">
-                  Què busques?
+              {/* Dropdown Què busques? accesible con teclado y mouse, con retardo al cerrar */}
+              <div
+                className="relative"
+                onMouseEnter={handleMouseEnterSearch}
+                onMouseLeave={handleMouseLeaveSearch}
+              >
+                <button
+                  ref={dropdownButtonRef}
+
+                  className="flex items-center text-tertiary hover:text-primary font-medium transition-colors"
+                  aria-haspopup="true"
+                  aria-expanded={searchDropdownOpen}
+                  onFocus={handleMouseEnterSearch}
+                  onBlur={e => {
+                    if (
+                      !dropdownMenuRef.current?.contains(e.relatedTarget as Node) &&
+                      e.relatedTarget !== dropdownButtonRef.current
+                    ) {
+                      setSearchDropdownOpen(false);
+                    }
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSearchDropdownOpen(open => !open);
+                    }
+                  }}
+                >
+                  <a href="/vehicles-andorra" className="text-tertiary hover:text-primary font-medium">Què busques?</a>
                   <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" /></svg>
                 </button>
-                <div className="absolute left-0 mt-2 w-48 bg-white border rounded shadow-lg z-50 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity">
-                  <a href="/coches?estado=nuevo" className="block px-4 py-2 text-gray-700 hover:text-orange-600">Nous</a>
-                  <a href="/coches?estado=seminuevo" className="block px-4 py-2 text-gray-700 hover:text-orange-600">Seminous</a>
-                  <a href="/coches?estado=ocasion" className="block px-4 py-2 text-gray-700 hover:text-orange-600">Ocasió</a>
-                  <a href="/coches?tipo=alquiler" className="block px-4 py-2 text-gray-700 hover:text-orange-600">Lloguer</a>
-                  <a href="/coches?estado=km0" className="block px-4 py-2 text-gray-700 hover:text-orange-600">Km0</a>
-                  <a href="/coches?categoria=clasicos" className="block px-4 py-2 text-gray-700 hover:text-orange-600">Clàssics</a>
-                  <a href="/coches?tipo=renting" className="block px-4 py-2 text-gray-700 hover:text-orange-600">Renting</a>
-                </div>
+                {searchDropdownOpen && (
+                  <div
+                    ref={dropdownMenuRef}
+                    className="absolute left-0 mt-2 w-64 bg-white border border-border rounded shadow-lg z-50 transition-opacity"
+                    tabIndex={-1}
+                    onMouseEnter={handleMouseEnterSearch}
+                    onMouseLeave={handleMouseLeaveSearch}
+                    onBlur={e => {
+                      if (
+                        !dropdownButtonRef.current?.contains(e.relatedTarget as Node) &&
+                        e.relatedTarget !== dropdownMenuRef.current
+                      ) {
+                        setSearchDropdownOpen(false);
+                      }
+                    }}
+                  >
+                    <a href="/cotxes-nous-a-andorra/" className="block px-4 py-2 text-tertiary hover:text-primary">Nous</a>
+                    <a href="/cotxes-seminous-a-andorra/" className="block px-4 py-2 text-tertiary hover:text-primary">Seminous</a>
+                    <a href="/cotxes-de-segona-ma-a-andorra/" className="block px-4 py-2 text-tertiary hover:text-primary">Ocasió</a>
+                    <a href="/cotxes-lloguer-a-andorra/" className="block px-4 py-2 text-tertiary hover:text-primary">Lloguer</a>
+                    <a href="/cotxes-km0-a-andorra/" className="block px-4 py-2 text-tertiary hover:text-primary">Km0</a>
+                    <a href="/cotxes-classics-a-andorra/" className="block px-4 py-2 text-tertiary hover:text-primary">Classics</a>
+                    <a href="/cotxes-renting-a-andorra/" className="block px-4 py-2 text-tertiary hover:text-primary">Renting</a>
+                  </div>
+                )}
               </div>
-              <a href="/prestec-cotxe" className="text-gray-700 hover:text-orange-600 font-medium">Prèstec cotxe</a>
-              <a href="/taxacions" className="text-gray-700 hover:text-orange-600 font-medium">Taxacions</a>
-              <a href="/documents" className="text-gray-700 hover:text-orange-600 font-medium">Documents compravenda</a>
-              <a href="/blog" className="text-gray-700 hover:text-orange-600 font-medium">Blog</a>
-              <a href="/favorits" className="text-gray-700 hover:text-orange-600 font-medium">Favorits</a>
+              <a href="/prestec-cotxe" className="text-tertiary hover:text-primary font-medium">Prèstec cotxe</a>
+              <a href="/taxacions" className="text-tertiary hover:text-primary font-medium">Taxacions</a>
+              <a href="/documents" className="text-tertiary hover:text-primary font-medium">Documents compravenda</a>
+              <a href="/blog" className="text-tertiary hover:text-primary font-medium">Blog</a>
+              <a href="/favorits" className="text-tertiary hover:text-primary font-medium">Favorits</a>
             </div>
-            <button className="flex items-center border border-gray-300 rounded px-3 py-1 text-gray-700 hover:text-orange-600">
-              {/* Icono filtro */}
+            <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3">
+              {/* Filter icon */}
               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 4a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v2a1 1 0 0 1-.293.707l-6.414 6.414A1 1 0 0 0 13 14.414V19a1 1 0 0 1-1.447.894l-2-1A1 1 0 0 1 9 18.118V14.414a1 1 0 0 0-.293-.707L2.293 6.707A1 1 0 0 1 2 6V4z" /></svg>
               Filtros Avanzados
             </button>
