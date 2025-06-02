@@ -18,6 +18,7 @@ import CotxesLloguerPage from "./pages/subpages/CotxesLloguerPage";
 import CotxesClassicsPage from "./pages/subpages/CotxesClassicsPage";
 import CotxesRentingPage from "./pages/subpages/CotxesRentingPage";
 import FavoritosPage from "./pages/favoritos";
+import ProfessionalProfile from "./pages/ProfessionalProfile";
 
 // Componente para proteger rutas privadas
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
@@ -36,7 +37,8 @@ function App() {
         <Routes>
           {/* Rutas públicas */}
           <Route path="/" element={<Home />} />
-          <Route path="/vehicle/:id" element={<VehicleDetail />} />
+          <Route path="/vehicle/:slug" element={<VehicleDetail />} />
+          <Route path="/professional/:id" element={<ProfessionalProfile />} />
           <Route path="/new" element={<NewVehicle />} />
           <Route path="/login" element={<Login />} />
           <Route path="/vehicles-andorra" element={<CotxesAndorra />} />

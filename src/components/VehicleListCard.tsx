@@ -5,27 +5,24 @@ import { Link, useNavigate } from "react-router-dom";
 import { useFavorites } from "../hooks/useFavorites";
 import { useToast } from "../hooks/use-toast";
 
-interface Vehicle {
+// Tipo visual para tarjetas de vehículo
+export interface VehicleUI {
   id: string;
-  slug: string;
   "titol-anunci": string;
   "descripcio-anunci": string;
   "marques-cotxe": string;
   "models-cotxe": string;
   "estat-vehicle": string;
-  "any": string;
-  "quilometratge": string;
-  "preu": string;
+  any: string;
+  quilometratge: string;
+  preu: string;
   "color-vehicle": string;
   "tipus-combustible": string;
-  "anunci-destacat": string;
-  "imatge-destacada-url": string;
-  "galeria-vehicle-urls": string[];
-  "anunci-actiu": boolean;
+  slug: string;
 }
 
 interface VehicleListCardProps {
-  vehicle: Vehicle;
+  vehicle: VehicleUI;
 }
 
 const VehicleListCard = ({ vehicle }: VehicleListCardProps) => {
@@ -70,7 +67,7 @@ const VehicleListCard = ({ vehicle }: VehicleListCardProps) => {
   const estado = vehicle["estat-vehicle"];
   const estadoUrl = estado && estadoToArchiveUrl[estado] ? estadoToArchiveUrl[estado] : `/estat-vehicle/${estado}`;
 
-  const isInactive = vehicle["anunci-actiu"] === false;
+  const isInactive = false; // Assuming the vehicle is always active in this component
 
   return (
     <Card className={`overflow-hidden hover:shadow-lg transition-shadow relative${isInactive ? " opacity-50" : ""}`}>

@@ -20,6 +20,11 @@ interface VehicleListLayoutProps {
   initialFilters?: Record<string, string | boolean>;
   breadcrumbs?: Array<{ label: BreadcrumbLabel; href: string }>;
   pageTitle?: string;
+  PaginationComponent?: React.FC<{
+    currentPage: number;
+    totalPages: number;
+    onPageChange: (page: number) => void;
+  }>;
   // basePath?: string;
 }
 
@@ -36,6 +41,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
   initialFilters = {},
   breadcrumbs = [],
   pageTitle = "Listado de vehículos",
+  PaginationComponent,
   // basePath = "/vehicles-andorra",
 }) => {
   const filters = useQueryParams();
@@ -228,21 +234,31 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
           {renderVehicles()}
           {/* Paginación visual */}
           <div className="flex justify-center items-center gap-4 mt-8">
-            <button
-              className="px-4 py-2 rounded bg-gray-200 text-gray-700 font-semibold disabled:opacity-50"
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage <= 1}
-            >
-              Anterior
-            </button>
-            <span>Página {currentPage} de {totalPages}</span>
-            <button
-              className="px-4 py-2 rounded bg-gray-200 text-gray-700 font-semibold disabled:opacity-50"
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage >= totalPages}
-            >
-              Siguiente
-            </button>
+            {PaginationComponent ? (
+              <PaginationComponent
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
+            ) : (
+              <>
+                <button
+                  className="px-4 py-2 rounded bg-gray-200 text-gray-700 font-semibold disabled:opacity-50"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                >
+                  Anterior
+                </button>
+                <span>Página {currentPage} de {totalPages}</span>
+                <button
+                  className="px-4 py-2 rounded bg-gray-200 text-gray-700 font-semibold disabled:opacity-50"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage >= totalPages}
+                >
+                  Siguiente
+                </button>
+              </>
+            )}
           </div>
         </main>
       </div>

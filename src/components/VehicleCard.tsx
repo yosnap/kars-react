@@ -6,9 +6,25 @@ import { Crown, Star } from "lucide-react";
 import { useFavorites } from "../hooks/useFavorites";
 import { useToast } from "../hooks/use-toast";
 
+// Tipo visual para tarjetas de vehículo
+export interface VehicleUI {
+  id: string;
+  "titol-anunci": string;
+  "descripcio-anunci": string;
+  "marques-cotxe": string;
+  "models-cotxe": string;
+  "estat-vehicle": string;
+  any: string;
+  quilometratge: string;
+  preu: string;
+  "color-vehicle": string;
+  "tipus-combustible": string;
+  slug: string;
+}
 
 interface VehicleCardProps {
-  vehicle: Vehicle;
+  vehicle: VehicleUI;
+  crown?: boolean;
 }
 
 const VehicleCard = ({ vehicle }: VehicleCardProps) => {
@@ -30,8 +46,11 @@ const VehicleCard = ({ vehicle }: VehicleCardProps) => {
     return new Intl.NumberFormat('es-ES').format(Number(km)) + ' km';
   };
 
+  // Use slug for navigation if available, fallback to id
   const handleViewMore = () => {
-    navigate(`/vehicle/${vehicle.id}`);
+    // If the vehicle has a slug, use it in the URL; otherwise, fallback to id
+    const slugOrId = (vehicle as any).slug || vehicle.id;
+    navigate(`/vehicle/${slugOrId}`);
   };
 
   const handleToggleFavorite = (e: React.MouseEvent) => {

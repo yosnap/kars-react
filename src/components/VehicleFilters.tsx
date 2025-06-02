@@ -44,7 +44,6 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({ initialFilters, onApply
       // Load states
       axiosAdmin.get(endpointEstados)
         .then((res) => {
-          console.log("Estados API:", res.data.data);
           let estados = Array.isArray(res.data.data) ? res.data.data : [];
           // Si es array de strings, mapear a { value, label }
           if (estados.length > 0 && typeof estados[0] === "string") {
@@ -59,7 +58,6 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({ initialFilters, onApply
       // Load fuels
       axiosAdmin.get(endpointCombustibles)
         .then((res) => {
-          console.log("Combustibles API:", res.data.data);
           let combustibles = Array.isArray(res.data.data) ? res.data.data : [];
           if (combustibles.length > 0 && typeof combustibles[0] === "string") {
             combustibles = combustibles.map((c: string) => ({ value: c, label: c }));

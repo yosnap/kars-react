@@ -21,4 +21,26 @@ Todas las modificaciones importantes del proyecto se documentarán en este archi
   - Botón "Veure més" debajo, junto a la fila de información técnica.
 - Navegación al detalle de vehículo usando `slug` en vez de `id` para URLs amigables.
 - Ajustes de layout y estructura para mejorar la experiencia de usuario y la visualización responsive.
-- Limpieza de archivos y componentes antiguos no utilizados. 
+- Limpieza de archivos y componentes antiguos no utilizados.
+
+## [2024-06-10] - v1.1.0
+
+### Añadido
+- Separador visual entre la imagen de portada y la información del vendedor en el perfil profesional (luego eliminado por decisión de diseño).
+- Overlay oscuro con opacidad baja sobre la imagen de portada del perfil profesional para mejorar el contraste.
+- Paginación real y recarga eficiente de vehículos en stock y vendidos, con carga paralela y prioridad visual para los vehículos en stock.
+- Bordes y esquinas redondeadas en los contenedores principales del perfil profesional para mantener coherencia visual con el resto de la web.
+- Separación visual y lógica robusta para distinguir entre vehículos en stock y vendidos, usando el campo `venut` como string ('true'/'false').
+- Mejora en la visualización del logo de empresa, centrado y sin overlays innecesarios.
+
+### Corregido
+- Problemas de paginación y recarga de vehículos vendidos.
+- Problemas de visualización y separación entre bloques en la cabecera del perfil profesional.
+- Eliminación de logs y código de depuración.
+
+### Eliminado
+- Separador visual entre logo y contenido, ya que el overlay cumple la función de separación visual.
+
+---
+
+> Versión actualizada a la fecha de hoy tras los cambios en la página de perfil profesional y mejoras visuales/UX. 

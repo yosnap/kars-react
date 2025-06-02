@@ -54,5 +54,6 @@ export type Vehicle = {
   "color-tapisseria"?: string;
   "extres-cotxe"?: string[];
   "anunci-actiu"?: boolean;
+  slug: string; // Slug obligatorio para rutas amigables
   // Otros campos relevantes pueden añadirse aquí
 }; 
