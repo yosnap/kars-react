@@ -41,6 +41,13 @@ Todas las modificaciones importantes del proyecto se documentarán en este archi
 ### Eliminado
 - Separador visual entre logo y contenido, ya que el overlay cumple la función de separación visual.
 
+## [Unreleased]
+### Mejorado
+- El slider de 'Vehículos Destacados' ahora solo muestra vehículos activos y no vendidos, con autoplay que se pausa al interactuar y favoritos accesibles desde el slider.
+- La sección 'Últimos vehículos añadidos' solo muestra los 12 últimos vehículos activos y no vendidos, y el botón 'Ver Más Vehículos' lleva a la página '/vehicles-andorra'.
+- Mejoras de accesibilidad y experiencia en las cards de vehículo: favoritos animados, navegación por teclado y apertura de detalle en nueva pestaña.
+- El botón 'Ver Más Vehículos' ahora usa el color primario para mantener coherencia visual.
+
 ---
 
 > Versión actualizada a la fecha de hoy tras los cambios en la página de perfil profesional y mejoras visuales/UX. 

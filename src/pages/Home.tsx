@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { Vehicle } from "../types/Vehicle";
 import HeroSection from "../components/HeroSection";
 import FeaturedVehicles from "../components/FeaturedVehicles";
 import ProfessionalsSection from "../components/ProfessionalsSection";
@@ -10,12 +9,12 @@ import AdBanner from "../components/AdBanner";
 import Footer from "../components/Footer";
 import FloatingFilterButton from "../components/FloatingFilterButton";
 import VehicleFilters from "../components/VehicleFilters";
+import type { VehicleUI } from "../components/VehicleCard";
 
 export default function Home() {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [vehicles, setVehicles] = useState<VehicleUI[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [page, setPage] = useState(1);
   const [isFilterSidebarOpen, setIsFilterSidebarOpen] = useState(false);
 
   const navigate = useNavigate();
@@ -24,21 +23,46 @@ export default function Home() {
   useEffect(() => {
     setLoading(true);
     import("../api/axiosClient").then(({ axiosAdmin }) => {
-      axiosAdmin.get("/vehicles?anunci-actiu=true", { params: { page } })
+      axiosAdmin.get("/vehicles", {
+        params: {
+          "anunci-actiu": true,
+          venut: false,
+          per_page: 12,
+          order: "desc"
+        }
+      })
         .then(res => {
-          setVehicles(res.data.items || []);
+          // Filtrar solo activos y no vendidos (ambos como string)
+          const ultimos = (res.data.items || []).filter(
+            (v: Record<string, string>) => v["anunci-actiu"] === "true" && v["venut"] === "false"
+          ).map((v: { [key: string]: unknown }) => ({
+            id: String(v.id),
+            ["titol-anunci"]: v["titol-anunci"] ?? "",
+            ["descripcio-anunci"]: v["descripcio-anunci"] ?? "",
+            ["marques-cotxe"]: v["marques-cotxe"] ?? "",
+            ["models-cotxe"]: v["models-cotxe"] ?? "",
+            ["estat-vehicle"]: v["estat-vehicle"] ?? "",
+            any: v["any"] ?? "",
+            quilometratge: v["quilometratge"] !== undefined && v["quilometratge"] !== null ? String(v["quilometratge"]) : "",
+            preu: v["preu"] !== undefined && v["preu"] !== null ? String(v["preu"]) : "",
+            ["color-vehicle"]: v["color-vehicle"] ?? "",
+            ["tipus-combustible"]: v["tipus-combustible"] ?? "",
+            slug: v["slug"] ?? "",
+            ["anunci-destacat"]: v["anunci-destacat"] !== undefined ? String(v["anunci-destacat"]) : "",
+            ["imatge-destacada-url"]: v["imatge-destacada-url"] ?? ""
+          })) as VehicleUI[];
+          setVehicles(ultimos);
         })
         .catch(() => {
           setError("Error al cargar vehículos");
         })
         .finally(() => setLoading(false));
     });
-  }, [page]);
+  }, []);
 
   // Callback para aplicar filtros: navegar a /cotxes-andorra con los filtros como query params
   const handleApplyFilters = (filters: Record<string, string>) => {
     setIsFilterSidebarOpen(false);
-    setPage(1);
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([k, v]) => {
       if (v) params.append(k, v);
@@ -68,7 +92,10 @@ export default function Home() {
         </div>
         {/* Botón Ver Más Vehículos */}
         <div className="text-center mb-8">
-          <button onClick={() => setPage((p) => p + 1)} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-colors">
+          <button
+            onClick={() => navigate("/vehicles-andorra")}
+            className="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg font-medium transition-colors"
+          >
             Ver Más Vehículos
           </button>
         </div>

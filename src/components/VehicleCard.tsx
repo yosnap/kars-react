@@ -1,10 +1,10 @@
-import type { Vehicle } from "../types/Vehicle";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Crown, Star } from "lucide-react";
 import { useFavorites } from "../hooks/useFavorites";
 import { useToast } from "../hooks/use-toast";
+import { useRef, useState } from "react";
 
 // Tipo visual para tarjetas de vehículo
 export interface VehicleUI {
@@ -20,17 +20,24 @@ export interface VehicleUI {
   "color-vehicle": string;
   "tipus-combustible": string;
   slug: string;
+  "anunci-actiu"?: string;
+  venut?: string;
+  "anunci-destacat"?: string;
+  "imatge-destacada-url"?: string;
 }
 
 interface VehicleCardProps {
   vehicle: VehicleUI;
   crown?: boolean;
+  onUserAction?: () => void;
 }
 
-const VehicleCard = ({ vehicle }: VehicleCardProps) => {
+const VehicleCard = ({ vehicle, onUserAction }: VehicleCardProps) => {
   const navigate = useNavigate();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { showToast } = useToast();
+  const [favAnim, setFavAnim] = useState(false);
+  const favTimeout = useRef<number | null>(null);
 
   const formatPrice = (price?: number | string) => {
     if (!price || Number(price) === 0) return "A consultar";
@@ -46,22 +53,27 @@ const VehicleCard = ({ vehicle }: VehicleCardProps) => {
     return new Intl.NumberFormat('es-ES').format(Number(km)) + ' km';
   };
 
-  // Use slug for navigation if available, fallback to id
-  const handleViewMore = () => {
-    // If the vehicle has a slug, use it in the URL; otherwise, fallback to id
-    const slugOrId = (vehicle as any).slug || vehicle.id;
+  const handleViewMore = (e?: React.MouseEvent | React.KeyboardEvent) => {
+    if (onUserAction) onUserAction();
+    // Si es botón, abrir en nueva pestaña
+    if (e && (e as React.MouseEvent).currentTarget.tagName === 'A') return;
+    const slugOrId = vehicle.slug || vehicle.id;
     navigate(`/vehicle/${slugOrId}`);
   };
 
   const handleToggleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (onUserAction) onUserAction();
     const wasFavorite = isFavorite(String(vehicle.id));
     toggleFavorite(String(vehicle.id));
     showToast(wasFavorite ? "Eliminado de favoritos" : "Agregado a favoritos", wasFavorite ? "info" : "success");
+    setFavAnim(true);
+    if (favTimeout.current) clearTimeout(favTimeout.current);
+    favTimeout.current = setTimeout(() => setFavAnim(false), 350);
   };
 
-  const isInactive = vehicle["anunci-actiu"] === false;
-  const isSold = vehicle["venut"] === true;
+  const isInactive = vehicle["anunci-actiu"] === "false";
+  const isSold = vehicle["venut"] === "true";
 
   return (
     <Card className={`overflow-hidden hover:shadow-lg transition-shadow relative group${isInactive ? " opacity-50" : ""}`}>
@@ -92,14 +104,21 @@ const VehicleCard = ({ vehicle }: VehicleCardProps) => {
       {/* Icono favoritos */}
       <div className="absolute top-2 right-2 z-10">
         <div
-          className={`rounded-full p-2 shadow hover:shadow-lg transition-colors cursor-pointer ${isFavorite(String(vehicle.id)) ? "bg-primary" : "bg-white/80 backdrop-blur-sm hover:bg-white"}`}
+          className={`rounded-full p-2 shadow hover:shadow-lg transition-colors cursor-pointer ${isFavorite(String(vehicle.id)) ? "bg-primary" : "bg-white/80 backdrop-blur-sm hover:bg-white"} ${favAnim ? "animate-fav-bounce" : ""}`}
           onClick={handleToggleFavorite}
         >
           <Star className={`w-4 h-4 transition-colors ${isFavorite(String(vehicle.id)) ? "text-white" : "text-gray-600 group-hover:text-primary"}`} />
         </div>
       </div>
       {/* Imagen */}
-      <div className="aspect-video overflow-hidden cursor-pointer" onClick={handleViewMore}>
+      <div
+        className="aspect-video overflow-hidden cursor-pointer"
+        onClick={handleViewMore}
+        tabIndex={0}
+        onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && handleViewMore(e)}
+        aria-label={`Ver detalle de ${vehicle["titol-anunci"] ?? "vehículo"}`}
+        role="button"
+      >
         <img
           src={vehicle["imatge-destacada-url"] ?? ""}
           alt={vehicle["titol-anunci"] ?? ""}
@@ -113,7 +132,15 @@ const VehicleCard = ({ vehicle }: VehicleCardProps) => {
             {vehicle["estat-vehicle"]}
           </Badge>
           {/* Título del anuncio */}
-          <h3 className="font-semibold text-lg truncate cursor-pointer" title={vehicle["titol-anunci"] ?? ""} onClick={handleViewMore}>
+          <h3
+            className="font-semibold text-lg truncate cursor-pointer"
+            title={vehicle["titol-anunci"] ?? ""}
+            onClick={handleViewMore}
+            tabIndex={0}
+            onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && handleViewMore(e)}
+            aria-label={`Ver detalle de ${vehicle["titol-anunci"] ?? "vehículo"}`}
+            role="button"
+          >
             {vehicle["titol-anunci"] ?? ""}
           </h3>
           {/* Precio */}
@@ -138,12 +165,15 @@ const VehicleCard = ({ vehicle }: VehicleCardProps) => {
           </div>
           {/* Botón Ver más */}
           <div className="pt-2">
-            <button 
-              onClick={handleViewMore}
-              className="w-full bg-primary hover:bg-secondary text-white py-2 px-4 rounded-lg font-medium transition-colors cursor-pointer"
+            <a
+              href={`/vehicle/${vehicle.slug || vehicle.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full block bg-primary hover:bg-secondary text-white py-2 px-4 rounded-lg font-medium transition-colors text-center cursor-pointer"
+              onClick={onUserAction}
             >
               Veure més
-            </button>
+            </a>
           </div>
         </div>
       </CardContent>

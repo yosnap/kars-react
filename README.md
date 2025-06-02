@@ -41,8 +41,9 @@ Abre [http://localhost:5173](http://localhost:5173) en tu navegador para ver la 
 [MIT](LICENSE)
 
 ## 🆕 Cambios recientes
-- Refactor visual de la card de listado de vehículos: precio y tipo de usuario alineados a la derecha, botón "Veure més" debajo.
-- Navegación al detalle de vehículo usando `slug` en vez de `id` para URLs amigables.
-- Mejoras de layout y experiencia de usuario en el listado de vehículos.
+- El slider de 'Vehículos Destacados' solo muestra vehículos activos y no vendidos, con favoritos accesibles y autoplay que se pausa al interactuar.
+- La sección 'Últimos vehículos añadidos' solo muestra los 12 últimos vehículos activos y no vendidos. El botón 'Ver Más Vehículos' lleva a '/vehicles-andorra'.
+- Mejoras de accesibilidad: favoritos animados, navegación por teclado y apertura de detalle en nueva pestaña desde las cards.
+- El botón 'Ver Más Vehículos' ahora usa el color primario.
 
 Consulta el archivo [CHANGELOG.md](./CHANGELOG.md) para ver el historial completo de cambios.
