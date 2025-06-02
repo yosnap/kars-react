@@ -41,6 +41,10 @@ Todas las modificaciones importantes del proyecto se documentarán en este archi
 ### Eliminado
 - Separador visual entre logo y contenido, ya que el overlay cumple la función de separación visual.
 
+## [1.1.1] - 2024-06-XX
+### Corregido
+- Tipado robusto en `VehicleListLayout`: conversión de campos numéricos y booleanos (`quilometratge`, `preu`, `anunci-actiu`, `venut`, `anunci-destacat`) a string en el mapeo a `VehicleUI` para evitar errores de build y despliegue en Vercel.
+
 ## [Unreleased]
 ### Mejorado
 - El slider de 'Vehículos Destacados' ahora solo muestra vehículos activos y no vendidos, con autoplay que se pausa al interactuar y favoritos accesibles desde el slider.

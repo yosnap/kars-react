@@ -8,17 +8,21 @@ import { useToast } from "../hooks/use-toast";
 // Tipo visual para tarjetas de vehículo
 export interface VehicleUI {
   id: string;
-  "titol-anunci": string;
-  "descripcio-anunci": string;
-  "marques-cotxe": string;
-  "models-cotxe": string;
-  "estat-vehicle": string;
-  any: string;
-  quilometratge: string;
-  preu: string;
-  "color-vehicle": string;
-  "tipus-combustible": string;
-  slug: string;
+  "titol-anunci"?: string;
+  "descripcio-anunci"?: string;
+  "marques-cotxe"?: string;
+  "models-cotxe"?: string;
+  "estat-vehicle"?: string;
+  any?: string;
+  quilometratge?: string;
+  preu?: string;
+  "color-vehicle"?: string;
+  "tipus-combustible"?: string;
+  slug?: string;
+  "anunci-actiu"?: string;
+  venut?: string;
+  "anunci-destacat"?: string;
+  "imatge-destacada-url"?: string;
 }
 
 interface VehicleListCardProps {
@@ -118,12 +122,12 @@ const VehicleListCard = ({ vehicle }: VehicleListCardProps) => {
                     {vehicle["titol-anunci"]}
                   </span>
                 </h3>
-                <p className="text-gray-600 text-sm line-clamp-2" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} dangerouslySetInnerHTML={{ __html: vehicle["descripcio-anunci"] }} />
+                <p className="text-gray-600 text-sm line-clamp-2" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} dangerouslySetInnerHTML={{ __html: vehicle["descripcio-anunci"] ?? "" }} />
               </div>
               {/* Precio y badge usuario */}
               <div className="flex flex-col items-end min-w-[110px] ml-4">
                 <p className="text-2xl font-bold text-primary">
-                  {formatPrice(vehicle["preu"])}
+                  {formatPrice(vehicle["preu"] ?? "")}
                 </p>
                 <Badge variant="outline" className="text-xs mt-1">
                   Profesional
@@ -140,7 +144,7 @@ const VehicleListCard = ({ vehicle }: VehicleListCardProps) => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Gauge className="w-4 h-4" />
-                  <span>{formatKilometers(vehicle["quilometratge"])} </span>
+                  <span>{formatKilometers(vehicle["quilometratge"] ?? "")} </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Fuel className="w-4 h-4" />

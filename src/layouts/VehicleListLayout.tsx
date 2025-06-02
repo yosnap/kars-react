@@ -127,13 +127,22 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
     if (loading) return <Spinner />;
     if (error) return <div className="text-red-600">{error}</div>;
     if (!vehicles.length) return <div>No hay vehículos disponibles.</div>;
+    // Mapeo seguro a VehicleUI
+    const vehiclesUI = vehicles.map((v) => ({
+      ...v,
+      quilometratge: v.quilometratge !== undefined && v.quilometratge !== null ? String(v.quilometratge) : "",
+      preu: v.preu !== undefined && v.preu !== null ? String(v.preu) : "",
+      ["anunci-actiu"]: v["anunci-actiu"] !== undefined && v["anunci-actiu"] !== null ? String(v["anunci-actiu"]) : "",
+      venut: v.venut !== undefined && v.venut !== null ? String(v.venut) : "",
+      ["anunci-destacat"]: v["anunci-destacat"] !== undefined && v["anunci-destacat"] !== null ? String(v["anunci-destacat"]) : "",
+    }));
     return (
       <div className={
         viewMode === "grid"
           ? `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6`
           : "space-y-4"
       }>
-        {vehicles.map((v) =>
+        {vehiclesUI.map((v) =>
           viewMode === "grid"
             ? <VehicleCard key={v.id} vehicle={v} />
             : <VehicleListCard key={v.id} vehicle={v} />

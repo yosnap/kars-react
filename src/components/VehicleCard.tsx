@@ -9,17 +9,17 @@ import { useRef, useState } from "react";
 // Tipo visual para tarjetas de vehículo
 export interface VehicleUI {
   id: string;
-  "titol-anunci": string;
-  "descripcio-anunci": string;
-  "marques-cotxe": string;
-  "models-cotxe": string;
-  "estat-vehicle": string;
-  any: string;
-  quilometratge: string;
-  preu: string;
-  "color-vehicle": string;
-  "tipus-combustible": string;
-  slug: string;
+  "titol-anunci"?: string;
+  "descripcio-anunci"?: string;
+  "marques-cotxe"?: string;
+  "models-cotxe"?: string;
+  "estat-vehicle"?: string;
+  any?: string;
+  quilometratge?: string;
+  preu?: string;
+  "color-vehicle"?: string;
+  "tipus-combustible"?: string;
+  slug?: string;
   "anunci-actiu"?: string;
   venut?: string;
   "anunci-destacat"?: string;

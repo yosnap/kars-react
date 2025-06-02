@@ -47,3 +47,7 @@ Abre [http://localhost:5173](http://localhost:5173) en tu navegador para ver la 
 - El botón 'Ver Más Vehículos' ahora usa el color primario.
 
 Consulta el archivo [CHANGELOG.md](./CHANGELOG.md) para ver el historial completo de cambios.
+
+## Notas de tipado y despliegue
+
+- Los datos de la API pueden traer campos numéricos o booleanos, pero los componentes visuales esperan strings. Se debe mapear y convertir estos campos (por ejemplo, `quilometratge`, `preu`, `anunci-actiu`, `venut`, `anunci-destacat`) a string antes de pasarlos a los componentes. Esto es fundamental para evitar errores de build y asegurar compatibilidad con TypeScript y Vercel.
