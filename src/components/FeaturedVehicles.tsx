@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import VehicleCard from "./VehicleCard";
 import { axiosAdmin } from "../api/axiosClient";
 import type { Vehicle } from "../types/Vehicle";
+import { VehicleCardSkeleton } from "./VehicleCard";
 
 const AUTOPLAY_INTERVAL = 4000;
 
@@ -58,8 +59,8 @@ const FeaturedVehicles = () => {
     }
     autoplayRef.current = window.setInterval(() => {
       setCurrentIndex((prev) => {
-        if (prev + 1 >= totalGroups) return 0;
-        return prev + 1;
+        const next = prev + 1 >= totalGroups ? 0 : prev + 1;
+        return next;
       });
     }, AUTOPLAY_INTERVAL);
     return () => {
@@ -69,14 +70,14 @@ const FeaturedVehicles = () => {
 
   const handlePrev = () => {
     setCurrentIndex((prev) => {
-      if (prev === 0) return totalGroups - 1;
-      return prev - 1;
+      const next = prev === 0 ? totalGroups - 1 : prev - 1;
+      return next;
     });
   };
   const handleNext = () => {
     setCurrentIndex((prev) => {
-      if (prev + 1 >= totalGroups) return 0;
-      return prev + 1;
+      const next = prev + 1 >= totalGroups ? 0 : prev + 1;
+      return next;
     });
   };
 
@@ -86,9 +87,6 @@ const FeaturedVehicles = () => {
       setCurrentIndex(Math.max(totalGroups - 1, 0));
     }
   }, [totalGroups, currentIndex]);
-
-  // Para accesibilidad, ir al grupo al hacer focus
-  const handleFocus = (idx: number) => setCurrentIndex(idx);
 
   // Pausa de autoplay al interactuar
   const pauseAutoplay = () => {
@@ -100,7 +98,15 @@ const FeaturedVehicles = () => {
   // Render cards visibles (ventana deslizante)
   const renderCards = () => {
     if (loading) {
-      return <div className="text-center w-full py-8 text-primary">Cargando...</div>;
+      return (
+        <div className="flex w-full gap-6 justify-center">
+          {[...Array(visibleCount)].map((_, i) => (
+            <div key={i} className="w-full max-w-xs flex-shrink-0" style={{ flex: `0 0 ${100 / visibleCount}%` }}>
+              <VehicleCardSkeleton />
+            </div>
+          ))}
+        </div>
+      );
     }
     if (vehicles.length === 0) {
       return <div className="text-center w-full py-8 text-primary">No hay vehículos destacados en este momento.</div>;
@@ -108,7 +114,7 @@ const FeaturedVehicles = () => {
     const windowVehicles = vehicles.slice(currentIndex, currentIndex + visibleCount);
     return (
       <div className="flex w-full gap-6 justify-center">
-        {windowVehicles.map((vehicle, idx) => {
+        {windowVehicles.map((vehicle) => {
           const uiVehicle = {
             id: String(vehicle.id),
             ["titol-anunci"]: vehicle["titol-anunci"] ?? "",
@@ -131,8 +137,6 @@ const FeaturedVehicles = () => {
             <div
               key={vehicle.id}
               className="w-full max-w-xs flex-shrink-0"
-              tabIndex={0}
-              onFocus={() => handleFocus(currentIndex + idx)}
               style={{ flex: `0 0 ${100 / visibleCount}%` }}
             >
               <VehicleCard vehicle={uiVehicle} onUserAction={pauseAutoplay} />
@@ -151,15 +155,17 @@ const FeaturedVehicles = () => {
           Los mejores vehículos seleccionados por nuestros profesionales
         </p>
         {/* Flechas fuera del contenedor principal, alineadas a los extremos */}
-        <button
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-primary text-white rounded-full p-2 shadow-lg hover:bg-secondary transition disabled:opacity-30"
-          onClick={handlePrev}
-          disabled={vehicles.length <= visibleCount}
-          aria-label="Anterior"
-          style={{ marginLeft: '-32px' }}
-        >
-          <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" /></svg>
-        </button>
+        {!loading && (
+          <button
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-primary text-white rounded-full p-2 shadow-lg hover:bg-secondary transition disabled:opacity-30"
+            onClick={handlePrev}
+            disabled={vehicles.length <= visibleCount}
+            aria-label="Anterior"
+            style={{ marginLeft: '-32px' }}
+          >
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" /></svg>
+          </button>
+        )}
         <div
           className="w-full flex justify-center items-center overflow-hidden px-4"
           onMouseEnter={() => setIsHovered(true)}
@@ -168,15 +174,17 @@ const FeaturedVehicles = () => {
         >
           {renderCards()}
         </div>
-        <button
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-primary text-white rounded-full p-2 shadow-lg hover:bg-secondary transition disabled:opacity-30"
-          onClick={handleNext}
-          disabled={vehicles.length <= visibleCount}
-          aria-label="Siguiente"
-          style={{ marginRight: '-32px' }}
-        >
-          <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" /></svg>
-        </button>
+        {!loading && (
+          <button
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-primary text-white rounded-full p-2 shadow-lg hover:bg-secondary transition disabled:opacity-30"
+            onClick={handleNext}
+            disabled={vehicles.length <= visibleCount}
+            aria-label="Siguiente"
+            style={{ marginRight: '-32px' }}
+          >
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" /></svg>
+          </button>
+        )}
         {/* Dots de navegación ocultos */}
         {/* {totalGroups > 1 && (
           <div className="flex justify-center gap-2 mt-4">

@@ -3,8 +3,8 @@ import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Crown, Star } from "lucide-react";
 import { useFavorites } from "../hooks/useFavorites";
-import { useToast } from "../hooks/use-toast";
 import { useRef, useState } from "react";
+import { useToast } from "../hooks/use-toast";
 
 // Tipo visual para tarjetas de vehículo
 export interface VehicleUI {
@@ -37,7 +37,7 @@ const VehicleCard = ({ vehicle, onUserAction }: VehicleCardProps) => {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { showToast } = useToast();
   const [favAnim, setFavAnim] = useState(false);
-  const favTimeout = useRef<number | null>(null);
+  const favTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const formatPrice = (price?: number | string) => {
     if (!price || Number(price) === 0) return "A consultar";
@@ -66,10 +66,13 @@ const VehicleCard = ({ vehicle, onUserAction }: VehicleCardProps) => {
     if (onUserAction) onUserAction();
     const wasFavorite = isFavorite(String(vehicle.id));
     toggleFavorite(String(vehicle.id));
-    showToast(wasFavorite ? "Eliminado de favoritos" : "Agregado a favoritos", wasFavorite ? "info" : "success");
     setFavAnim(true);
     if (favTimeout.current) clearTimeout(favTimeout.current);
     favTimeout.current = setTimeout(() => setFavAnim(false), 350);
+    showToast(
+      wasFavorite ? "Eliminado de favoritos" : "Añadido a favoritos",
+      wasFavorite ? "info" : "success"
+    );
   };
 
   const isInactive = vehicle["anunci-actiu"] === "false";
@@ -155,7 +158,14 @@ const VehicleCard = ({ vehicle, onUserAction }: VehicleCardProps) => {
             <span>|</span>
             <span>{formatKilometers(vehicle["quilometratge"])} </span>
             <span>|</span>
-            <span>{vehicle["tipus-combustible"]}</span>
+            <span
+              className="truncate whitespace-nowrap max-w-[110px] inline-block align-bottom"
+              title={vehicle["tipus-combustible"]}
+            >
+              {vehicle["tipus-combustible"] && vehicle["tipus-combustible"].length > 18
+                ? vehicle["tipus-combustible"].slice(0, 15) + '...'
+                : vehicle["tipus-combustible"]}
+            </span>
           </div>
           {/* Badge profesional si aplica */}
           <div className="pt-2">
@@ -196,11 +206,17 @@ export function Spinner() {
 // Skeleton para la card
 export function VehicleCardSkeleton() {
   return (
-    <div className="bg-white rounded-lg shadow p-4 animate-pulse">
-      <div className="h-40 bg-gray-200 rounded mb-4" />
+    <div className="bg-white rounded-lg shadow p-4 animate-pulse min-h-[370px] flex flex-col">
+      {/* Imagen skeleton con aspect-video */}
+      <div className="aspect-video bg-gray-200 rounded mb-4 w-full" />
+      {/* Título */}
       <div className="h-6 bg-gray-200 rounded w-3/4 mb-2" />
+      {/* Precio */}
       <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
-      <div className="h-4 bg-gray-200 rounded w-1/3" />
+      {/* Info técnica */}
+      <div className="h-4 bg-gray-200 rounded w-1/3 mb-2" />
+      {/* Botón */}
+      <div className="h-10 bg-gray-200 rounded w-full mt-auto" />
     </div>
   );
 }

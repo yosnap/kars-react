@@ -51,11 +51,13 @@ const VehicleListCard = ({ vehicle }: VehicleListCardProps) => {
     navigate(`/vehicle/${vehicle.slug}`);
   };
 
-  const handleToggleFavorite = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleFavorite = () => {
     const wasFavorite = isFavorite(String(vehicle.id));
     toggleFavorite(String(vehicle.id));
-    showToast(wasFavorite ? "Eliminado de favoritos" : "Agregado a favoritos", wasFavorite ? "info" : "success");
+    showToast(
+      wasFavorite ? "Eliminado de favoritos" : "Añadido a favoritos",
+      wasFavorite ? "info" : "success"
+    );
   };
 
   // Mapeo de estado a URL de archivo
@@ -96,7 +98,7 @@ const VehicleListCard = ({ vehicle }: VehicleListCardProps) => {
             <div className="absolute top-2 right-2 z-10">
               <div
                 className={`rounded-full p-2 shadow transition-colors cursor-pointer ${isFavorite(String(vehicle.id)) ? "bg-primary" : "bg-white/80 backdrop-blur-sm hover:bg-white"}`}
-                onClick={handleToggleFavorite}
+                onClick={handleFavorite}
               >
                 <Star className={`w-4 h-4 transition-colors ${isFavorite(String(vehicle.id)) ? "text-white" : "text-gray-600 hover:text-primary"}`} />
               </div>
