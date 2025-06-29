@@ -60,18 +60,9 @@ const VehicleListCard = ({ vehicle }: VehicleListCardProps) => {
     );
   };
 
-  // Mapeo de estado a URL de archivo
-  const estadoToArchiveUrl: Record<string, string> = {
-    seminou: "/cotxes-seminous-a-andorra",
-    nou: "/cotxes-nous-a-andorra",
-    ocasio: "/cotxes-de-segona-ma-a-andorra",
-    km0: "/cotxes-km0-a-andorra",
-    lloguer: "/cotxes-lloguer-a-andorra",
-    classic: "/cotxes-classics-a-andorra",
-    renting: "/cotxes-renting-a-andorra",
-  };
+  // Mapeo de estado a URL dinámica
   const estado = vehicle["estat-vehicle"];
-  const estadoUrl = estado && estadoToArchiveUrl[estado] ? estadoToArchiveUrl[estado] : `/estat-vehicle/${estado}`;
+  const estadoUrl = typeof estado === "string" && estado.length > 0 ? `/estat-vehicle/${estado}` : null;
 
   const isInactive = false; // Assuming the vehicle is always active in this component
 
@@ -114,11 +105,13 @@ const VehicleListCard = ({ vehicle }: VehicleListCardProps) => {
             {/* Fila superior: estado, título, descripción + precio y badge usuario */}
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
-                <Link to={estadoUrl} className="inline-block">
-                  <Badge variant="secondary" className="text-xs bg-primary/10 text-primary mb-2">
-                    {vehicle["estat-vehicle"]}
-                  </Badge>
-                </Link>
+                {estadoUrl && (
+                  <Link to={estadoUrl} className="inline-block">
+                    <Badge variant="secondary" className="text-xs bg-primary/10 text-primary mb-2">
+                      {vehicle["estat-vehicle"]}
+                    </Badge>
+                  </Link>
+                )}
                 <h3 className="font-semibold text-xl truncate" style={{ lineHeight: '1.2' }}>
                   <span onClick={handleViewMore} style={{ cursor: 'pointer' }} title={vehicle["titol-anunci"]}>
                     {vehicle["titol-anunci"]}

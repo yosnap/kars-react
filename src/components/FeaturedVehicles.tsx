@@ -35,7 +35,9 @@ const FeaturedVehicles = () => {
         "anunci-destacat": true,
         "anunci-actiu": true,
         venut: false,
-        per_page: 100
+        per_page: 100,
+        orderby: "anunci-destacat",
+        order: "DESC"
       }
     })
       .then(res => {

@@ -22,7 +22,7 @@ const ListViewControls = ({
   onItemsPerPageChange,
   sortBy = "featured",
   onSortByChange,
-  currentPage = 1,
+  //currentPage = 1,
   totalItems = 0,
   startIndex = 0,
   endIndex = 0
@@ -48,12 +48,12 @@ const ListViewControls = ({
               </SelectTrigger>
               <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
                 <SelectItem value="featured">Destacados primero</SelectItem>
-                <SelectItem value="price-low">Precio: menor a mayor</SelectItem>
-                <SelectItem value="price-high">Precio: mayor a menor</SelectItem>
-                <SelectItem value="newest">Más recientes</SelectItem>
-                <SelectItem value="oldest">Más antiguos</SelectItem>
-                <SelectItem value="alphabetical-az">Alfabético (A-Z)</SelectItem>
-                <SelectItem value="alphabetical-za">Alfabético (Z-A)</SelectItem>
+                <SelectItem value="price_asc">Precio: menor a mayor</SelectItem>
+                <SelectItem value="price_desc">Precio: mayor a menor</SelectItem>
+                <SelectItem value="date_desc">Más recientes</SelectItem>
+                <SelectItem value="date_asc">Más antiguos</SelectItem>
+                <SelectItem value="title_asc">Alfabético (A-Z)</SelectItem>
+                <SelectItem value="title_desc">Alfabético (Z-A)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -67,6 +67,8 @@ const ListViewControls = ({
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
+              <SelectItem value="5">5</SelectItem>
+              <SelectItem value="10">10</SelectItem>
               <SelectItem value="12">12</SelectItem>
               <SelectItem value="24">24</SelectItem>
               <SelectItem value="36">36</SelectItem>

@@ -9,7 +9,6 @@ import Footer from "../components/Footer";
 import PageBreadcrumbs from "../components/PageBreadcrumbs";
 import { Link } from "react-router-dom";
 import { useFavorites } from "../hooks/useFavorites";
-import { useToast } from "../hooks/use-toast";
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import Thumbnails from "yet-another-react-lightbox/plugins/thumbnails";
@@ -47,7 +46,6 @@ const VehicleDetail = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [professional, setProfessional] = useState<Professional | null>(null);
   const [loadingProfessional, setLoadingProfessional] = useState(true);
-  const { showToast } = useToast();
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   // Favorites logic
@@ -513,9 +511,7 @@ const VehicleDetail = () => {
                         className={`w-full flex items-center justify-center gap-2 mt-4 ${isFav ? 'bg-primary text-white hover:bg-orange-700' : ''}`}
                         onClick={() => {
                           if (!vehicle) return;
-                          const wasFavorite = isFavorite(String(vehicle.id));
                           toggleFavorite(String(vehicle.id));
-                          showToast(wasFavorite ? "Eliminado de favoritos" : "Agregado a favoritos", wasFavorite ? "info" : "success");
                         }}
                       >
                         <Star className={`w-4 h-4 ${isFav ? 'fill-current text-white' : 'text-primary'}`} />

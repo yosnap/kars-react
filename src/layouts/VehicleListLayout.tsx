@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo } from "react";
-import { useLocation } from "react-router-dom";
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import type { Vehicle } from "../types/Vehicle";
 import Footer from "../components/Footer";
 import VehicleFilters from "../components/VehicleFilters";
@@ -8,6 +8,7 @@ import ListViewControls from "../components/ListViewControls";
 import VehicleCard from "../components/VehicleCard";
 import VehicleListCard from "../components/VehicleListCard";
 import { VehicleCardSkeleton, Spinner } from "../components/VehicleCard";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "../components/ui/pagination";
 
 interface BreadcrumbLabel {
   ca: string;
@@ -20,11 +21,8 @@ interface VehicleListLayoutProps {
   initialFilters?: Record<string, string | boolean>;
   breadcrumbs?: Array<{ label: BreadcrumbLabel; href: string }>;
   pageTitle?: string;
-  PaginationComponent?: React.FC<{
-    currentPage: number;
-    totalPages: number;
-    onPageChange: (page: number) => void;
-  }>;
+  disableBaseQuery?: boolean; // Si true, no añade anunci-actiu ni venut
+  customEndpoint?: string; // Nuevo prop para endpoint personalizado
   // basePath?: string;
 }
 
@@ -37,11 +35,35 @@ function useQueryParams() {
   }, [search]);
 }
 
+// Utilidad para traducir sortBy a orderby/order
+function getOrderParams(sortBy: string) {
+  switch (sortBy) {
+    case "featured":
+      // Ordenar por el campo numérico 'anunci-destacat' descendente
+      return { orderby: "anunci-destacat", order: "DESC" };
+    case "price_asc":
+      return { orderby: "price", order: "ASC" };
+    case "price_desc":
+      return { orderby: "price", order: "DESC" };
+    case "date_desc":
+      return { orderby: "date", order: "DESC" };
+    case "date_asc":
+      return { orderby: "date", order: "ASC" };
+    case "title_asc":
+      return { orderby: "title", order: "ASC" };
+    case "title_desc":
+      return { orderby: "title", order: "DESC" };
+    default:
+      return { orderby: "anunci-destacat", order: "DESC" };
+  }
+}
+
 const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
   initialFilters = {},
   breadcrumbs = [],
   pageTitle = "Listado de vehículos",
-  PaginationComponent,
+  disableBaseQuery = false,
+  customEndpoint,
   // basePath = "/vehicles-andorra",
 }) => {
   const filters = useQueryParams();
@@ -57,48 +79,92 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState("featured");
 
+  const navigate = useNavigate();
+  const location = useLocation();
+
   // Cálculo de paginación
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
 
+  // Memoriza los filtros para evitar que cambien en cada render y disparen el efecto innecesariamente
+  const memoizedFilters = useMemo(() => ({ ...filters }), [JSON.stringify(filters)]);
+
   // Fetch de vehículos (adaptar según tu API)
   useEffect(() => {
+    // Debug: log para ver cuándo y por qué se dispara el efecto
+    console.log("[VehicleListLayout] Disparando fetch de vehículos", {
+      memoizedFilters,
+      initialFilters,
+      currentPage,
+      itemsPerPage,
+      sortBy,
+      disableBaseQuery,
+      customEndpoint
+    });
     setLoading(true);
     setVehicles([]); // Limpiar para mostrar skeletons
     import("../api/axiosClient").then(({ axiosAdmin }) => {
+      const orderParams = getOrderParams(sortBy);
       const params: Record<string, string | number | boolean> = {
         ...initialFilters,
-        ...filters,
+        ...memoizedFilters,
+        ...(disableBaseQuery ? {} : { "anunci-actiu": true }),
         page: currentPage,
         per_page: itemsPerPage,
-        order: sortBy,
+        orderby: orderParams.orderby,
+        ...(orderParams.order ? { order: orderParams.order } : {}),
       };
-      axiosAdmin.get("/vehicles", { params })
+      const endpoint = customEndpoint || "/vehicles";
+      axiosAdmin.get(endpoint, { params })
         .then(res => {
+          console.log('Solicitado per_page:', itemsPerPage, 'Recibidos:', res.data.items?.length);
           setVehicles(res.data.items || []);
           setTotalItems(res.data.total || res.data.items?.length || 0);
           setTotalPages(res.data.pages || 1);
+          console.log('totalItems:', res.data.total, 'totalPages:', res.data.pages, 'currentPage:', currentPage);
         })
         .catch(() => setError("Error al cargar vehículos"))
         .finally(() => setLoading(false));
     });
-  }, [filters, initialFilters, currentPage, itemsPerPage, sortBy]);
+  }, [memoizedFilters, initialFilters, currentPage, itemsPerPage, sortBy, disableBaseQuery, customEndpoint]);
+
+  // Sincroniza currentPage con el valor de la query string 'page'
+  useEffect(() => {
+    const pageFromQuery = Number(filters.page) || 1;
+    if (pageFromQuery !== currentPage) {
+      setCurrentPage(pageFromQuery);
+    }
+  }, [filters.page]);
 
   // Cambiar orden
-  const handleSortByChange = (value: string) => {
+  const handleSortByChange = useCallback((value: string) => {
     setSortBy(value);
     setCurrentPage(1);
-  };
+  }, []);
 
   // Cambiar elementos por página
-  const handleItemsPerPageChange = (value: number) => {
+  const handleItemsPerPageChange = useCallback((value: number) => {
     setItemsPerPage(value);
     setCurrentPage(1);
-  };
+  }, []);
+
+  // Cambiar vista (grid/list)
+  const handleViewModeChange = useCallback((mode: "grid" | "list") => {
+    setViewMode(mode);
+  }, []);
 
   // Cambiar página
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  // Callback para aplicar filtros desde el sidebar
+  const handleApplyFilters = (filters: Record<string, string>) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v && k !== "anunci-actiu") params.append(k, v);
+    });
+    navigate(`${location.pathname}?${params.toString()}`);
   };
 
   // Render cards según vista
@@ -172,7 +238,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
         <aside className="w-full md:w-72 flex-shrink-0 mb-8 md:mb-0">
           <div className="bg-white border border-gray-200 shadow-lg rounded-2xl p-6 sticky top-8">
             <h2 className="text-xl font-bold mb-4">Filtrar vehículos</h2>
-            <VehicleFilters initialFilters={Object.fromEntries(Object.entries({ ...initialFilters, ...filters }).map(([k, v]) => [k, v.toString()]))} onApply={() => {}} />
+            <VehicleFilters initialFilters={Object.fromEntries(Object.entries({ ...initialFilters, ...filters }).map(([k, v]) => [k, v.toString()]))} onApply={handleApplyFilters} />
           </div>
         </aside>
         {/* Listado de vehículos */}
@@ -182,7 +248,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
           <div className="mb-4">
             <ListViewControls
               viewMode={viewMode}
-              onViewModeChange={setViewMode}
+              onViewModeChange={handleViewModeChange}
               itemsPerPage={itemsPerPage}
               onItemsPerPageChange={handleItemsPerPageChange}
               sortBy={sortBy}
@@ -196,11 +262,9 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
           {/* Fila de filtros aplicados y botón quitar filtros (solo si hay filtros activos) */}
           <div className="mb-6 flex flex-wrap gap-2 items-center min-h-[40px]">
             {(() => {
-              // Combina filtros de la URL y los fijos
               const appliedFilters: Record<string, string | boolean> = { ...initialFilters, ...filters };
-              // Solo muestra si hay algún filtro (excluyendo page y order)
               const filterEntries = Object.entries(appliedFilters).filter(
-                ([k, v]) => k !== "page" && k !== "order" && v
+                ([k, v]) => k !== "page" && k !== "order" && k !== "anunci-actiu" && k !== "venut" && v
               );
               if (filterEntries.length === 0) return null;
               return <>
@@ -219,6 +283,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
                             const params = new URLSearchParams(window.location.search);
                             params.delete(k);
                             params.set("page", "1");
+                            navigate(`${location.pathname}?${params.toString()}`);
                           }}
                         >
                           ×
@@ -231,8 +296,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
                 <button
                   className="ml-2 px-4 py-2 rounded bg-gray-100 text-gray-700 font-semibold border border-gray-300 hover:bg-gray-200 transition"
                   onClick={() => {
-                    const params = new URLSearchParams();
-                    params.set("page", "1");
+                    navigate(`${location.pathname}?page=1`);
                   }}
                 >
                   Quitar filtros
@@ -243,30 +307,88 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
           {renderVehicles()}
           {/* Paginación visual */}
           <div className="flex justify-center items-center gap-4 mt-8">
-            {PaginationComponent ? (
-              <PaginationComponent
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-              />
-            ) : (
-              <>
-                <button
-                  className="px-4 py-2 rounded bg-gray-200 text-gray-700 font-semibold disabled:opacity-50"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage <= 1}
-                >
-                  Anterior
-                </button>
-                <span>Página {currentPage} de {totalPages}</span>
-                <button
-                  className="px-4 py-2 rounded bg-gray-200 text-gray-700 font-semibold disabled:opacity-50"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage >= totalPages}
-                >
-                  Siguiente
-                </button>
-              </>
+            {totalPages > 1 && (
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={currentPage > 1 ? () => handlePageChange(currentPage - 1) : undefined}
+                      className={currentPage <= 1 ? 'pointer-events-none opacity-50' : ''}
+                    />
+                  </PaginationItem>
+                  {/* Números de página: sistema mejorado con inicio, fin y puntos suspensivos */}
+                  {(() => {
+                    let start = Math.max(1, currentPage - 2);
+                    const end = Math.min(totalPages, start + 4);
+                    if (end - start < 4) {
+                      start = Math.max(1, end - 4);
+                    }
+                    const pages = [];
+                    // Siempre mostrar la primera página
+                    if (start > 1) {
+                      pages.push(
+                        <PaginationItem key={1}>
+                          <PaginationLink
+                            isActive={currentPage === 1}
+                            onClick={() => handlePageChange(1)}
+                          >
+                            1
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                      if (start > 2) {
+                        pages.push(
+                          <PaginationItem key="start-ellipsis">
+                            <span className="px-2 text-gray-400">...</span>
+                          </PaginationItem>
+                        );
+                      }
+                    }
+                    // Páginas centrales
+                    for (let i = start; i <= end; i++) {
+                      if (i !== 1 && i !== totalPages) {
+                        pages.push(
+                          <PaginationItem key={i}>
+                            <PaginationLink
+                              isActive={currentPage === i}
+                              onClick={() => handlePageChange(i)}
+                            >
+                              {i}
+                            </PaginationLink>
+                          </PaginationItem>
+                        );
+                      }
+                    }
+                    // Siempre mostrar la última página
+                    if (end < totalPages) {
+                      if (end < totalPages - 1) {
+                        pages.push(
+                          <PaginationItem key="end-ellipsis">
+                            <span className="px-2 text-gray-400">...</span>
+                          </PaginationItem>
+                        );
+                      }
+                      pages.push(
+                        <PaginationItem key={totalPages}>
+                          <PaginationLink
+                            isActive={currentPage === totalPages}
+                            onClick={() => handlePageChange(totalPages)}
+                          >
+                            {totalPages}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    }
+                    return pages;
+                  })()}
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={currentPage < totalPages ? () => handlePageChange(currentPage + 1) : undefined}
+                      className={currentPage >= totalPages ? 'pointer-events-none opacity-50' : ''}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             )}
           </div>
         </main>

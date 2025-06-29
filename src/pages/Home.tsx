@@ -28,7 +28,8 @@ export default function Home() {
           "anunci-actiu": true,
           venut: false,
           per_page: 12,
-          order: "desc"
+          orderby: "anunci-destacat",
+          order: "DESC"
         }
       })
         .then(res => {

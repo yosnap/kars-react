@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useParams } from "react-router-dom";
 import MainLayout from "./layouts/MainLayout";
 import Home from "./pages/Home";
 import VehicleDetail from "./pages/VehicleDetail";
@@ -10,15 +10,16 @@ import { useAuth } from "./context/AuthContext";
 import Header from "./components/Header";
 import CotxesAndorra from "./pages/CotxesAndorra";
 // Import subpages for vehicle states
-import CotxesNousPage from "./pages/subpages/CotxesNousPage";
-import CotxesSeminousPage from "./pages/subpages/CotxesSeminousPage";
-import CotxesOcasioPage from "./pages/subpages/CotxesOcasioPage";
-import CotxesKm0GerenciaPage from "./pages/subpages/CotxesKm0GerenciaPage";
-import CotxesLloguerPage from "./pages/subpages/CotxesLloguerPage";
-import CotxesClassicsPage from "./pages/subpages/CotxesClassicsPage";
-import CotxesRentingPage from "./pages/subpages/CotxesRentingPage";
+import CotxesNousPage from "./pages/cotxes-nous-a-andorra";
+import CotxesSeminousPage from "./pages/cotxes-seminous-a-andorra";
+import CotxesOcasioPage from "./pages/cotxes-de-segona-ma-a-andorra";
+import CotxesKm0GerenciaPage from "./pages/cotxes-km0-a-andorra";
+import CotxesLloguerPage from "./pages/cotxes-lloguer-a-andorra";
+import CotxesClassicsPage from "./pages/cotxes-classics-a-andorra";
+import CotxesRentingPage from "./pages/cotxes-renting-a-andorra";
 import FavoritosPage from "./pages/favoritos";
 import ProfessionalProfile from "./pages/ProfessionalProfile";
+import VehicleListLayout from "./layouts/VehicleListLayout";
 
 // Componente para proteger rutas privadas
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
@@ -28,6 +29,20 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   }
   return <>{children}</>;
 };
+
+// Página dinámica para estado de vehículo
+function EstatVehiclePage() {
+  const { slug } = useParams();
+  return (
+    <VehicleListLayout
+      initialFilters={{ "estat-vehicle": slug, "anunci-actiu": true }}
+      breadcrumbs={[
+        { label: { es: `Estado: ${slug}`, ca: `Estat: ${slug}` }, href: `/estat-vehicle/${slug}` }
+      ]}
+      pageTitle={`Vehículos en estado: ${slug}`}
+    />
+  );
+}
 
 function App() {
   return (
@@ -53,6 +68,8 @@ function App() {
           <Route path="/cotxes-renting-a-andorra" element={<CotxesRentingPage />} />
           {/* Ruta privada para dashboard */}
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          {/* Ruta dinámica para estado de vehículo */}
+          <Route path="/estat-vehicle/:slug" element={<EstatVehiclePage />} />
         </Routes>
       </MainLayout>
     </Router>

@@ -109,6 +109,18 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({ initialFilters, onApply
     }
   }, [marcaSeleccionada, filters["tipus-vehicle"]]);
 
+  // Sincroniza los filtros internos con los props cuando cambian
+  useEffect(() => {
+    // If the selected brand is removed, also reset the model
+    setFilters((prev) => {
+      const next = { ...prev, ...initialFilters };
+      if (!next["marques-cotxe"]) {
+        next["models-cotxe"] = "";
+      }
+      return next;
+    });
+  }, [initialFilters]);
+
   // Manejar cambios en los filtros
   const handleChange = (key: string, value: string) => {
     setFilters((prev) => ({
@@ -211,7 +223,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({ initialFilters, onApply
       <div>
         <button
           type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-semibold transition-colors"
+          className="w-full bg-primary hover:bg-secondary text-white px-4 py-2 rounded font-semibold transition-colors"
         >
           Aplicar filtros
         </button>

@@ -148,7 +148,7 @@ const ProfessionalProfile = () => {
         ca: (professional ? (professional["nom-empresa"] || professional.name || slug) : slug) || "",
         en: (professional ? (professional["nom-empresa"] || professional.name || slug) : slug) || "",
         fr: (professional ? (professional["nom-empresa"] || professional.name || slug) : slug) || ""
-      }, icon: Building2, href: professional ? `/profesionales/${professional.id}` : undefined }
+      }, icon: Building2 as React.ComponentType<unknown>, href: professional ? `/profesionales/${professional.id}` : undefined }
   ];
 
   if (loading) return <div className="py-16 text-center text-lg">Carregant perfil professional...</div>;

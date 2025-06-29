@@ -76,9 +76,25 @@ export default function FavoritosPage() {
           </div>
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {vehicles.map((v) => (
-            <VehicleCard key={v.id} vehicle={v} />
-          ))}
+          {vehicles.map((v) => {
+            const uiVehicle = {
+              id: v.id,
+              ["titol-anunci"]: v["titol-anunci"] ?? "",
+              ["descripcio-anunci"]: v["descripcio-anunci"] ?? "",
+              ["marques-cotxe"]: v["marques-cotxe"] ?? "",
+              ["models-cotxe"]: v["models-cotxe"] ?? "",
+              ["estat-vehicle"]: v["estat-vehicle"] ?? "",
+              ["any"]: v["any"] ?? "",
+              ["quilometratge"]: v["quilometratge"] !== undefined && v["quilometratge"] !== null ? String(v["quilometratge"]) : "",
+              ["preu"]: v["preu"] !== undefined && v["preu"] !== null ? String(v["preu"]) : "",
+              ["color-vehicle"]: v["color-vehicle"] ?? "",
+              ["tipus-combustible"]: v["tipus-combustible"] ?? "",
+              ["anunci-destacat"]: v["anunci-destacat"] !== undefined ? String(v["anunci-destacat"]) : "",
+              ["imatge-destacada-url"]: v["imatge-destacada-url"] ?? "",
+              ["galeria-vehicle-urls"]: Array.isArray(v["galeria-vehicle-urls"]) ? v["galeria-vehicle-urls"] : [],
+            };
+            return <VehicleCard key={v.id} vehicle={uiVehicle} />;
+          })}
         </div>
       </div>
     </div>
