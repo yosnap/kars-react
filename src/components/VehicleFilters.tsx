@@ -10,6 +10,7 @@ interface Option {
 interface VehicleFiltersProps {
   initialFilters?: Record<string, string>;
   onApply: (filters: Record<string, string>) => void;
+  lockedStateValue?: string;
 }
 
 // Filtros iniciales por defecto
@@ -21,7 +22,7 @@ const defaultFilters = {
   "tipus-combustible": "",
 };
 
-const VehicleFilters: React.FC<VehicleFiltersProps> = ({ initialFilters, onApply }) => {
+const VehicleFilters: React.FC<VehicleFiltersProps> = ({ initialFilters, onApply, lockedStateValue }) => {
   // Estado de los filtros
   const [filters, setFilters] = useState<Record<string, string>>({
     ...defaultFilters,
@@ -111,9 +112,11 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({ initialFilters, onApply
 
   // Sincroniza los filtros internos con los props cuando cambian
   useEffect(() => {
-    // If the selected brand is removed, also reset the model
     setFilters((prev) => {
-      const next = { ...prev, ...initialFilters };
+      const next = { ...prev };
+      Object.entries(initialFilters || {}).forEach(([k, v]) => {
+        if (v !== undefined && v !== "") next[k] = v;
+      });
       if (!next["marques-cotxe"]) {
         next["models-cotxe"] = "";
       }
@@ -196,8 +199,9 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({ initialFilters, onApply
         <label className="block text-sm font-medium mb-1">Estado</label>
         <select
           className="w-full border border-gray-300 bg-white text-gray-900 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200"
-          value={filters["estat-vehicle"]}
+          value={lockedStateValue ?? filters["estat-vehicle"]}
           onChange={(e) => handleChange("estat-vehicle", e.target.value)}
+          disabled={!!lockedStateValue}
         >
           <option value="">Todos</option>
           {states.map((s) => (
@@ -232,4 +236,5 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({ initialFilters, onApply
   );
 };
 
-export default VehicleFilters; 
+export default VehicleFilters;
+export { defaultFilters }; 

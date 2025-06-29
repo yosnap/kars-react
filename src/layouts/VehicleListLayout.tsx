@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { Vehicle } from "../types/Vehicle";
 import Footer from "../components/Footer";
-import VehicleFilters from "../components/VehicleFilters";
+import VehicleFilters, { defaultFilters as vehicleDefaultFilters } from "../components/VehicleFilters";
 import PageBreadcrumbs from "../components/PageBreadcrumbs";
 import ListViewControls from "../components/ListViewControls";
 import VehicleCard from "../components/VehicleCard";
@@ -23,6 +23,7 @@ interface VehicleListLayoutProps {
   pageTitle?: string;
   disableBaseQuery?: boolean; // Si true, no añade anunci-actiu ni venut
   customEndpoint?: string; // Nuevo prop para endpoint personalizado
+  lockedStateValue?: string; // Nuevo prop para bloquear el select de estado
   // basePath?: string;
 }
 
@@ -64,6 +65,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
   pageTitle = "Listado de vehículos",
   disableBaseQuery = false,
   customEndpoint,
+  lockedStateValue,
   // basePath = "/vehicles-andorra",
 }) => {
   const filters = useQueryParams();
@@ -108,7 +110,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
       const params: Record<string, string | number | boolean> = {
         ...initialFilters,
         ...memoizedFilters,
-        ...(disableBaseQuery ? {} : { "anunci-actiu": true }),
+        ...(disableBaseQuery ? {} : {}), // No añadir 'anunci-actiu' nunca
         page: currentPage,
         per_page: itemsPerPage,
         orderby: orderParams.orderby,
@@ -117,11 +119,13 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
       const endpoint = customEndpoint || "/vehicles";
       axiosAdmin.get(endpoint, { params })
         .then(res => {
-          console.log('Solicitado per_page:', itemsPerPage, 'Recibidos:', res.data.items?.length);
-          setVehicles(res.data.items || []);
-          setTotalItems(res.data.total || res.data.items?.length || 0);
-          setTotalPages(res.data.pages || 1);
-          console.log('totalItems:', res.data.total, 'totalPages:', res.data.pages, 'currentPage:', currentPage);
+          // Filtra solo los vehículos activos
+          const activos = (res.data.items || []).filter(
+            (v: Record<string, string>) => v["anunci-actiu"] === "true"
+          );
+          setVehicles(activos);
+          setTotalItems(res.data.total || activos.length || 0);
+          setTotalPages(res.data.pages || Math.ceil(activos.length / itemsPerPage) || 1);
         })
         .catch(() => setError("Error al cargar vehículos"))
         .finally(() => setLoading(false));
@@ -136,17 +140,29 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
     }
   }, [filters.page]);
 
+  // Sincroniza itemsPerPage con la URL (per_page)
+  useEffect(() => {
+    const perPageFromQuery = Number(filters.per_page) || 12;
+    if (perPageFromQuery !== itemsPerPage) {
+      setItemsPerPage(perPageFromQuery);
+    }
+  }, [filters.per_page]);
+
   // Cambiar orden
   const handleSortByChange = useCallback((value: string) => {
     setSortBy(value);
     setCurrentPage(1);
   }, []);
 
-  // Cambiar elementos por página
+  // Cambiar elementos por página y sincronizar con la URL
   const handleItemsPerPageChange = useCallback((value: number) => {
-    setItemsPerPage(value);
+    const params = new URLSearchParams(window.location.search);
+    params.set("per_page", value.toString());
+    params.set("page", "1");
+    navigate(`${location.pathname}?${params.toString()}`);
+    // setItemsPerPage(value); // Ya se sincroniza por el efecto
     setCurrentPage(1);
-  }, []);
+  }, [navigate, location.pathname]);
 
   // Cambiar vista (grid/list)
   const handleViewModeChange = useCallback((mode: "grid" | "list") => {
@@ -166,6 +182,19 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
     });
     navigate(`${location.pathname}?${params.toString()}`);
   };
+
+  // Determina si hay filtros activos (excluyendo page, order, per_page, anunci-actiu, venut)
+  const hasActiveFilters = Object.entries(filters).some(
+    ([k, v]) => !["page", "order", "per_page", "anunci-actiu", "venut"].includes(k) && v
+  );
+  // Decide qué filtros pasar a VehicleFilters (excluyendo per_page y valores vacíos de la URL)
+  const filtersForVehicleFilters = hasActiveFilters
+    ? Object.fromEntries(
+        Object.entries({ ...initialFilters, ...filters })
+          .filter(([k, v]) => !["per_page"].includes(k) && v !== "")
+          .map(([k, v]) => [k, v.toString()])
+      )
+    : vehicleDefaultFilters;
 
   // Render cards según vista
   const renderVehicles = () => {
@@ -238,7 +267,12 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
         <aside className="w-full md:w-72 flex-shrink-0 mb-8 md:mb-0">
           <div className="bg-white border border-gray-200 shadow-lg rounded-2xl p-6 sticky top-8">
             <h2 className="text-xl font-bold mb-4">Filtrar vehículos</h2>
-            <VehicleFilters initialFilters={Object.fromEntries(Object.entries({ ...initialFilters, ...filters }).map(([k, v]) => [k, v.toString()]))} onApply={handleApplyFilters} />
+            <VehicleFilters
+              key={lockedStateValue ? `locked-${lockedStateValue}` : JSON.stringify(filtersForVehicleFilters)}
+              initialFilters={filtersForVehicleFilters}
+              onApply={handleApplyFilters}
+              lockedStateValue={lockedStateValue}
+            />
           </div>
         </aside>
         {/* Listado de vehículos */}
@@ -264,16 +298,19 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
             {(() => {
               const appliedFilters: Record<string, string | boolean> = { ...initialFilters, ...filters };
               const filterEntries = Object.entries(appliedFilters).filter(
-                ([k, v]) => k !== "page" && k !== "order" && k !== "anunci-actiu" && k !== "venut" && v
+                ([k, v]) => !["page", "order", "per_page", "anunci-actiu", "venut"].includes(k) && v
               );
               if (filterEntries.length === 0) return null;
               return <>
                 <span className="font-semibold text-gray-700">Filtros aplicados:</span>
                 {filterEntries.map(([k, v]) => {
+                  // Mapeo visual para mostrar 'km0' en vez de 'km0-gerencia'
+                  let displayValue = v;
+                  if (k === "estat-vehicle" && v === "km0-gerencia") displayValue = "km0";
                   const isFixed = Object.prototype.hasOwnProperty.call(initialFilters, k) && !Object.prototype.hasOwnProperty.call(filters, k);
                   return (
                     <span key={k} className="relative bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center pr-6">
-                      {k.replace(/-/g, ' ')}: {v}
+                      {k.replace(/-/g, ' ')}: {displayValue}
                       {!isFixed && (
                         <button
                           className="absolute top-0 right-0 w-5 h-5 flex items-center justify-center text-blue-700 hover:text-red-600 rounded-full focus:outline-none"

@@ -6,8 +6,9 @@ export default function CotxesNousAAndorra() {
       pageTitle="Coches nuevos en Andorra"
       breadcrumbs={[
         { label: { es: "Coches nuevos", ca: "Cotxes nous", en: "New cars", fr: "Voitures neuves" }, href: "/cotxes-nous-a-andorra" }
-          ]}
-      initialFilters={{ "estat-vehicle": "nou", "anunci-actiu": true }}
+      ]}
+      initialFilters={{ "estat-vehicle": "nou" }}
+      lockedStateValue="nou"
     />
   );
 } 

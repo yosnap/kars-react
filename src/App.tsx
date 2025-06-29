@@ -13,7 +13,7 @@ import CotxesAndorra from "./pages/CotxesAndorra";
 import CotxesNousPage from "./pages/cotxes-nous-a-andorra";
 import CotxesSeminousPage from "./pages/cotxes-seminous-a-andorra";
 import CotxesOcasioPage from "./pages/cotxes-de-segona-ma-a-andorra";
-import CotxesKm0GerenciaPage from "./pages/cotxes-km0-a-andorra";
+import CotxesKm0AAndorra from "./pages/cotxes-km0-a-andorra";
 import CotxesLloguerPage from "./pages/cotxes-lloguer-a-andorra";
 import CotxesClassicsPage from "./pages/cotxes-classics-a-andorra";
 import CotxesRentingPage from "./pages/cotxes-renting-a-andorra";
@@ -35,7 +35,7 @@ function EstatVehiclePage() {
   const { slug } = useParams();
   return (
     <VehicleListLayout
-      initialFilters={{ "estat-vehicle": slug, "anunci-actiu": true }}
+      initialFilters={{ "estat-vehicle": slug ?? "", "anunci-actiu": true }}
       breadcrumbs={[
         { label: { es: `Estado: ${slug}`, ca: `Estat: ${slug}` }, href: `/estat-vehicle/${slug}` }
       ]}
@@ -62,7 +62,7 @@ function App() {
           <Route path="/cotxes-nous-a-andorra" element={<CotxesNousPage />} />
           <Route path="/cotxes-seminous-a-andorra" element={<CotxesSeminousPage />} />
           <Route path="/cotxes-de-segona-ma-a-andorra" element={<CotxesOcasioPage />} />
-          <Route path="/cotxes-km0-a-andorra" element={<CotxesKm0GerenciaPage />} />
+          <Route path="/cotxes-km0-a-andorra" element={<CotxesKm0AAndorra />} />
           <Route path="/cotxes-lloguer-a-andorra" element={<CotxesLloguerPage />} />
           <Route path="/cotxes-classics-a-andorra" element={<CotxesClassicsPage />} />
           <Route path="/cotxes-renting-a-andorra" element={<CotxesRentingPage />} />
