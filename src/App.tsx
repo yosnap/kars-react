@@ -20,6 +20,8 @@ import CotxesRentingPage from "./pages/cotxes-renting-a-andorra";
 import FavoritosPage from "./pages/favoritos";
 import ProfessionalProfile from "./pages/ProfessionalProfile";
 import VehicleListLayout from "./layouts/VehicleListLayout";
+import SearchModal from "./components/SearchModal";
+import { axiosAdmin } from "./api/axiosClient";
 
 // Componente para proteger rutas privadas
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
@@ -45,13 +47,42 @@ function EstatVehiclePage() {
 }
 
 function App() {
+  // Estado para el modal de búsqueda
+  const [searchModalOpen, setSearchModalOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [searchResults, setSearchResults] = React.useState([]);
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  // Callback global para búsqueda
+  const handleSearch = async ({ vehicleType, searchTerm }) => {
+    setSearchQuery(searchTerm || "");
+    setSearchResults([]);
+    setSearchModalOpen(true);
+    setIsLoading(true);
+    try {
+      const params = {
+        "anunci-actiu": true,
+        per_page: 100,
+      };
+      if (vehicleType) params["tipus-vehicle"] = vehicleType;
+      if (searchTerm) params["search"] = searchTerm;
+      const res = await axiosAdmin.get("/vehicles", { params });
+      const items = Array.isArray(res.data.items) ? res.data.items : [];
+      setSearchResults(items);
+    } catch (e) {
+      setSearchResults([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Router>
-      <Header />
+      <Header onSearch={handleSearch} />
       <MainLayout>
         <Routes>
           {/* Rutas públicas */}
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<Home onSearch={handleSearch} />} />
           <Route path="/vehicle/:slug" element={<VehicleDetail />} />
           <Route path="/professional/:id" element={<ProfessionalProfile />} />
           <Route path="/new" element={<NewVehicle />} />
@@ -72,6 +103,13 @@ function App() {
           <Route path="/estat-vehicle/:slug" element={<EstatVehiclePage />} />
         </Routes>
       </MainLayout>
+      <SearchModal
+        isOpen={searchModalOpen}
+        onOpenChange={setSearchModalOpen}
+        vehicles={searchResults}
+        searchQuery={searchQuery}
+        isLoading={isLoading}
+      />
     </Router>
   );
 }

@@ -4,6 +4,7 @@ import { Crown, Star, Calendar, Gauge, Fuel, Palette } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useFavorites } from "../hooks/useFavorites";
 import { useToast } from "../hooks/use-toast";
+import React from "react";
 
 // Tipo visual para tarjetas de vehículo
 export interface VehicleUI {
@@ -27,9 +28,19 @@ export interface VehicleUI {
 
 interface VehicleListCardProps {
   vehicle: VehicleUI;
+  onUserAction?: () => void;
+  searchQuery?: string;
 }
 
-const VehicleListCard = ({ vehicle }: VehicleListCardProps) => {
+function highlightText(text: string, query?: string) {
+  if (!query) return text;
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  return text.split(regex).map((part, i) =>
+    regex.test(part) ? <mark key={i} className="bg-yellow-200 px-1 rounded">{part}</mark> : part
+  );
+}
+
+const VehicleListCard = ({ vehicle, onUserAction, searchQuery }: VehicleListCardProps) => {
   const navigate = useNavigate();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { showToast } = useToast();
@@ -48,6 +59,7 @@ const VehicleListCard = ({ vehicle }: VehicleListCardProps) => {
   };
 
   const handleViewMore = () => {
+    if (onUserAction) onUserAction();
     navigate(`/vehicle/${vehicle.slug}`);
   };
 
@@ -114,10 +126,10 @@ const VehicleListCard = ({ vehicle }: VehicleListCardProps) => {
                 )}
                 <h3 className="font-semibold text-xl truncate" style={{ lineHeight: '1.2' }}>
                   <span onClick={handleViewMore} style={{ cursor: 'pointer' }} title={vehicle["titol-anunci"]}>
-                    {vehicle["titol-anunci"]}
+                    {highlightText(vehicle["titol-anunci"], searchQuery)}
                   </span>
                 </h3>
-                <p className="text-gray-600 text-sm line-clamp-2" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} dangerouslySetInnerHTML={{ __html: vehicle["descripcio-anunci"] ?? "" }} />
+                <p className="text-gray-600 text-sm line-clamp-2" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} dangerouslySetInnerHTML={{ __html: highlightText(vehicle["descripcio-anunci"] ?? "", searchQuery) }} />
               </div>
               {/* Precio y badge usuario */}
               <div className="flex flex-col items-end min-w-[110px] ml-4">

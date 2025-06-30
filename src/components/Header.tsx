@@ -3,7 +3,11 @@ import { useLocation, Link } from "react-router-dom";
 import logoMotoraldia from "../assets/logo-motoraldia-2024.jpg";
 import { useFavorites } from "../hooks/useFavorites";
 
-export default function Header() {
+interface HeaderProps {
+  onSearch?: (params: { vehicleType?: string; searchTerm?: string }) => void;
+}
+
+export default function Header({ onSearch }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -44,6 +48,16 @@ export default function Header() {
   function handleMouseLeaveUser() {
     userCloseTimeout.current = setTimeout(() => setUserDropdownOpen(false), 250);
   }
+
+  const [vehicleType, setVehicleType] = useState("");
+
+  // Lógica para buscar desde el header
+  const handleHeaderSearch = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (onSearch) {
+      onSearch({ vehicleType, searchTerm: searchQuery.trim() });
+    }
+  };
 
   return (
     <header className="rounded-b-2xl shadow-md">
@@ -86,16 +100,31 @@ export default function Header() {
           {/* Search Bar (solo si no es home) */}
           {location.pathname !== "/" && (
             <div className="flex-1 max-w-2xl mx-8">
-              <div className="relative">
-                {/* Search icon */}
-                <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-                <input
-                  className="flex h-10 rounded-md bg-background px-3 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm pl-10 pr-4 py-2 w-full border-2 border-gray-200 focus:border-primary"
-                  placeholder="Buscar marca, modelo, año..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                />
-              </div>
+              <div className="relative flex gap-2 items-center">
+  {/* Select de tipo de vehículo */}
+  <select
+    className="h-10 rounded-md border-2 border-gray-200 bg-background px-3 text-base text-gray-700 focus:border-primary focus:outline-none"
+    value={vehicleType}
+    onChange={e => setVehicleType(e.target.value)}
+    style={{ minWidth: 140 }}
+  >
+    <option value="">Todos</option>
+    <option value="cotxe">Coches</option>
+    <option value="moto-quad-atv">Motos</option>
+    <option value="autocaravana-camper">Caravanas</option>
+    <option value="vehicle-comercial">Comerciales</option>
+  </select>
+  {/* Search icon e input */}
+  <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+  <form onSubmit={handleHeaderSearch} className="flex-1">
+    <input
+      className="flex h-10 rounded-md bg-background px-3 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm pl-10 pr-4 py-2 w-full border-2 border-gray-200 focus:border-primary"
+      placeholder="Buscar marca, modelo, año..."
+      value={searchQuery}
+      onChange={e => setSearchQuery(e.target.value)}
+    />
+  </form>
+</div>
             </div>
           )}
 

@@ -306,11 +306,20 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
                 {filterEntries.map(([k, v]) => {
                   // Mapeo visual para mostrar 'km0' en vez de 'km0-gerencia'
                   let displayValue = v;
+                  let displayKey = k.replace(/-/g, ' ');
                   if (k === "estat-vehicle" && v === "km0-gerencia") displayValue = "km0";
+                  // Mapeo para tipo de vehículo
+                  if (k === "tipus-vehicle") {
+                    displayKey = "Tipo de vehículo";
+                    if (v === "cotxe") displayValue = "Coches";
+                    else if (v === "moto-quad-atv") displayValue = "Motos";
+                    else if (v === "autocaravana-camper") displayValue = "Caravanas";
+                    else if (v === "vehicle-comercial") displayValue = "Comerciales";
+                  }
                   const isFixed = Object.prototype.hasOwnProperty.call(initialFilters, k) && !Object.prototype.hasOwnProperty.call(filters, k);
                   return (
                     <span key={k} className="relative bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center pr-6">
-                      {k.replace(/-/g, ' ')}: {displayValue}
+                      {displayKey}: {displayValue}
                       {!isFixed && (
                         <button
                           className="absolute top-0 right-0 w-5 h-5 flex items-center justify-center text-blue-700 hover:text-red-600 rounded-full focus:outline-none"

@@ -46,14 +46,30 @@ const FiltersSidebar = ({
             <button
               className={`px-6 py-2 rounded-l-full font-semibold ${filters["tipus-vehicle"] === "cotxe" ? "bg-orange-500 text-white" : "bg-white text-[#23273C]"}`}
               onClick={() => onFilterChange("tipus-vehicle", "cotxe")}
+              type="button"
             >
-              Cotxes
+              Coches
             </button>
             <button
-              className={`px-6 py-2 rounded-r-full font-semibold border-l border-gray-200 ${filters["tipus-vehicle"] === "moto" ? "bg-orange-500 text-white" : "bg-white text-[#23273C]"}`}
-              onClick={() => onFilterChange("tipus-vehicle", "moto")}
+              className={`px-6 py-2 font-semibold border-l border-gray-200 ${filters["tipus-vehicle"] === "moto-quad-atv" ? "bg-orange-500 text-white" : "bg-white text-[#23273C]"}`}
+              onClick={() => onFilterChange("tipus-vehicle", "moto-quad-atv")}
+              type="button"
             >
               Motos
+            </button>
+            <button
+              className={`px-6 py-2 font-semibold border-l border-gray-200 ${filters["tipus-vehicle"] === "autocaravana-camper" ? "bg-orange-500 text-white" : "bg-white text-[#23273C]"}`}
+              onClick={() => onFilterChange("tipus-vehicle", "autocaravana-camper")}
+              type="button"
+            >
+              Caravanas
+            </button>
+            <button
+              className={`px-6 py-2 rounded-r-full font-semibold border-l border-gray-200 ${filters["tipus-vehicle"] === "vehicle-comercial" ? "bg-orange-500 text-white" : "bg-white text-[#23273C]"}`}
+              onClick={() => onFilterChange("tipus-vehicle", "vehicle-comercial")}
+              type="button"
+            >
+              Comerciales
             </button>
           </div>
         </div>

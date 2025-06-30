@@ -1,18 +1,26 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const HeroSection = () => {
+interface HeroSectionProps {
+  onSearch?: (query: { vehicleType: string; searchTerm: string }) => void;
+}
+
+const HeroSection = ({ onSearch }: HeroSectionProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [vehicleType, setVehicleType] = useState("");
   const navigate = useNavigate();
 
   // Lógica de búsqueda y navegación
   const handleSearch = (e?: React.FormEvent) => {
-    if (e) e.preventDefault(); // Previene el submit por defecto
-    const params = new URLSearchParams();
-    if (vehicleType) params.append("tipus-vehicle", vehicleType);
-    if (searchTerm) params.append("search", searchTerm);
-    navigate(`/vehicles-andorra?${params.toString()}`);
+    if (e) e.preventDefault();
+    if (onSearch) {
+      onSearch({ vehicleType, searchTerm });
+    } else {
+      const params = new URLSearchParams();
+      if (vehicleType) params.append("tipus-vehicle", vehicleType);
+      if (searchTerm) params.append("search", searchTerm);
+      navigate(`/vehicles-andorra?${params.toString()}`);
+    }
   };
 
   return (
@@ -45,10 +53,10 @@ const HeroSection = () => {
                   value={vehicleType}
                 >
                   <option value="">Tipo de vehículo</option>
-                  <option value="COTXE">Coches</option>
-                  <option value="MOTO">Motos</option>
-                  <option value="CARAVANA">Caravanas</option>
-                  <option value="CAMIO">Camiones</option>
+                  <option value="cotxe">Coches</option>
+                  <option value="moto-quad-atv">Motos</option>
+                  <option value="autocaravana-camper">Caravanas</option>
+                  <option value="vehicle-comercial">Vehículos comerciales</option>
                 </select>
               </div>
               <div className="md:col-span-1 col-span-2">

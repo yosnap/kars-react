@@ -5,6 +5,7 @@ import { Crown, Star } from "lucide-react";
 import { useFavorites } from "../hooks/useFavorites";
 import { useRef, useState } from "react";
 import { useToast } from "../hooks/use-toast";
+import React from "react";
 
 // Tipo visual para tarjetas de vehículo
 export interface VehicleUI {
@@ -30,9 +31,18 @@ interface VehicleCardProps {
   vehicle: VehicleUI;
   crown?: boolean;
   onUserAction?: () => void;
+  searchQuery?: string;
 }
 
-const VehicleCard = ({ vehicle, onUserAction }: VehicleCardProps) => {
+function highlightText(text: string, query?: string) {
+  if (!query) return text;
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  return text.split(regex).map((part, i) =>
+    regex.test(part) ? <mark key={i} className="bg-yellow-200 px-1 rounded">{part}</mark> : part
+  );
+}
+
+const VehicleCard = ({ vehicle, onUserAction, searchQuery }: VehicleCardProps) => {
   const navigate = useNavigate();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { showToast } = useToast();
@@ -53,17 +63,14 @@ const VehicleCard = ({ vehicle, onUserAction }: VehicleCardProps) => {
     return new Intl.NumberFormat('es-ES').format(Number(km)) + ' km';
   };
 
-  const handleViewMore = (e?: React.MouseEvent | React.KeyboardEvent) => {
+  const handleViewMore = () => {
     if (onUserAction) onUserAction();
-    // Si es botón, abrir en nueva pestaña
-    if (e && (e as React.MouseEvent).currentTarget.tagName === 'A') return;
     const slugOrId = vehicle.slug || vehicle.id;
     navigate(`/vehicle/${slugOrId}`);
   };
 
   const handleToggleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onUserAction) onUserAction();
     const wasFavorite = isFavorite(String(vehicle.id));
     toggleFavorite(String(vehicle.id));
     setFavAnim(true);
@@ -118,7 +125,7 @@ const VehicleCard = ({ vehicle, onUserAction }: VehicleCardProps) => {
         className="aspect-video overflow-hidden cursor-pointer"
         onClick={handleViewMore}
         tabIndex={0}
-        onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && handleViewMore(e)}
+        onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && handleViewMore()}
         aria-label={`Ver detalle de ${vehicle["titol-anunci"] ?? "vehículo"}`}
         role="button"
       >
@@ -140,11 +147,11 @@ const VehicleCard = ({ vehicle, onUserAction }: VehicleCardProps) => {
             title={vehicle["titol-anunci"] ?? ""}
             onClick={handleViewMore}
             tabIndex={0}
-            onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && handleViewMore(e)}
+            onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && handleViewMore()}
             aria-label={`Ver detalle de ${vehicle["titol-anunci"] ?? "vehículo"}`}
             role="button"
           >
-            {vehicle["titol-anunci"] ?? ""}
+            {highlightText(vehicle["titol-anunci"], searchQuery)}
           </h3>
           {/* Precio */}
           <div className="pt-1">
@@ -175,15 +182,12 @@ const VehicleCard = ({ vehicle, onUserAction }: VehicleCardProps) => {
           </div>
           {/* Botón Ver más */}
           <div className="pt-2">
-            <a
-              href={`/vehicle/${vehicle.slug || vehicle.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
               className="w-full block bg-primary hover:bg-secondary text-white py-2 px-4 rounded-lg font-medium transition-colors text-center cursor-pointer"
-              onClick={onUserAction}
+              onClick={handleViewMore}
             >
               Veure més
-            </a>
+            </button>
           </div>
         </div>
       </CardContent>

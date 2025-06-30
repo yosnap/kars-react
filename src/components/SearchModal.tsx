@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import {
   Dialog,
@@ -7,7 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import VehicleCard from "./VehicleCard";
+import VehicleCard, { VehicleCardSkeleton } from "./VehicleCard";
 import VehicleListCard from "./VehicleListCard";
 import ListViewControls from "./ListViewControls";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
@@ -29,6 +28,7 @@ interface Vehicle {
   "anunci-destacat": string;
   "imatge-destacada-url": string;
   "galeria-vehicle-urls": string[];
+  "anunci-actiu": string;
 }
 
 interface SearchModalProps {
@@ -71,7 +71,9 @@ const SearchModal = ({ isOpen, onOpenChange, vehicles, searchQuery, isLoading = 
     }
   };
 
-  const sortedVehicles = sortVehicles(vehicles, sortBy);
+  // Filtrar solo vehículos activos
+  const activeVehicles = vehicles.filter(v => v["anunci-actiu"] === "true");
+  const sortedVehicles = sortVehicles(activeVehicles, sortBy);
   const totalPages = Math.ceil(sortedVehicles.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
@@ -96,7 +98,9 @@ const SearchModal = ({ isOpen, onOpenChange, vehicles, searchQuery, isLoading = 
               {searchQuery ? `Resultados: "${searchQuery}"` : "Resultados de búsqueda"}
             </DialogTitle>
             <p className="text-gray-600 mt-1">
-              {isLoading ? "Buscando..." : `${vehicles.length} vehículo${vehicles.length !== 1 ? 's' : ''} encontrado${vehicles.length !== 1 ? 's' : ''}`}
+              {isLoading
+                ? "Buscando..."
+                : `${activeVehicles.length} vehículo${activeVehicles.length !== 1 ? 's' : ''} encontrado${activeVehicles.length !== 1 ? 's' : ''}`}
             </p>
           </div>
           <Button
@@ -111,14 +115,21 @@ const SearchModal = ({ isOpen, onOpenChange, vehicles, searchQuery, isLoading = 
 
         <div className="flex-1 overflow-hidden">
           {isLoading ? (
-            <Card className="h-full">
-              <CardContent className="p-8 text-center h-full flex items-center justify-center">
-                <div className="animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto mb-4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="space-y-6 h-full overflow-y-auto">
+              <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm mb-4">
+                <span className="text-sm text-gray-400 font-medium">Mostrant 0 de 0 resultats</span>
+              </div>
+              <div className={viewMode === "grid" 
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 px-1"
+                : "space-y-4 px-1"
+              }>
+                {[...Array(itemsPerPage)].map((_, i) => (
+                  viewMode === "grid"
+                    ? <VehicleCardSkeleton key={i} />
+                    : <div key={i} className="bg-white rounded-lg shadow p-4 animate-pulse min-h-[120px] flex flex-col" />
+                ))}
+              </div>
+            </div>
           ) : vehicles.length === 0 ? (
             <Card className="h-full">
               <CardContent className="p-8 text-center h-full flex items-center justify-center">
@@ -134,18 +145,24 @@ const SearchModal = ({ isOpen, onOpenChange, vehicles, searchQuery, isLoading = 
             </Card>
           ) : (
             <div className="space-y-6 h-full overflow-y-auto">
-              <ListViewControls
-                viewMode={viewMode}
-                onViewModeChange={setViewMode}
-                itemsPerPage={itemsPerPage}
-                onItemsPerPageChange={handleItemsPerPageChange}
-                sortBy={sortBy}
-                onSortByChange={handleSortByChange}
-                currentPage={currentPage}
-                totalItems={sortedVehicles.length}
-                startIndex={startIndex}
-                endIndex={endIndex}
-              />
+              {isLoading ? (
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm mb-4">
+                  <span className="text-sm text-gray-400 font-medium">Buscando...</span>
+                </div>
+              ) : (
+                <ListViewControls
+                  viewMode={viewMode}
+                  onViewModeChange={setViewMode}
+                  itemsPerPage={itemsPerPage}
+                  onItemsPerPageChange={handleItemsPerPageChange}
+                  sortBy={sortBy}
+                  onSortByChange={handleSortByChange}
+                  currentPage={currentPage}
+                  totalItems={sortedVehicles.length}
+                  startIndex={startIndex}
+                  endIndex={endIndex}
+                />
+              )}
 
               <div className={viewMode === "grid" 
                 ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 px-1"
@@ -153,9 +170,9 @@ const SearchModal = ({ isOpen, onOpenChange, vehicles, searchQuery, isLoading = 
               }>
                 {paginatedVehicles.map((vehicle) => (
                   viewMode === "grid" ? (
-                    <VehicleCard key={vehicle.id} vehicle={vehicle} />
+                    <VehicleCard key={vehicle.id} vehicle={vehicle} searchQuery={searchQuery} />
                   ) : (
-                    <VehicleListCard key={vehicle.id} vehicle={vehicle} />
+                    <VehicleListCard key={vehicle.id} vehicle={vehicle} searchQuery={searchQuery} />
                   )
                 ))}
               </div>

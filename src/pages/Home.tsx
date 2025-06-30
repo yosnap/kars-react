@@ -11,7 +11,7 @@ import FloatingFilterButton from "../components/FloatingFilterButton";
 import VehicleFilters from "../components/VehicleFilters";
 import type { VehicleUI } from "../components/VehicleCard";
 
-export default function Home() {
+export default function Home({ onSearch }: { onSearch: (params: { vehicleType?: string; searchTerm?: string }) => void }) {
   const [vehicles, setVehicles] = useState<VehicleUI[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -73,7 +73,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      <HeroSection />
+      <HeroSection onSearch={onSearch} />
       {/* Banner superior */}
       <div className="container mx-auto px-4 py-6">
         <AdBanner size="small" position="header" />

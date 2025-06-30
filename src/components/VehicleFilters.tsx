@@ -15,7 +15,7 @@ interface VehicleFiltersProps {
 
 // Filtros iniciales por defecto
 const defaultFilters = {
-  "tipus-vehicle": "cotxe",
+  "tipus-vehicle": "",
   "marques-cotxe": "",
   "models-cotxe": "",
   "estat-vehicle": "",
@@ -27,6 +27,10 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({ initialFilters, onApply
   const [filters, setFilters] = useState<Record<string, string>>({
     ...defaultFilters,
     ...initialFilters,
+    ...(initialFilters && initialFilters["tipus-vehicle"]
+      ? { "tipus-vehicle": initialFilters["tipus-vehicle"].toLowerCase() }
+      : {}),
+    ...(lockedStateValue ? { "estat-vehicle": lockedStateValue } : {}),
   });
 
   // Opciones dinámicas
@@ -74,7 +78,10 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({ initialFilters, onApply
   // Cargar marcas al montar o cambiar tipo de vehículo
   useEffect(() => {
     import("../api/axiosClient").then(({ axiosAdmin }) => {
-      const endpointMarcas = filters["tipus-vehicle"] === "moto" ? "/marques-moto" : "/marques-cotxe";
+      // Para tipos distintos de moto, usar endpoint de coches
+      const endpointMarcas = filters["tipus-vehicle"] === "moto"
+        ? "/marques-moto"
+        : "/marques-cotxe";
       axiosAdmin.get(endpointMarcas)
         .then((res) => {
           const marcas = Array.isArray(res.data.data) ? res.data.data : [];
@@ -97,7 +104,10 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({ initialFilters, onApply
   useEffect(() => {
     if (marcaSeleccionada) {
       import("../api/axiosClient").then(({ axiosAdmin }) => {
-        const endpointModelos = filters["tipus-vehicle"] === "moto" ? "/marques-moto?marca=" : "/marques-cotxe?marca=";
+        // Para tipos distintos de moto, usar endpoint de coches
+        const endpointModelos = filters["tipus-vehicle"] === "moto"
+          ? "/marques-moto?marca="
+          : "/marques-cotxe?marca=";
         const url = `${endpointModelos}${marcaSeleccionada}`;
         axiosAdmin.get(url)
           .then((res) => {
@@ -115,17 +125,35 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({ initialFilters, onApply
     setFilters((prev) => {
       const next = { ...prev };
       Object.entries(initialFilters || {}).forEach(([k, v]) => {
-        if (v !== undefined && v !== "") next[k] = v;
+        if (v !== undefined && v !== "") {
+          if (k === "tipus-vehicle") {
+            // Normaliza a 'moto-quad-atv' si es moto
+            const vNorm = v.toLowerCase();
+            if (vNorm === "moto" || vNorm === "moto-quad-atv") {
+              next[k] = "moto-quad-atv";
+            } else {
+              next[k] = vNorm;
+            }
+          } else {
+            next[k] = v;
+          }
+        }
       });
       if (!next["marques-cotxe"]) {
         next["models-cotxe"] = "";
       }
+      // Si hay valor bloqueado, forzarlo siempre
+      if (lockedStateValue) {
+        next["estat-vehicle"] = lockedStateValue;
+      }
       return next;
     });
-  }, [initialFilters]);
+  }, [initialFilters, lockedStateValue]);
 
   // Manejar cambios en los filtros
   const handleChange = (key: string, value: string) => {
+    // Si el campo es 'estat-vehicle' y está bloqueado, ignorar cambios
+    if (lockedStateValue && key === "estat-vehicle") return;
     setFilters((prev) => ({
       ...prev,
       [key]: value,
@@ -156,8 +184,11 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({ initialFilters, onApply
           value={filters["tipus-vehicle"]}
           onChange={(e) => handleChange("tipus-vehicle", e.target.value)}
         >
+          <option value="">Todos</option>
           <option value="cotxe">Coche</option>
-          <option value="moto">Moto</option>
+          <option value="moto-quad-atv">Moto</option>
+          <option value="autocaravana-camper">Autocaravana</option>
+          <option value="vehicle-comercial">Vehículo comercial</option>
         </select>
       </div>
       {/* Marca */}
@@ -199,9 +230,9 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({ initialFilters, onApply
         <label className="block text-sm font-medium mb-1">Estado</label>
         <select
           className="w-full border border-gray-300 bg-white text-gray-900 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200"
-          value={lockedStateValue ?? filters["estat-vehicle"]}
+          value={lockedStateValue !== undefined ? lockedStateValue : filters["estat-vehicle"]}
           onChange={(e) => handleChange("estat-vehicle", e.target.value)}
-          disabled={!!lockedStateValue}
+          disabled={lockedStateValue != null}
         >
           <option value="">Todos</option>
           {states.map((s) => (
