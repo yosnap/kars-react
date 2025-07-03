@@ -81,6 +81,9 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState("featured");
 
+  // Estado para las marcas (brands) para los breadcrumbs
+  const [brands, setBrands] = useState<{ value: string; label: string }[]>([]);
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -196,6 +199,22 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
       )
     : vehicleDefaultFilters;
 
+  // Cargar marcas al montar o cambiar tipo de vehículo
+  useEffect(() => {
+    import("../api/axiosClient").then(({ axiosAdmin }) => {
+      // Para tipos distintos de moto, usar endpoint de coches
+      const endpointMarcas = filters["tipus-vehicle"] === "moto"
+        ? "/marques-moto"
+        : "/marques-cotxe";
+      axiosAdmin.get(endpointMarcas)
+        .then((res) => {
+          const marcas = Array.isArray(res.data.data) ? res.data.data : [];
+          setBrands(marcas);
+        })
+        .catch(() => setBrands([]));
+    });
+  }, [filters["tipus-vehicle"]]);
+
   // Render cards según vista
   const renderVehicles = () => {
     if (loading && vehicles.length === 0) {
@@ -260,6 +279,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
               fr: b.label.fr ?? ""
             }
           }))}
+          brands={brands}
         />
       )}
       <div className="container mx-auto px-4 py-8 flex flex-col md:flex-row gap-8">
@@ -311,10 +331,10 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
                   // Mapeo para tipo de vehículo
                   if (k === "tipus-vehicle") {
                     displayKey = "Tipo de vehículo";
-                    if (v === "cotxe") displayValue = "Coches";
-                    else if (v === "moto-quad-atv") displayValue = "Motos";
-                    else if (v === "autocaravana-camper") displayValue = "Caravanas";
-                    else if (v === "vehicle-comercial") displayValue = "Comerciales";
+                    if (v === "cotxe") displayValue = "Coche";
+                    else if (v === "moto-quad-atv") displayValue = "Moto";
+                    else if (v === "autocaravana-camper") displayValue = "Caravana";
+                    else if (v === "vehicle-comercial") displayValue = "Vehículo comercial";
                   }
                   const isFixed = Object.prototype.hasOwnProperty.call(initialFilters, k) && !Object.prototype.hasOwnProperty.call(filters, k);
                   return (

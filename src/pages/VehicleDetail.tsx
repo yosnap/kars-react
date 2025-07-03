@@ -301,22 +301,32 @@ const VehicleDetail = () => {
     </Card>
   );
 
+  // Función para mapear el slug de tipo de vehículo a label amigable
+  function getVehicleTypeLabel(slug: string): string {
+    switch (slug.toLowerCase()) {
+      case "cotxe": return "Coche";
+      case "moto-quad-atv": return "Moto";
+      case "autocaravana-camper": return "Caravana";
+      case "vehicle-comercial": return "Vehículo comercial";
+      default: return slug.charAt(0).toUpperCase() + slug.slice(1).toLowerCase();
+    }
+  }
+
   // Render visual
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Breadcrumbs con estructura: Inicio - Tipo de vehículo - Marca - Nombre del vehículo */}
       {(() => {
         // Construye el array de breadcrumbs y filtra los undefined
-        const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
         const breadcrumbItems = [
           vehicle["tipus-vehicle"] ? {
             label: {
-              es: capitalize(String(vehicle["tipus-vehicle"])),
-              ca: capitalize(String(vehicle["tipus-vehicle"])),
-              en: capitalize(String(vehicle["tipus-vehicle"])),
-              fr: capitalize(String(vehicle["tipus-vehicle"]))
+              es: getVehicleTypeLabel(String(vehicle["tipus-vehicle"])),
+              ca: getVehicleTypeLabel(String(vehicle["tipus-vehicle"])),
+              en: getVehicleTypeLabel(String(vehicle["tipus-vehicle"])),
+              fr: getVehicleTypeLabel(String(vehicle["tipus-vehicle"]))
             },
-            href: `/vehicles-andorra?tipus-vehicle=${encodeURIComponent(String(vehicle["tipus-vehicle"]))}`
+            href: `/vehicles-andorra?tipus-vehicle=${encodeURIComponent(String(vehicle["tipus-vehicle"]).toLowerCase())}`
           } : null,
           vehicle["marques-cotxe"] ? {
             label: {
@@ -325,7 +335,7 @@ const VehicleDetail = () => {
               en: String(vehicle["marques-cotxe"]).charAt(0).toUpperCase() + String(vehicle["marques-cotxe"]).slice(1),
               fr: String(vehicle["marques-cotxe"]).charAt(0).toUpperCase() + String(vehicle["marques-cotxe"]).slice(1)
             },
-            href: `/vehicles-andorra?tipus-vehicle=${encodeURIComponent(String(vehicle["tipus-vehicle"]))}&marques-cotxe=${encodeURIComponent(String(vehicle["marques-cotxe"]))}`
+            href: `/vehicles-andorra?tipus-vehicle=${encodeURIComponent(String(vehicle["tipus-vehicle"]).toLowerCase())}&marques-cotxe=${encodeURIComponent(String(vehicle["marques-cotxe"]))}`
           } : null,
           {
             label: {

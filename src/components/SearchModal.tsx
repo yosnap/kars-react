@@ -170,9 +170,9 @@ const SearchModal = ({ isOpen, onOpenChange, vehicles, searchQuery, isLoading = 
               }>
                 {paginatedVehicles.map((vehicle) => (
                   viewMode === "grid" ? (
-                    <VehicleCard key={vehicle.id} vehicle={vehicle} searchQuery={searchQuery} />
+                    <VehicleCard key={vehicle.id} vehicle={vehicle} searchQuery={searchQuery} onUserAction={() => onOpenChange(false)} />
                   ) : (
-                    <VehicleListCard key={vehicle.id} vehicle={vehicle} searchQuery={searchQuery} />
+                    <VehicleListCard key={vehicle.id} vehicle={vehicle} searchQuery={searchQuery} onUserAction={() => onOpenChange(false)} />
                   )
                 ))}
               </div>
