@@ -5,9 +5,10 @@ import { useFavorites } from "../hooks/useFavorites";
 
 interface HeaderProps {
   onSearch?: (params: { vehicleType?: string; searchTerm?: string }) => void;
+  onOpenAdvancedSearch?: () => void;
 }
 
-export default function Header({ onSearch }: HeaderProps) {
+export default function Header({ onSearch, onOpenAdvancedSearch }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -19,6 +20,7 @@ export default function Header({ onSearch }: HeaderProps) {
   const userCloseTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const location = useLocation();
   const { favorites } = useFavorites();
+  const [vehicleType, setVehicleType] = useState("");
 
   useEffect(() => {
     // Close menu with Escape key
@@ -48,8 +50,6 @@ export default function Header({ onSearch }: HeaderProps) {
   function handleMouseLeaveUser() {
     userCloseTimeout.current = setTimeout(() => setUserDropdownOpen(false), 250);
   }
-
-  const [vehicleType, setVehicleType] = useState("");
 
   // Lógica para buscar desde el header
   const handleHeaderSearch = (e?: React.FormEvent) => {
@@ -101,30 +101,30 @@ export default function Header({ onSearch }: HeaderProps) {
           {location.pathname !== "/" && (
             <div className="flex-1 max-w-2xl mx-8">
               <div className="relative flex gap-2 items-center">
-  {/* Select de tipo de vehículo */}
-  <select
-    className="h-10 rounded-md border-2 border-gray-200 bg-background px-3 text-base text-gray-700 focus:border-primary focus:outline-none"
-    value={vehicleType}
-    onChange={e => setVehicleType(e.target.value)}
-    style={{ minWidth: 140 }}
-  >
-    <option value="">Todos</option>
-    <option value="cotxe">Coches</option>
-    <option value="moto-quad-atv">Motos</option>
-    <option value="autocaravana-camper">Caravanas</option>
-    <option value="vehicle-comercial">Comerciales</option>
-  </select>
-  {/* Search icon e input */}
-  <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-  <form onSubmit={handleHeaderSearch} className="flex-1">
-    <input
-      className="flex h-10 rounded-md bg-background px-3 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm pl-10 pr-4 py-2 w-full border-2 border-gray-200 focus:border-primary"
-      placeholder="Buscar marca, modelo, año..."
-      value={searchQuery}
-      onChange={e => setSearchQuery(e.target.value)}
-    />
-  </form>
-</div>
+                {/* Select de tipo de vehículo */}
+                <select
+                  className="h-10 rounded-md border-2 border-gray-200 bg-background px-3 text-base text-gray-700 focus:border-primary focus:outline-none"
+                  value={vehicleType}
+                  onChange={e => setVehicleType(e.target.value)}
+                  style={{ minWidth: 140 }}
+                >
+                  <option value="">Todos</option>
+                  <option value="cotxe">Coches</option>
+                  <option value="moto-quad-atv">Motos</option>
+                  <option value="autocaravana-camper">Caravanas</option>
+                  <option value="vehicle-comercial">Comerciales</option>
+                </select>
+                {/* Search icon */}
+                <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                <form onSubmit={handleHeaderSearch} className="flex-1">
+                  <input
+                    className="flex h-10 rounded-md bg-background px-3 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm pl-10 pr-4 py-2 w-full border-2 border-gray-200 focus:border-primary"
+                    placeholder="Buscar marca, modelo, año..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                  />
+                </form>
+              </div>
             </div>
           )}
 
@@ -276,9 +276,13 @@ export default function Header({ onSearch }: HeaderProps) {
               <a href="/blog" className="text-tertiary hover:text-primary font-medium">Blog</a>
               <a href="/favorits" className="text-tertiary hover:text-primary font-medium">Favorits</a>
             </div>
-            <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3">
-              {/* Filter icon */}
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 4a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v2a1 1 0 0 1-.293.707l-6.414 6.414A1 1 0 0 0 13 14.414V19a1 1 0 0 1-1.447.894l-2-1A1 1 0 0 1 9 18.118V14.414a1 1 0 0 0-.293-.707L2.293 6.707A1 1 0 0 1 2 6V4z" /></svg>
+            {/* Botón blanco Filtros Avanzados en la barra inferior */}
+            <button
+              className="inline-flex items-center gap-2 border border-gray-300 rounded-lg px-4 py-2 bg-white text-tertiary hover:bg-gray-100 font-medium transition-colors"
+              onClick={onOpenAdvancedSearch}
+              type="button"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 4a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v2a1 1 0 0 1-.293.707l-6.414 6.414A1 1 0 0 0 14 14.414V19a1 1 0 0 1-1.447.894l-4-2A1 1 0 0 1 8 17v-2.586a1 1 0 0 0-.293-.707L1.293 6.707A1 1 0 0 1 1 6V4z" /></svg>
               Filtros Avanzados
             </button>
           </div>

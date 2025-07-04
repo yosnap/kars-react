@@ -22,6 +22,8 @@ import ProfessionalProfile from "./pages/ProfessionalProfile";
 import VehicleListLayout from "./layouts/VehicleListLayout";
 import SearchModal from "./components/SearchModal";
 import { axiosAdmin } from "./api/axiosClient";
+import AdvancedSearchModal from "./components/AdvancedSearchModal";
+import { useState } from "react";
 
 // Componente para proteger rutas privadas
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
@@ -47,23 +49,20 @@ function EstatVehiclePage() {
 }
 
 function App() {
-  // Estado para el modal de búsqueda
   const [searchModalOpen, setSearchModalOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [searchResults, setSearchResults] = React.useState([]);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
 
   // Callback global para búsqueda
-  const handleSearch = async ({ vehicleType, searchTerm }) => {
+  const handleSearch = async ({ vehicleType, searchTerm }: { vehicleType?: string; searchTerm?: string }) => {
     setSearchQuery(searchTerm || "");
     setSearchResults([]);
     setSearchModalOpen(true);
     setIsLoading(true);
     try {
-      const params = {
-        "anunci-actiu": true,
-        per_page: 100,
-      };
+      const params: Record<string, any> = { "anunci-actiu": true, per_page: 100 };
       if (vehicleType) params["tipus-vehicle"] = vehicleType;
       if (searchTerm) params["search"] = searchTerm;
       const res = await axiosAdmin.get("/vehicles", { params });
@@ -78,7 +77,7 @@ function App() {
 
   return (
     <Router>
-      <Header onSearch={handleSearch} />
+      <Header onSearch={handleSearch} onOpenAdvancedSearch={() => setIsAdvancedSearchOpen(true)} />
       <MainLayout>
         <Routes>
           {/* Rutas públicas */}
@@ -109,6 +108,10 @@ function App() {
         vehicles={searchResults}
         searchQuery={searchQuery}
         isLoading={isLoading}
+      />
+      <AdvancedSearchModal
+        isOpen={isAdvancedSearchOpen}
+        onOpenChange={setIsAdvancedSearchOpen}
       />
     </Router>
   );

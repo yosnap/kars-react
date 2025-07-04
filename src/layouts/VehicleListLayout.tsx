@@ -40,20 +40,19 @@ function useQueryParams() {
 function getOrderParams(sortBy: string) {
   switch (sortBy) {
     case "featured":
-      // Ordenar por el campo numérico 'anunci-destacat' descendente
       return { orderby: "anunci-destacat", order: "DESC" };
     case "price_asc":
       return { orderby: "price", order: "ASC" };
     case "price_desc":
       return { orderby: "price", order: "DESC" };
     case "date_desc":
-      return { orderby: "date", order: "DESC" };
+      return { orderby: "data-creacio", order: "DESC" };
     case "date_asc":
-      return { orderby: "date", order: "ASC" };
+      return { orderby: "data-creacio", order: "ASC" };
     case "title_asc":
-      return { orderby: "title", order: "ASC" };
+      return { orderby: "titol-anunci", order: "ASC" };
     case "title_desc":
-      return { orderby: "title", order: "DESC" };
+      return { orderby: "titol-anunci", order: "DESC" };
     default:
       return { orderby: "anunci-destacat", order: "DESC" };
   }
@@ -91,14 +90,11 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
 
-  // Memoriza los filtros para evitar que cambien en cada render y disparen el efecto innecesariamente
-  const memoizedFilters = useMemo(() => ({ ...filters }), [JSON.stringify(filters)]);
-
   // Fetch de vehículos (adaptar según tu API)
   useEffect(() => {
     // Debug: log para ver cuándo y por qué se dispara el efecto
     console.log("[VehicleListLayout] Disparando fetch de vehículos", {
-      memoizedFilters,
+      filters,
       initialFilters,
       currentPage,
       itemsPerPage,
@@ -110,10 +106,13 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
     setVehicles([]); // Limpiar para mostrar skeletons
     import("../api/axiosClient").then(({ axiosAdmin }) => {
       const orderParams = getOrderParams(sortBy);
+      // Elimina sortBy de los filtros antes de enviar a la API
+      const { sortBy: _sortByFilter, ...filtersWithoutSortBy } = filters;
       const params: Record<string, string | number | boolean> = {
         ...initialFilters,
-        ...memoizedFilters,
-        ...(disableBaseQuery ? {} : {}), // No añadir 'anunci-actiu' nunca
+        ...filtersWithoutSortBy,
+        "anunci-actiu": true,
+        ...(disableBaseQuery ? {} : {}),
         page: currentPage,
         per_page: itemsPerPage,
         orderby: orderParams.orderby,
@@ -122,10 +121,10 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
       const endpoint = customEndpoint || "/vehicles";
       axiosAdmin.get(endpoint, { params })
         .then(res => {
-          // Filtra solo los vehículos activos
-          const activos = (res.data.items || []).filter(
-            (v: Record<string, string>) => v["anunci-actiu"] === "true"
-          );
+          // Ya no filtramos por anunci-actiu en el frontend
+          const activos = res.data.items || [];
+          // Log para comparar orden, per_page y resultados reales
+          console.log("[Vehículos API] Orden:", sortBy, "| per_page solicitado:", itemsPerPage, "| Vehículos recibidos:", activos.length, activos);
           setVehicles(activos);
           setTotalItems(res.data.total || activos.length || 0);
           setTotalPages(res.data.pages || Math.ceil(activos.length / itemsPerPage) || 1);
@@ -133,7 +132,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
         .catch(() => setError("Error al cargar vehículos"))
         .finally(() => setLoading(false));
     });
-  }, [memoizedFilters, initialFilters, currentPage, itemsPerPage, sortBy, disableBaseQuery, customEndpoint]);
+  }, [filters, initialFilters, currentPage, itemsPerPage, sortBy, disableBaseQuery, customEndpoint]);
 
   // Sincroniza currentPage con el valor de la query string 'page'
   useEffect(() => {
@@ -151,11 +150,24 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
     }
   }, [filters.per_page]);
 
-  // Cambiar orden
+  // Sincroniza sortBy con la URL
+  useEffect(() => {
+    const sortByFromQuery = filters.sortBy || "featured";
+    if (sortByFromQuery !== sortBy) {
+      setSortBy(sortByFromQuery);
+    }
+  }, [filters.sortBy]);
+
+  // Cambiar orden y sincronizar con la URL
   const handleSortByChange = useCallback((value: string) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("sortBy", value);
+    params.set("per_page", itemsPerPage.toString());
+    params.set("page", "1");
+    navigate(`${location.pathname}?${params.toString()}`);
     setSortBy(value);
     setCurrentPage(1);
-  }, []);
+  }, [navigate, location.pathname, itemsPerPage]);
 
   // Cambiar elementos por página y sincronizar con la URL
   const handleItemsPerPageChange = useCallback((value: number) => {
@@ -217,8 +229,8 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
 
   // Render cards según vista
   const renderVehicles = () => {
+    // Solo muestro skeletons si está cargando y no hay vehículos previos
     if (loading && vehicles.length === 0) {
-      // Skeletons mientras carga
       if (viewMode === "grid") {
         return (
           <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6`}>
@@ -228,7 +240,6 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
           </div>
         );
       } else {
-        // Skeletons para lista
         return (
           <div className="space-y-4">
             {[...Array(itemsPerPage)].map((_, i) => (
@@ -238,7 +249,8 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
         );
       }
     }
-    if (loading) return <Spinner />;
+    // Si está cargando pero ya hay vehículos, muestro la lista anterior
+    // y no muestro el spinner ni skeletons
     if (error) return <div className="text-red-600">{error}</div>;
     if (!vehicles.length) return <div>No hay vehículos disponibles.</div>;
     // Mapeo seguro a VehicleUI

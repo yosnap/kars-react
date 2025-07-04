@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { axiosAdmin } from "../api/axiosClient";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -47,6 +47,7 @@ const VehicleDetail = () => {
   const [professional, setProfessional] = useState<Professional | null>(null);
   const [loadingProfessional, setLoadingProfessional] = useState(true);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [brands, setBrands] = useState<{ value: string; label: string }[]>([]);
 
   // Favorites logic
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -90,6 +91,23 @@ const VehicleDetail = () => {
       setLoadingProfessional(false);
     }
   }, [vehicle]);
+
+  // Cargar marcas al montar o cambiar tipo de vehículo
+  useEffect(() => {
+    if (!vehicle || !vehicle["tipus-vehicle"]) return;
+    import("../api/axiosClient").then(({ axiosAdmin }) => {
+      const tipus = String(vehicle["tipus-vehicle"]).toLowerCase();
+      const endpointMarcas = tipus === "moto" || tipus === "moto-quad-atv"
+        ? "/marques-moto"
+        : "/marques-cotxe";
+      axiosAdmin.get(endpointMarcas)
+        .then((res) => {
+          const marcas = Array.isArray(res.data.data) ? res.data.data : [];
+          setBrands(marcas);
+        })
+        .catch(() => setBrands([]));
+    });
+  }, [vehicle && vehicle["tipus-vehicle"]]);
 
   if (error) return <div className="text-center py-8 text-red-500">{error}</div>;
   if (!loading && !loadingProfessional && !vehicle) {
@@ -312,30 +330,42 @@ const VehicleDetail = () => {
     }
   }
 
+  function slugify(str: string) {
+    return str
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
+  }
+
   // Render visual
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Breadcrumbs con estructura: Inicio - Tipo de vehículo - Marca - Nombre del vehículo */}
       {(() => {
         // Construye el array de breadcrumbs y filtra los undefined
+        const tipusVehicleSlug = vehicle["tipus-vehicle"] ? String(vehicle["tipus-vehicle"]).toLowerCase() : "";
+        const marcaLabel = vehicle["marques-cotxe"] ? String(vehicle["marques-cotxe"]) : "";
+        const brandObj = brands.find(b => b.label.toLowerCase() === marcaLabel.toLowerCase());
+        const marcaSlug = brandObj ? brandObj.value : slugify(marcaLabel);
         const breadcrumbItems = [
-          vehicle["tipus-vehicle"] ? {
+          tipusVehicleSlug ? {
             label: {
-              es: getVehicleTypeLabel(String(vehicle["tipus-vehicle"])),
-              ca: getVehicleTypeLabel(String(vehicle["tipus-vehicle"])),
-              en: getVehicleTypeLabel(String(vehicle["tipus-vehicle"])),
-              fr: getVehicleTypeLabel(String(vehicle["tipus-vehicle"]))
+              es: getVehicleTypeLabel(tipusVehicleSlug),
+              ca: getVehicleTypeLabel(tipusVehicleSlug),
+              en: getVehicleTypeLabel(tipusVehicleSlug),
+              fr: getVehicleTypeLabel(tipusVehicleSlug)
             },
-            href: `/vehicles-andorra?tipus-vehicle=${encodeURIComponent(String(vehicle["tipus-vehicle"]).toLowerCase())}`
+            href: `/vehicles-andorra?tipus-vehicle=${encodeURIComponent(tipusVehicleSlug)}`
           } : null,
-          vehicle["marques-cotxe"] ? {
+          marcaSlug ? {
             label: {
-              es: String(vehicle["marques-cotxe"]).charAt(0).toUpperCase() + String(vehicle["marques-cotxe"]).slice(1),
-              ca: String(vehicle["marques-cotxe"]).charAt(0).toUpperCase() + String(vehicle["marques-cotxe"]).slice(1),
-              en: String(vehicle["marques-cotxe"]).charAt(0).toUpperCase() + String(vehicle["marques-cotxe"]).slice(1),
-              fr: String(vehicle["marques-cotxe"]).charAt(0).toUpperCase() + String(vehicle["marques-cotxe"]).slice(1)
+              es: marcaLabel.charAt(0).toUpperCase() + marcaLabel.slice(1),
+              ca: marcaLabel.charAt(0).toUpperCase() + marcaLabel.slice(1),
+              en: marcaLabel.charAt(0).toUpperCase() + marcaLabel.slice(1),
+              fr: marcaLabel.charAt(0).toUpperCase() + marcaLabel.slice(1)
             },
-            href: `/vehicles-andorra?tipus-vehicle=${encodeURIComponent(String(vehicle["tipus-vehicle"]).toLowerCase())}&marques-cotxe=${encodeURIComponent(String(vehicle["marques-cotxe"]))}`
+            href: `/vehicles-andorra?tipus-vehicle=${encodeURIComponent(tipusVehicleSlug)}&marques-cotxe=${encodeURIComponent(marcaSlug)}`
           } : null,
           {
             label: {
@@ -345,8 +375,8 @@ const VehicleDetail = () => {
               fr: typeof vehicle["titol-anunci"] === "string" ? vehicle["titol-anunci"] : "Détail"
             }
           }
-        ].filter(Boolean) as { label: { es: string; ca: string; en: string; fr: string }; href?: string }[]; // Filter out nulls for type safety
-        return <PageBreadcrumbs items={breadcrumbItems} />;
+        ].filter(Boolean) as { label: { es: string; ca: string; en: string; fr: string }; href?: string }[];
+        return <PageBreadcrumbs items={breadcrumbItems} brands={brands} />;
       })()}
       {(loading && !vehicle)
         ? <VehicleDetailSkeleton />

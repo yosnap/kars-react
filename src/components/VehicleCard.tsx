@@ -151,7 +151,7 @@ const VehicleCard = ({ vehicle, onUserAction, searchQuery }: VehicleCardProps) =
             aria-label={`Ver detalle de ${vehicle["titol-anunci"] ?? "vehículo"}`}
             role="button"
           >
-            {highlightText(vehicle["titol-anunci"], searchQuery)}
+            {highlightText(vehicle["titol-anunci"] ?? "", searchQuery ?? "")}
           </h3>
           {/* Precio */}
           <div className="pt-1">

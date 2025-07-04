@@ -126,7 +126,7 @@ const VehicleListCard = ({ vehicle, onUserAction, searchQuery }: VehicleListCard
                 )}
                 <h3 className="font-semibold text-xl truncate" style={{ lineHeight: '1.2' }}>
                   <span onClick={handleViewMore} style={{ cursor: 'pointer' }} title={vehicle["titol-anunci"]}>
-                    {highlightText(vehicle["titol-anunci"], searchQuery)}
+                    {highlightText(vehicle["titol-anunci"] ?? "", searchQuery ?? "")}
                   </span>
                 </h3>
                 <p className="text-gray-600 text-sm line-clamp-2" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} dangerouslySetInnerHTML={{ __html: highlightText(vehicle["descripcio-anunci"] ?? "", searchQuery) }} />
