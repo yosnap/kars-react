@@ -23,7 +23,7 @@ import VehicleListLayout from "./layouts/VehicleListLayout";
 import SearchModal from "./components/SearchModal";
 import { axiosAdmin } from "./api/axiosClient";
 import AdvancedSearchModal from "./components/AdvancedSearchModal";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // Componente para proteger rutas privadas
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
@@ -54,6 +54,7 @@ function App() {
   const [searchResults, setSearchResults] = React.useState([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
+  const [facets, setFacets] = useState<Record<string, Record<string, number>>>({});
 
   // Callback global para búsqueda
   const handleSearch = async ({ vehicleType, searchTerm }: { vehicleType?: string; searchTerm?: string }) => {
@@ -62,18 +63,29 @@ function App() {
     setSearchModalOpen(true);
     setIsLoading(true);
     try {
-      const params: Record<string, any> = { "anunci-actiu": true, per_page: 100 };
+      const params: Record<string, string | number | boolean> = { "anunci-actiu": true, per_page: 100 };
       if (vehicleType) params["tipus-vehicle"] = vehicleType;
       if (searchTerm) params["search"] = searchTerm;
       const res = await axiosAdmin.get("/vehicles", { params });
       const items = Array.isArray(res.data.items) ? res.data.items : [];
       setSearchResults(items);
-    } catch (e) {
+    } catch {
       setSearchResults([]);
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Cargar facets cuando se abre el modal avanzado
+  useEffect(() => {
+    if (isAdvancedSearchOpen) {
+      axiosAdmin.get("/vehicles", { params: { "anunci-actiu": true, per_page: 1 } })
+        .then(res => {
+          setFacets(res.data.facets || {});
+        })
+        .catch(() => setFacets({}));
+    }
+  }, [isAdvancedSearchOpen]);
 
   return (
     <Router>
@@ -112,6 +124,7 @@ function App() {
       <AdvancedSearchModal
         isOpen={isAdvancedSearchOpen}
         onOpenChange={setIsAdvancedSearchOpen}
+        facets={facets}
       />
     </Router>
   );

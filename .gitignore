@@ -26,3 +26,6 @@ dist-ssr
 .env*
 auto-market-catalonia-hub
 .vercel
+
+CLAUDE.md
+CLAUDE.local.md

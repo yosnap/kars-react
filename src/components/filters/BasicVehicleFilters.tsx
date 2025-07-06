@@ -1,7 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -35,57 +34,121 @@ interface FilterState {
   potenciaMin: string;
   potenciaMax: string;
   colorVehicle: string;
-  destacats: boolean;
+  destacat: boolean;
+}
+
+interface MarcaWithCount {
+  nombre: string;
+  count: number;
 }
 
 interface BasicVehicleFiltersProps {
   filters: FilterState;
   onFilterChange: (key: keyof FilterState, value: string | boolean) => void;
+  marcas?: MarcaWithCount[];
+  modelos?: string[];
+  estados?: string[];
+  combustibles?: string[];
+  colores?: string[];
+  tipusVehicleCounts?: Record<string, number>;
 }
 
-const BasicVehicleFilters = ({ filters, onFilterChange }: BasicVehicleFiltersProps) => {
-  const marcasCotxe = [
+const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados, combustibles, colores, tipusVehicleCounts }: BasicVehicleFiltersProps) => {
+  const marcasCotxeLocal = [
     "Peugeot", "Volkswagen", "Ford", "Seat", "BMW", "Mercedes-Benz", 
     "Audi", "Toyota", "Hyundai", "Kia", "Nissan", "Honda", "Fiat",
     "Renault", "Opel", "Citroën", "Mazda", "Volvo", "Skoda"
   ];
 
-  const marcasMoto = [
+  const marcasMotoLocal = [
     "Honda", "Yamaha", "Kawasaki", "Suzuki", "BMW", "Ducati",
     "KTM", "Harley-Davidson", "Aprilia", "Triumph", "Beta", "Sherco"
   ];
 
-  const combustiblesCotxe = [
+  const combustiblesCotxeLocal = [
     "Benzina", "Gasoil", "Elèctric", "Híbrid", "Híbrid Endollable", 
     "Elèctric + Combustible", "GLP", "Altres"
   ];
 
-  const combustiblesMoto = [
+  const combustiblesMotoLocal = [
     "Benzina", "Elèctric", "Híbrid", "Altres"
   ];
 
-  const propulsors = [
+  const propulsorsLocal = [
     "Combustió", "Elèctric", "Híbrid", "Híbrid Endollable"
   ];
 
-  const tipusCanvis = [
+  const tipusCanvisLocal = [
     "Manual", "Automàtic", "Semi-Automàtic", "Auto-Seqüencial"
   ];
 
-  const colores = [
+  const coloresLocal = [
     "Blanc", "Negre", "Gris", "Plata", "Blau", "Vermell", 
     "Verd", "Groc", "Marró", "Taronja"
   ];
+
+  const marcasCotxeToShow = (marcas && marcas.length > 0
+    ? marcas
+        .filter((m): m is MarcaWithCount => 
+          typeof m === 'object' &&
+          m !== null &&
+          typeof m.nombre === 'string' &&
+          m.nombre.trim() !== '' &&
+          typeof m.count === 'number'
+        )
+        // Elimina duplicados por nombre
+        .filter((m, i, arr) => arr.findIndex(x => x.nombre === m.nombre) === i)
+    : marcasCotxeLocal.map(nombre => ({ nombre, count: 0 })));
+  const modelosToShow = modelos && modelos.length > 0 
+    ? modelos.filter(modelo => {
+        if (typeof modelo === 'string') return true;
+        if (typeof modelo === 'object' && modelo !== null && 'nombre' in modelo) return true;
+        return false;
+      }) 
+    : [];
+  
+  console.log("BasicVehicleFilters - modelos prop:", modelos);
+  console.log("BasicVehicleFilters - modelosToShow:", modelosToShow);
+  console.log("BasicVehicleFilters - filters.tipusVehicle:", filters.tipusVehicle);
+  console.log("BasicVehicleFilters - filters.marcaCotxe:", filters.marcaCotxe);
+  const combustiblesCotxeToShow = (combustibles && combustibles.length > 0 ? combustibles.filter(c => typeof c === 'string') : combustiblesCotxeLocal);
+  const combustiblesMotoToShow = (combustibles && combustibles.length > 0 ? combustibles.filter(c => typeof c === 'string') : combustiblesMotoLocal);
+  const propulsorsToShow = propulsorsLocal.filter(p => typeof p === 'string');
+  const tipusCanvisToShow = tipusCanvisLocal.filter(t => typeof t === 'string');
+  const coloresToShow = (colores && colores.length > 0 ? colores.filter(c => typeof c === 'string') : coloresLocal);
+  const estadosToShow = estados && estados.length > 0 ? estados : ["Nou", "Km0", "Ocasió"];
 
   const vehicleTypes = [
     { value: "COTXE", label: "Coche", icon: Car },
     { value: "MOTO", label: "Moto", icon: Bike },
     { value: "CARAVANA", label: "Caravana", icon: Home },
-    { value: "CAMIO", label: "Camión", icon: Truck },
+    { value: "VEHICLE COMERCIAL", label: "Vehicle Comercial", icon: Truck },
   ];
 
   const getCombustiblesForVehicleType = () => {
-    return filters.tipusVehicle === "MOTO" ? combustiblesMoto : combustiblesCotxe;
+    return filters.tipusVehicle === "MOTO" ? combustiblesMotoToShow : combustiblesCotxeToShow;
+  };
+
+  // Función para obtener el label y placeholder de marca según el tipo de vehículo
+  const getMarcaLabel = () => {
+    switch (filters.tipusVehicle) {
+      case "COTXE": return { label: "Marca", placeholder: "Marca de cotxe" };
+      case "MOTO": return { label: "Marca", placeholder: "Marca de moto" };
+      case "CARAVANA": return { label: "Marca", placeholder: "Marca autocaravana" };
+      case "CAMIO": return { label: "Marca", placeholder: "Marca vehicle comercial" };
+      case "VEHICLE COMERCIAL": return { label: "Marca", placeholder: "Marca vehicle comercial" };
+      default: return { label: "Marca", placeholder: "Marca" };
+    }
+  };
+  const getModelLabel = () => {
+    switch (filters.tipusVehicle) {
+      case "COTXE": return { label: "Modelo", placeholder: "Model de cotxe" };
+      case "MOTO": return { label: "Modelo", placeholder: "Model de moto" };
+      case "CARAVANA": return { label: "Modelo", placeholder: "Model autocaravana" };
+      case "CAMIO": return { label: "Modelo", placeholder: "Model vehicle comercial" };
+      case "VEHICLE COMERCIAL": return { label: "Modelo", placeholder: "Model vehicle comercial" };
+      default: return { label: "Modelo", placeholder: "Modelo" };
+    }
   };
 
   const renderCheckboxGrid = (items: string[], filterKey: keyof FilterState) => (
@@ -128,12 +191,16 @@ const BasicVehicleFilters = ({ filters, onFilterChange }: BasicVehicleFiltersPro
         >
           {vehicleTypes.map((vehicleType) => {
             const IconComponent = vehicleType.icon;
+            const count = tipusVehicleCounts?.[vehicleType.value] ?? null;
             return (
               <div key={vehicleType.value} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
                 <RadioGroupItem value={vehicleType.value} id={vehicleType.value.toLowerCase()} />
                 <IconComponent className="w-5 h-5 text-gray-600" />
                 <Label htmlFor={vehicleType.value.toLowerCase()} className="cursor-pointer flex-1">
                   {vehicleType.label}
+                  {count !== null && (
+                    <span className="ml-2 text-xs text-gray-500 font-semibold">({count})</span>
+                  )}
                 </Label>
               </div>
             );
@@ -142,37 +209,71 @@ const BasicVehicleFilters = ({ filters, onFilterChange }: BasicVehicleFiltersPro
       </div>
 
       {/* Conditional Brand and Model Filters */}
-      {filters.tipusVehicle === "COTXE" && (
+      {["COTXE", "CARAVANA", "CAMIO", "VEHICLE COMERCIAL"].includes(filters.tipusVehicle) && (
         <div className="space-y-4">
           <div>
-            <Label htmlFor="marca-cotxe">Marca de cotxe</Label>
-            <Select onValueChange={(value) => onFilterChange('marcaCotxe', value)}>
+            <Label htmlFor="marca-cotxe">{getMarcaLabel().label}</Label>
+            <Select value={filters.marcaCotxe} onValueChange={(value) => onFilterChange('marcaCotxe', value)}>
               <SelectTrigger>
-                <SelectValue placeholder="Marca de cotxe" />
+                <SelectValue placeholder={getMarcaLabel().placeholder} />
               </SelectTrigger>
               <SelectContent className="bg-white z-50">
-                {marcasCotxe.map((marca) => (
-                  <SelectItem key={marca} value={marca}>
-                    {marca}
-                  </SelectItem>
-                ))}
+                {marcasCotxeToShow.length > 0 ? (
+                  marcasCotxeToShow.map((marca) => (
+                    <SelectItem
+                      key={marca.nombre}
+                      value={marca.nombre}
+                    >
+                      {`${marca.nombre} (${marca.count})`}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="px-2 py-1 text-sm text-gray-500 text-center">
+                    No hay marcas disponibles para este tipo de vehículo
+                  </div>
+                )}
               </SelectContent>
             </Select>
           </div>
 
           <div>
-            <Label htmlFor="model-cotxe">Model de cotxe</Label>
-            <Select onValueChange={(value) => onFilterChange('modelCotxe', value)}>
+            <Label htmlFor="model-cotxe">{getModelLabel().label}</Label>
+            <Select value={filters.modelCotxe} onValueChange={(value) => onFilterChange('modelCotxe', value)}>
               <SelectTrigger>
-                <SelectValue placeholder="Model de cotxe" />
+                <SelectValue placeholder={getModelLabel().placeholder} />
               </SelectTrigger>
               <SelectContent className="bg-white z-50">
-                <SelectItem value="A3">A3</SelectItem>
-                <SelectItem value="A4">A4</SelectItem>
-                <SelectItem value="Golf">Golf</SelectItem>
-                <SelectItem value="Polo">Polo</SelectItem>
-                <SelectItem value="Focus">Focus</SelectItem>
-                <SelectItem value="Fiesta">Fiesta</SelectItem>
+                {(() => {
+                  console.log("Rendering models select - modelosToShow.length:", modelosToShow.length);
+                  console.log("Rendering models select - condition result:", modelosToShow.length > 0);
+                  
+                  if (modelosToShow.length > 0) {
+                    console.log("Rendering models items:", modelosToShow);
+                    return modelosToShow.map((modelo: string | { nombre: string; count?: number }) => {
+                      let key: string;
+                      let value: string;
+                      let displayText: string;
+                      if (typeof modelo === 'string') {
+                        key = value = displayText = modelo;
+                      } else {
+                        key = value = modelo.nombre;
+                        displayText = modelo.count !== undefined ? `${modelo.nombre} (${modelo.count})` : modelo.nombre;
+                      }
+                      return (
+                        <SelectItem key={key} value={value}>
+                          {displayText}
+                        </SelectItem>
+                      );
+                    });
+                  } else {
+                    console.log("Showing empty message for marcaCotxe:", filters.marcaCotxe);
+                    return (
+                      <div className="px-2 py-1 text-sm text-gray-500 text-center">
+                        {filters.marcaCotxe ? "No hay modelos disponibles para esta marca" : "Selecciona una marca primero"}
+                      </div>
+                    );
+                  }
+                })()}
               </SelectContent>
             </Select>
           </div>
@@ -188,11 +289,20 @@ const BasicVehicleFilters = ({ filters, onFilterChange }: BasicVehicleFiltersPro
                 <SelectValue placeholder="Marca de moto" />
               </SelectTrigger>
               <SelectContent className="bg-white z-50">
-                {marcasMoto.map((marca) => (
-                  <SelectItem key={marca} value={marca}>
-                    {marca}
-                  </SelectItem>
-                ))}
+                {marcas && marcas.length > 0 ? (
+                  marcas.map((marca) => (
+                    <SelectItem
+                      key={marca.nombre}
+                      value={marca.nombre}
+                    >
+                      {`${marca.nombre} (${marca.count})`}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="px-2 py-1 text-sm text-gray-500 text-center">
+                    No hay marcas disponibles
+                  </div>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -204,10 +314,23 @@ const BasicVehicleFilters = ({ filters, onFilterChange }: BasicVehicleFiltersPro
                 <SelectValue placeholder="Model de moto" />
               </SelectTrigger>
               <SelectContent className="bg-white z-50">
-                <SelectItem value="CBR">CBR</SelectItem>
-                <SelectItem value="R1">R1</SelectItem>
-                <SelectItem value="Ninja">Ninja</SelectItem>
-                <SelectItem value="GSX">GSX</SelectItem>
+                {modelosToShow.length > 0 ? (
+                  modelosToShow.map((modelo: string | { nombre: string; count?: number }) => {
+                    const key = typeof modelo === 'string' ? modelo : modelo.nombre;
+                    const value = typeof modelo === 'string' ? modelo : modelo.nombre;
+                    const displayText = typeof modelo === 'string' ? modelo : modelo.nombre;
+                    
+                    return (
+                      <SelectItem key={key} value={value}>
+                        {displayText}
+                      </SelectItem>
+                    );
+                  })
+                ) : (
+                  <div className="px-2 py-1 text-sm text-gray-500 text-center">
+                    {filters.marcaMoto ? "No hay modelos disponibles para esta marca" : "Selecciona una marca primero"}
+                  </div>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -225,13 +348,13 @@ const BasicVehicleFilters = ({ filters, onFilterChange }: BasicVehicleFiltersPro
       {/* Propulsion Type in 2 columns */}
       <div>
         <Label className="text-sm font-medium">Tipus de propulsor</Label>
-        {renderCheckboxGrid(propulsors, 'tipusPropulsor')}
+        {renderCheckboxGrid(propulsorsToShow, 'tipusPropulsor')}
       </div>
 
       {/* Gearbox Type in 2 columns */}
       <div>
         <Label className="text-sm font-medium">Tipus de canvi</Label>
-        {renderCheckboxGrid(tipusCanvis, 'tipusCanvi')}
+        {renderCheckboxGrid(tipusCanvisToShow, 'tipusCanvi')}
       </div>
 
       {/* Vehicle State */}
@@ -242,9 +365,17 @@ const BasicVehicleFilters = ({ filters, onFilterChange }: BasicVehicleFiltersPro
             <SelectValue placeholder="Seleccionar estado" />
           </SelectTrigger>
           <SelectContent className="bg-white z-50">
-            <SelectItem value="Nou">Nuevo</SelectItem>
-            <SelectItem value="Km0">Km 0</SelectItem>
-            <SelectItem value="Ocasió">Ocasión</SelectItem>
+            {estadosToShow.map((estado) => {
+              const key = typeof estado === 'string' ? estado : (estado as any).value;
+              const value = typeof estado === 'string' ? estado : (estado as any).value;
+              const displayText = typeof estado === 'string' ? estado : ((estado as any).name || (estado as any).value);
+              
+              return (
+                <SelectItem key={key} value={value}>
+                  {displayText}
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
       </div>
@@ -252,17 +383,17 @@ const BasicVehicleFilters = ({ filters, onFilterChange }: BasicVehicleFiltersPro
       {/* Color in 2 columns */}
       <div>
         <Label className="text-sm font-medium">Color</Label>
-        {renderCheckboxGrid(colores, 'colorVehicle')}
+        {renderCheckboxGrid(coloresToShow, 'colorVehicle')}
       </div>
 
       {/* Featured Only */}
       <div className="flex items-center space-x-2">
         <Checkbox
-          id="destacats"
-          checked={filters.destacats}
-          onCheckedChange={(checked) => onFilterChange('destacats', checked as boolean)}
+          id="destacat"
+          checked={filters.destacat}
+          onCheckedChange={(checked) => onFilterChange('destacat', checked as boolean)}
         />
-        <Label htmlFor="destacats" className="text-sm">
+        <Label htmlFor="destacat" className="text-sm">
           Solo vehículos destacados
         </Label>
       </div>

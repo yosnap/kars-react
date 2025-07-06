@@ -7,7 +7,7 @@ import PageBreadcrumbs from "../components/PageBreadcrumbs";
 import ListViewControls from "../components/ListViewControls";
 import VehicleCard from "../components/VehicleCard";
 import VehicleListCard from "../components/VehicleListCard";
-import { VehicleCardSkeleton, Spinner } from "../components/VehicleCard";
+import { VehicleCardSkeleton } from "../components/VehicleCard";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "../components/ui/pagination";
 
 interface BreadcrumbLabel {
@@ -92,22 +92,12 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
 
   // Fetch de vehículos (adaptar según tu API)
   useEffect(() => {
-    // Debug: log para ver cuándo y por qué se dispara el efecto
-    console.log("[VehicleListLayout] Disparando fetch de vehículos", {
-      filters,
-      initialFilters,
-      currentPage,
-      itemsPerPage,
-      sortBy,
-      disableBaseQuery,
-      customEndpoint
-    });
     setLoading(true);
     setVehicles([]); // Limpiar para mostrar skeletons
     import("../api/axiosClient").then(({ axiosAdmin }) => {
       const orderParams = getOrderParams(sortBy);
       // Elimina sortBy de los filtros antes de enviar a la API
-      const { sortBy: _sortByFilter, ...filtersWithoutSortBy } = filters;
+      const { /* sortBy: _sortByFilter, */ ...filtersWithoutSortBy } = filters;
       const params: Record<string, string | number | boolean> = {
         ...initialFilters,
         ...filtersWithoutSortBy,
@@ -123,8 +113,6 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
         .then(res => {
           // Ya no filtramos por anunci-actiu en el frontend
           const activos = res.data.items || [];
-          // Log para comparar orden, per_page y resultados reales
-          console.log("[Vehículos API] Orden:", sortBy, "| per_page solicitado:", itemsPerPage, "| Vehículos recibidos:", activos.length, activos);
           setVehicles(activos);
           setTotalItems(res.data.total || activos.length || 0);
           setTotalPages(res.data.pages || Math.ceil(activos.length / itemsPerPage) || 1);
