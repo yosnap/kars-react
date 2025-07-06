@@ -281,15 +281,15 @@ const AdvancedSearchModal = ({ isOpen, onOpenChange, facets = {}, onFacetsUpdate
   // Función para actualizar facets basados en los filtros actuales
   const updateFacetsForCurrentFilters = (currentFilters: FilterState, currentDirtyFields?: Set<string>) => {
     const fieldsToCheck = currentDirtyFields || dirtyFields;
-    const params: Record<string, string | boolean> = {
+    const params: Record<string, string | boolean | number> = {
       "anunci-actiu": true,
       per_page: 1, // Solo necesitamos los facets, no los vehículos
     };
     
     // Agregar todos los filtros activos excepto rangos
     fieldsToCheck.forEach((field) => {
-      const value = currentFilters[field];
-      if (value && value !== "" && value !== false) {
+      const value = currentFilters[field as keyof FilterState];
+      if (value && value !== "" && (typeof value === 'boolean' ? value : true)) {
         if (field === "tipusVehicle") {
           params["tipus-vehicle"] = filterValueMap(field, value, combustibles, propulsores, cambios);
         } else if (field === "marcaCotxe") {
@@ -446,7 +446,7 @@ const AdvancedSearchModal = ({ isOpen, onOpenChange, facets = {}, onFacetsUpdate
           if (filterKey === "destacat") {
             newFilters[filterKey] = value === "1";
           } else {
-            newFilters[filterKey as keyof FilterState] = mappedValue;
+            (newFilters as any)[filterKey] = mappedValue;
           }
           newDirtyFields.add(filterKey);
         }
@@ -628,7 +628,7 @@ const AdvancedSearchModal = ({ isOpen, onOpenChange, facets = {}, onFacetsUpdate
     
     dirtyFields.forEach((key) => {
       const value = filters[key as keyof FilterState];
-      if (value && value !== "" && value !== false) {
+      if (value && value !== "" && (typeof value === 'boolean' ? value : true)) {
         const label = getFilterLabel(key, value);
         if (label) {
           active.push({ key, label });
@@ -680,8 +680,10 @@ const AdvancedSearchModal = ({ isOpen, onOpenChange, facets = {}, onFacetsUpdate
       updatedFilters.potenciaMin = "";
       updatedFilters.potenciaMax = "";
     } else {
-      updatedFilters[filterKey as keyof FilterState] = initialFilterState[filterKey as keyof FilterState];
-      updatedDirtyFields.delete(filterKey);
+      if (filterKey in initialFilterState) {
+        (updatedFilters as any)[filterKey] = (initialFilterState as any)[filterKey];
+        updatedDirtyFields.delete(filterKey);
+      }
     }
     
     setFilters(updatedFilters);
