@@ -46,14 +46,19 @@ interface BasicVehicleFiltersProps {
   filters: FilterState;
   onFilterChange: (key: keyof FilterState, value: string | boolean) => void;
   marcas?: MarcaWithCount[];
-  modelos?: string[];
+  modelos?: MarcaWithCount[];
   estados?: string[];
-  combustibles?: string[];
+  combustibles?: {name: string; value: string}[];
+  propulsores?: {name: string; value: string}[];
+  cambios?: {name: string; value: string}[];
   colores?: string[];
   tipusVehicleCounts?: Record<string, number>;
+  combustibleCounts?: Record<string, number>;
+  propulsorCounts?: Record<string, number>;
+  canviCounts?: Record<string, number>;
 }
 
-const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados, combustibles, colores, tipusVehicleCounts }: BasicVehicleFiltersProps) => {
+const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados, combustibles, propulsores, cambios, colores, tipusVehicleCounts, combustibleCounts, propulsorCounts, canviCounts }: BasicVehicleFiltersProps) => {
   const marcasCotxeLocal = [
     "Peugeot", "Volkswagen", "Ford", "Seat", "BMW", "Mercedes-Benz", 
     "Audi", "Toyota", "Hyundai", "Kia", "Nissan", "Honda", "Fiat",
@@ -66,20 +71,42 @@ const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados
   ];
 
   const combustiblesCotxeLocal = [
-    "Benzina", "Gasoil", "Elèctric", "Híbrid", "Híbrid Endollable", 
-    "Elèctric + Combustible", "GLP", "Altres"
+    {name: "Benzina", value: "combustible-benzina"},
+    {name: "Dièsel", value: "combustible-diesel"}, 
+    {name: "Elèctric", value: "combustible-electric"}, 
+    {name: "Híbrid", value: "hibrid"}, 
+    {name: "Híbrid Endollable", value: "hibrid-endollable"}, 
+    {name: "Elèctric + Combustible", value: "combustible-electric-combustible"}, 
+    {name: "Gas Natural", value: "combustible-gas-natural-gnc"},
+    {name: "GLP", value: "combustible-gas-liquat-glp"}, 
+    {name: "Biocombustible", value: "combustible-biocombustible"},
+    {name: "Hidrògen", value: "combustible-hidrogen"},
+    {name: "Solar", value: "combustible-solar"},
+    {name: "Solar + Combustible", value: "combustible-solar-hibrid"},
+    {name: "Altres", value: "combustible-altres"}
   ];
 
   const combustiblesMotoLocal = [
-    "Benzina", "Elèctric", "Híbrid", "Altres"
+    {name: "Benzina", value: "combustible-benzina"}, 
+    {name: "Elèctric", value: "combustible-electric"}, 
+    {name: "Híbrid", value: "hibrid"}, 
+    {name: "Altres", value: "combustible-altres"}
   ];
 
   const propulsorsLocal = [
-    "Combustió", "Elèctric", "Híbrid", "Híbrid Endollable"
+    {name: "Combustió", value: "combustio"},
+    {name: "Elèctric", value: "electric"}, 
+    {name: "Híbrid", value: "hibrid"}, 
+    {name: "Hibrid Endollable", value: "hibrid-endollable"}
   ];
 
   const tipusCanvisLocal = [
-    "Manual", "Automàtic", "Semi-Automàtic", "Auto-Seqüencial"
+    {name: "Manual", value: "manual"}, 
+    {name: "Automàtic", value: "automatic"}, 
+    {name: "Semi-Automàtic", value: "semi-automatic"}, 
+    {name: "Auto-Seqüencial", value: "auto-sequencial"},
+    {name: "Geartronic", value: "geartronic"},
+    {name: "Seqüencial", value: "sequencial"}
   ];
 
   const coloresLocal = [
@@ -111,10 +138,42 @@ const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados
   console.log("BasicVehicleFilters - modelosToShow:", modelosToShow);
   console.log("BasicVehicleFilters - filters.tipusVehicle:", filters.tipusVehicle);
   console.log("BasicVehicleFilters - filters.marcaCotxe:", filters.marcaCotxe);
-  const combustiblesCotxeToShow = (combustibles && combustibles.length > 0 ? combustibles.filter(c => typeof c === 'string') : combustiblesCotxeLocal);
-  const combustiblesMotoToShow = (combustibles && combustibles.length > 0 ? combustibles.filter(c => typeof c === 'string') : combustiblesMotoLocal);
-  const propulsorsToShow = propulsorsLocal.filter(p => typeof p === 'string');
-  const tipusCanvisToShow = tipusCanvisLocal.filter(t => typeof t === 'string');
+  // Preparar combustibles con contadores
+  const getCombustiblesWithCount = () => {
+    const apiData = combustibles && combustibles.length > 0 ? combustibles : [];
+    const baseList = filters.tipusVehicle === "MOTO" ? 
+      (apiData.length > 0 ? apiData.filter(c => ["combustible-benzina", "combustible-electric", "hibrid", "combustible-altres"].includes(c.value)) : combustiblesMotoLocal) :
+      (apiData.length > 0 ? apiData : combustiblesCotxeLocal);
+    
+    if (combustibleCounts && Object.keys(combustibleCounts).length > 0) {
+      return baseList
+        .filter(item => combustibleCounts[item.name] > 0)
+        .map(item => ({ nombre: item.name, count: combustibleCounts[item.name] || 0 }));
+    }
+    return baseList.map(item => ({ nombre: item.name, count: 0 }));
+  };
+
+  // Preparar propulsores con contadores
+  const getPropulsoresWithCount = () => {
+    const apiData = propulsores && propulsores.length > 0 ? propulsores : propulsorsLocal;
+    if (propulsorCounts && Object.keys(propulsorCounts).length > 0) {
+      return apiData
+        .filter(item => propulsorCounts[item.name] > 0)
+        .map(item => ({ nombre: item.name, count: propulsorCounts[item.name] || 0 }));
+    }
+    return apiData.map(item => ({ nombre: item.name, count: 0 }));
+  };
+
+  // Preparar cambios con contadores
+  const getCambiosWithCount = () => {
+    const apiData = cambios && cambios.length > 0 ? cambios : tipusCanvisLocal;
+    if (canviCounts && Object.keys(canviCounts).length > 0) {
+      return apiData
+        .filter(item => canviCounts[item.name] > 0)
+        .map(item => ({ nombre: item.name, count: canviCounts[item.name] || 0 }));
+    }
+    return apiData.map(item => ({ nombre: item.name, count: 0 }));
+  };
   const coloresToShow = (colores && colores.length > 0 ? colores.filter(c => typeof c === 'string') : coloresLocal);
   const estadosToShow = estados && estados.length > 0 ? estados : ["Nou", "Km0", "Ocasió"];
 
@@ -126,7 +185,7 @@ const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados
   ];
 
   const getCombustiblesForVehicleType = () => {
-    return filters.tipusVehicle === "MOTO" ? combustiblesMotoToShow : combustiblesCotxeToShow;
+    return getCombustiblesWithCount();
   };
 
   // Función para obtener el label y placeholder de marca según el tipo de vehículo
@@ -164,6 +223,25 @@ const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados
           />
           <Label htmlFor={`${filterKey}-${item}`} className="text-sm">
             {item}
+          </Label>
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderCheckboxGridWithCount = (items: MarcaWithCount[], filterKey: keyof FilterState) => (
+    <div className="grid grid-cols-2 gap-2 mt-2">
+      {items.map((item) => (
+        <div key={item.nombre} className="flex items-center space-x-2">
+          <Checkbox
+            id={`${filterKey}-${item.nombre}`}
+            checked={filters[filterKey] === item.nombre}
+            onCheckedChange={(checked) => 
+              onFilterChange(filterKey, checked ? item.nombre : '')
+            }
+          />
+          <Label htmlFor={`${filterKey}-${item.nombre}`} className="text-sm flex-1">
+            {item.nombre} {item.count > 0 && <span className="text-gray-500 text-xs ml-1">({item.count})</span>}
           </Label>
         </div>
       ))}
@@ -284,7 +362,7 @@ const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados
         <div className="space-y-4">
           <div>
             <Label htmlFor="marca-moto">Marca de moto</Label>
-            <Select onValueChange={(value) => onFilterChange('marcaMoto', value)}>
+            <Select value={filters.marcaMoto} onValueChange={(value) => onFilterChange('marcaMoto', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Marca de moto" />
               </SelectTrigger>
@@ -309,7 +387,7 @@ const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados
 
           <div>
             <Label htmlFor="model-moto">Model de moto</Label>
-            <Select onValueChange={(value) => onFilterChange('modelMoto', value)}>
+            <Select value={filters.modelMoto} onValueChange={(value) => onFilterChange('modelMoto', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Model de moto" />
               </SelectTrigger>
@@ -318,7 +396,9 @@ const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados
                   modelosToShow.map((modelo: string | { nombre: string; count?: number }) => {
                     const key = typeof modelo === 'string' ? modelo : modelo.nombre;
                     const value = typeof modelo === 'string' ? modelo : modelo.nombre;
-                    const displayText = typeof modelo === 'string' ? modelo : modelo.nombre;
+                    const displayText = typeof modelo === 'string' ? 
+                      modelo : 
+                      (modelo.count !== undefined ? `${modelo.nombre} (${modelo.count})` : modelo.nombre);
                     
                     return (
                       <SelectItem key={key} value={value}>
@@ -341,26 +421,26 @@ const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados
       {filters.tipusVehicle && (
         <div>
           <Label className="text-sm font-medium">Tipus de combustible</Label>
-          {renderCheckboxGrid(getCombustiblesForVehicleType(), 'tipusCombustible')}
+          {renderCheckboxGridWithCount(getCombustiblesForVehicleType(), 'tipusCombustible')}
         </div>
       )}
 
       {/* Propulsion Type in 2 columns */}
       <div>
         <Label className="text-sm font-medium">Tipus de propulsor</Label>
-        {renderCheckboxGrid(propulsorsToShow, 'tipusPropulsor')}
+        {renderCheckboxGridWithCount(getPropulsoresWithCount(), 'tipusPropulsor')}
       </div>
 
       {/* Gearbox Type in 2 columns */}
       <div>
         <Label className="text-sm font-medium">Tipus de canvi</Label>
-        {renderCheckboxGrid(tipusCanvisToShow, 'tipusCanvi')}
+        {renderCheckboxGridWithCount(getCambiosWithCount(), 'tipusCanvi')}
       </div>
 
       {/* Vehicle State */}
       <div>
         <Label htmlFor="estat-vehicle">Estado</Label>
-        <Select onValueChange={(value) => onFilterChange('estatVehicle', value)}>
+        <Select value={filters.estatVehicle} onValueChange={(value) => onFilterChange('estatVehicle', value)}>
           <SelectTrigger>
             <SelectValue placeholder="Seleccionar estado" />
           </SelectTrigger>
