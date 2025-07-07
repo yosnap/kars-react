@@ -40,6 +40,7 @@ interface FilterState {
 interface MarcaWithCount {
   nombre: string;
   count: number;
+  value?: string; // Agregar value opcional para los combustibles/propulsores/cambios
 }
 
 interface BasicVehicleFiltersProps {
@@ -140,17 +141,29 @@ const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados
   console.log("BasicVehicleFilters - filters.marcaCotxe:", filters.marcaCotxe);
   // Preparar combustibles con contadores
   const getCombustiblesWithCount = () => {
-    const apiData = combustibles && combustibles.length > 0 ? combustibles : [];
-    const baseList = filters.tipusVehicle === "MOTO" ? 
-      (apiData.length > 0 ? apiData.filter(c => ["combustible-benzina", "combustible-electric", "hibrid", "combustible-altres"].includes(c.value)) : combustiblesMotoLocal) :
-      (apiData.length > 0 ? apiData : combustiblesCotxeLocal);
+    console.log("getCombustiblesWithCount - filters.tipusVehicle:", filters.tipusVehicle);
+    console.log("getCombustiblesWithCount - combustibleCounts:", combustibleCounts);
+    
+    // Usar directamente las listas locales según el tipo de vehículo
+    const baseList = filters.tipusVehicle === "MOTO" ? combustiblesMotoLocal : combustiblesCotxeLocal;
+    
+    console.log("getCombustiblesWithCount - baseList:", baseList);
     
     if (combustibleCounts && Object.keys(combustibleCounts).length > 0) {
+      // Para motos, los facets vienen con claves directas como "Benzina", "Elèctric"
+      // Para coches, los facets podrían venir con claves con prefijo
       return baseList
-        .filter(item => combustibleCounts[item.name] > 0)
-        .map(item => ({ nombre: item.name, count: combustibleCounts[item.name] || 0 }));
+        .map(item => {
+          // Intentar encontrar el contador por name directo o por value
+          const countByName = combustibleCounts[item.name] || 0;
+          const countByValue = combustibleCounts[item.value] || 0;
+          const count = Math.max(countByName, countByValue);
+          console.log(`getCombustiblesWithCount - item ${item.name}: countByName=${countByName}, countByValue=${countByValue}, final count=${count}`);
+          return { nombre: item.name, count, value: item.value };
+        });
+        // No filtrar por count > 0 para mantener todas las opciones visibles
     }
-    return baseList.map(item => ({ nombre: item.name, count: 0 }));
+    return baseList.map(item => ({ nombre: item.name, count: 0, value: item.value }));
   };
 
   // Preparar propulsores con contadores
@@ -158,10 +171,15 @@ const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados
     const apiData = propulsores && propulsores.length > 0 ? propulsores : propulsorsLocal;
     if (propulsorCounts && Object.keys(propulsorCounts).length > 0) {
       return apiData
-        .filter(item => propulsorCounts[item.name] > 0)
-        .map(item => ({ nombre: item.name, count: propulsorCounts[item.name] || 0 }));
+        .map(item => {
+          const countByName = propulsorCounts[item.name] || 0;
+          const countByValue = propulsorCounts[item.value] || 0;
+          const count = Math.max(countByName, countByValue);
+          return { nombre: item.name, count, value: item.value };
+        });
+        // No filtrar por count > 0 para mantener todas las opciones visibles
     }
-    return apiData.map(item => ({ nombre: item.name, count: 0 }));
+    return apiData.map(item => ({ nombre: item.name, count: 0, value: item.value }));
   };
 
   // Preparar cambios con contadores
@@ -169,10 +187,15 @@ const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados
     const apiData = cambios && cambios.length > 0 ? cambios : tipusCanvisLocal;
     if (canviCounts && Object.keys(canviCounts).length > 0) {
       return apiData
-        .filter(item => canviCounts[item.name] > 0)
-        .map(item => ({ nombre: item.name, count: canviCounts[item.name] || 0 }));
+        .map(item => {
+          const countByName = canviCounts[item.name] || 0;
+          const countByValue = canviCounts[item.value] || 0;
+          const count = Math.max(countByName, countByValue);
+          return { nombre: item.name, count, value: item.value };
+        });
+        // No filtrar por count > 0 para mantener todas las opciones visibles
     }
-    return apiData.map(item => ({ nombre: item.name, count: 0 }));
+    return apiData.map(item => ({ nombre: item.name, count: 0, value: item.value }));
   };
   const coloresToShow = (colores && colores.length > 0 ? colores.filter(c => typeof c === 'string') : coloresLocal);
   const estadosToShow = estados && estados.length > 0 ? estados : ["Nou", "Km0", "Ocasió"];
@@ -231,20 +254,28 @@ const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados
 
   const renderCheckboxGridWithCount = (items: MarcaWithCount[], filterKey: keyof FilterState) => (
     <div className="grid grid-cols-2 gap-2 mt-2">
-      {items.map((item) => (
-        <div key={item.nombre} className="flex items-center space-x-2">
-          <Checkbox
-            id={`${filterKey}-${item.nombre}`}
-            checked={filters[filterKey] === item.nombre}
-            onCheckedChange={(checked) => 
-              onFilterChange(filterKey, checked ? item.nombre : '')
-            }
-          />
-          <Label htmlFor={`${filterKey}-${item.nombre}`} className="text-sm flex-1">
-            {item.nombre} {item.count > 0 && <span className="text-gray-500 text-xs ml-1">({item.count})</span>}
-          </Label>
-        </div>
-      ))}
+      {items.map((item) => {
+        // Para combustibles, propulsores y cambios, usar el value. Para marcas, usar el nombre
+        const valueToUse = item.value || item.nombre;
+        const isChecked = filterKey === 'tipusCombustible' || filterKey === 'tipusPropulsor' || filterKey === 'tipusCanvi' 
+          ? filters[filterKey] === item.nombre  // Comparar por nombre en el estado
+          : filters[filterKey] === item.nombre;
+        
+        return (
+          <div key={item.nombre} className="flex items-center space-x-2">
+            <Checkbox
+              id={`${filterKey}-${item.nombre}`}
+              checked={isChecked}
+              onCheckedChange={(checked) => 
+                onFilterChange(filterKey, checked ? item.nombre : '')  // Siempre enviar el nombre para mantener consistencia en el estado
+              }
+            />
+            <Label htmlFor={`${filterKey}-${item.nombre}`} className="text-sm flex-1">
+              {item.nombre} {item.count > 0 && <span className="text-gray-500 text-xs ml-1">({item.count})</span>}
+            </Label>
+          </div>
+        );
+      })}
     </div>
   );
 

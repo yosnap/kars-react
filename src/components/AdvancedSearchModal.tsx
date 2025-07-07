@@ -107,7 +107,9 @@ const filterValueMap = (key: string, value: string | boolean, combustibles: {nam
     }
   }
   if (key === "tipusCombustible") {
+    console.log("filterValueMap tipusCombustible - value:", value, "combustibles:", combustibles);
     const item = combustibles.find(c => c.name === value);
+    console.log("filterValueMap tipusCombustible - found item:", item, "returning:", item ? item.value : value);
     return item ? item.value : value;
   }
   if (key === "tipusPropulsor") {
@@ -151,6 +153,31 @@ function hasStringValue(obj: unknown): obj is { value: string } {
   return typeof obj === 'object' && obj !== null && 'value' in obj && typeof (obj as { value: unknown }).value === 'string';
 }
 
+// Mapear valores de taxonomías a valores de filtros según la tabla de WordPress
+const mapTaxonomyValueToFilterValue = (type: string, value: string): string => {
+  if (type === "combustible") {
+    switch (value) {
+      case "benzina": return "combustible-benzina";
+      case "diesel": return "combustible-diesel";
+      case "electric": return "combustible-electric";
+      case "hibrid": return "hibrid"; // Sin prefijo
+      case "hibrid-endollable": return "hibrid-endollable"; // Sin prefijo
+      case "electric-combustible": return "combustible-electric-combustible";
+      case "electriccombustible": return "electriccombustible"; // Sin prefijo
+      case "gas-natural-gnc": return "combustible-gas-natural-gnc";
+      case "gas-liquat-glp": return "combustible-gas-liquat-glp";
+      case "biocombustible": return "combustible-biocombustible";
+      case "hidrogen": return "combustible-hidrogen";
+      case "solar": return "combustible-solar";
+      case "solar-hibrid": return "combustible-solar-hibrid";
+      case "altres": return "combustible-altres";
+      default: return value;
+    }
+  }
+  // Para otros tipos (propulsor, canvi) devolver el valor tal como viene de la API
+  return value;
+};
+
 const mapVehicleCounts = (raw: Record<string, number>) => ({
   COTXE: raw.COTXE || 0,
   MOTO: raw.MOTO || 0,
@@ -182,8 +209,19 @@ const AdvancedSearchModal = ({ isOpen, onOpenChange, facets = {}, onFacetsUpdate
       setEstados(Array.isArray(res.data.data) ? res.data.data : []);
     }).catch(() => setEstados([]));
     axiosAdmin.get("/tipus-combustible").then((res) => {
-      setCombustibles(Array.isArray(res.data.data) ? res.data.data : []);
-    }).catch(() => setCombustibles([]));
+      console.log("API /tipus-combustible response:", res.data);
+      const apiData = Array.isArray(res.data.data) ? res.data.data : [];
+      // Mapear los valores de la API a los valores correctos que espera la API de filtros
+      const mappedData = apiData.map(item => ({
+        name: item.name,
+        value: mapTaxonomyValueToFilterValue("combustible", item.value)
+      }));
+      console.log("Mapped combustibles data:", mappedData);
+      setCombustibles(mappedData);
+    }).catch((err) => {
+      console.error("Error loading tipus-combustible:", err);
+      setCombustibles([]);
+    });
     axiosAdmin.get("/tipus-propulsor").then((res) => {
       setPropulsores(Array.isArray(res.data.data) ? res.data.data : []);
     }).catch(() => setPropulsores([]));
