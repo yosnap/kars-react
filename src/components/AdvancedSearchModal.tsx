@@ -107,9 +107,7 @@ const filterValueMap = (key: string, value: string | boolean, combustibles: {nam
     }
   }
   if (key === "tipusCombustible") {
-    console.log("filterValueMap tipusCombustible - value:", value, "combustibles:", combustibles);
     const item = combustibles.find(c => c.name === value);
-    console.log("filterValueMap tipusCombustible - found item:", item, "returning:", item ? item.value : value);
     return item ? item.value : value;
   }
   if (key === "tipusPropulsor") {
@@ -119,6 +117,19 @@ const filterValueMap = (key: string, value: string | boolean, combustibles: {nam
   if (key === "tipusCanvi") {
     const item = cambios.find(c => c.name === value);
     return item ? item.value : value;
+  }
+  if (key === "estatVehicle") {
+    // Mapear directamente ya que no tenemos array de estados con value
+    switch (value) {
+      case "Clàssic": return "classic";
+      case "Km0": return "km0-gerencia";
+      case "Lloguer": return "lloguer";
+      case "Nou": return "nou";
+      case "Ocasió": return "ocasio";
+      case "Renting": return "renting";
+      case "Seminou": return "seminou";
+      default: return value.toLowerCase();
+    }
   }
   return value;
 };
@@ -174,6 +185,18 @@ const mapTaxonomyValueToFilterValue = (type: string, value: string): string => {
       default: return value;
     }
   }
+  if (type === "estat") {
+    switch (value) {
+      case "classic": return "classic";
+      case "km0": return "km0-gerencia";
+      case "lloguer": return "lloguer";
+      case "nou": return "nou";
+      case "ocasio": return "ocasio";
+      case "renting": return "renting";
+      case "seminou": return "seminou";
+      default: return value;
+    }
+  }
   // Para otros tipos (propulsor, canvi) devolver el valor tal como viene de la API
   return value;
 };
@@ -181,7 +204,7 @@ const mapTaxonomyValueToFilterValue = (type: string, value: string): string => {
 const mapVehicleCounts = (raw: Record<string, number>) => ({
   COTXE: raw.COTXE || 0,
   MOTO: raw.MOTO || 0,
-  CARAVANA: raw.AUTOCARAVANA || 0,
+  CARAVANA: raw.AUTOCARAVANA || raw.CARAVANA || 0,
   'VEHICLE COMERCIAL': raw['VEHICLE COMERCIAL'] || 0,
 });
 
@@ -209,25 +232,27 @@ const AdvancedSearchModal = ({ isOpen, onOpenChange, facets = {}, onFacetsUpdate
       setEstados(Array.isArray(res.data.data) ? res.data.data : []);
     }).catch(() => setEstados([]));
     axiosAdmin.get("/tipus-combustible").then((res) => {
-      console.log("API /tipus-combustible response:", res.data);
       const apiData = Array.isArray(res.data.data) ? res.data.data : [];
       // Mapear los valores de la API a los valores correctos que espera la API de filtros
-      const mappedData = apiData.map(item => ({
+      const mappedData = apiData.map((item: any) => ({
         name: item.name,
         value: mapTaxonomyValueToFilterValue("combustible", item.value)
       }));
-      console.log("Mapped combustibles data:", mappedData);
       setCombustibles(mappedData);
-    }).catch((err) => {
-      console.error("Error loading tipus-combustible:", err);
-      setCombustibles([]);
-    });
+    }).catch(() => setCombustibles([]));
     axiosAdmin.get("/tipus-propulsor").then((res) => {
       setPropulsores(Array.isArray(res.data.data) ? res.data.data : []);
     }).catch(() => setPropulsores([]));
-    axiosAdmin.get("/tipus-canvi").then((res) => {
-      setCambios(Array.isArray(res.data.data) ? res.data.data : []);
-    }).catch(() => setCambios([]));
+    // La API /tipus-canvi no existe, usar valores locales
+    const cambiosLocal = [
+      {name: "Manual", value: "manual"}, 
+      {name: "Automàtic", value: "automatic"}, 
+      {name: "Semi-Automàtic", value: "semi-automatic"}, 
+      {name: "Auto-Seqüencial", value: "auto-sequencial"},
+      {name: "Geartronic", value: "geartronic"},
+      {name: "Seqüencial", value: "sequencial"}
+    ];
+    setCambios(cambiosLocal);
   }, []);
 
   useEffect(() => {
@@ -329,7 +354,9 @@ const AdvancedSearchModal = ({ isOpen, onOpenChange, facets = {}, onFacetsUpdate
       const value = currentFilters[field as keyof FilterState];
       if (value && value !== "" && (typeof value === 'boolean' ? value : true)) {
         if (field === "tipusVehicle") {
-          params["tipus-vehicle"] = filterValueMap(field, value, combustibles, propulsores, cambios);
+          // No incluir tipus-vehicle en la actualización de facets para que
+          // la API devuelva todos los tipos disponibles basándose en otros filtros
+          // params["tipus-vehicle"] = filterValueMap(field, value, combustibles, propulsores, cambios);
         } else if (field === "marcaCotxe") {
           if (currentFilters.tipusVehicle === "CARAVANA") {
             params["marques-autocaravana"] = value;
@@ -354,7 +381,7 @@ const AdvancedSearchModal = ({ isOpen, onOpenChange, facets = {}, onFacetsUpdate
           const apiKey = filterKeyMap[field] || field;
           params[apiKey] = filterValueMap(field, value, combustibles, propulsores, cambios);
         } else if (field === "estatVehicle") {
-          params["estat-vehicle"] = value;
+          params["estat-vehicle"] = filterValueMap(field, value, combustibles, propulsores, cambios);
         }
       }
     });
@@ -473,6 +500,19 @@ const AdvancedSearchModal = ({ isOpen, onOpenChange, facets = {}, onFacetsUpdate
           const item = cambios.find(c => c.value === value);
           return item ? item.name : value;
         }
+        if (key === "estat-vehicle") {
+          // Mapear de valores de API a nombres de display
+          switch (value) {
+            case "classic": return "Clàssic";
+            case "km0-gerencia": return "Km0";
+            case "lloguer": return "Lloguer";
+            case "nou": return "Nou";
+            case "ocasio": return "Ocasió";
+            case "renting": return "Renting";
+            case "seminou": return "Seminou";
+            default: return value;
+          }
+        }
         return value;
       };
       
@@ -518,6 +558,11 @@ const AdvancedSearchModal = ({ isOpen, onOpenChange, facets = {}, onFacetsUpdate
       
       setFilters(newFilters);
       setDirtyFields(newDirtyFields);
+      
+      // Actualizar facets si hay filtros cargados desde la URL
+      if (newDirtyFields.size > 0) {
+        updateFacetsForCurrentFilters(newFilters, newDirtyFields);
+      }
     }
   }, [isOpen, location.search]);
 
@@ -808,9 +853,6 @@ const AdvancedSearchModal = ({ isOpen, onOpenChange, facets = {}, onFacetsUpdate
               {(() => {
                 const modelosWithCount = getFilteredModelosWithCount();
                 const marcasWithCount = getFilteredMarcasWithCount();
-                console.log("AdvancedSearchModal - tipusVehicle:", filters.tipusVehicle);
-                console.log("AdvancedSearchModal - marcas:", marcasWithCount);
-                console.log("AdvancedSearchModal - localFacets:", localFacets);
                 
                 return (
                   <BasicVehicleFilters
@@ -823,10 +865,11 @@ const AdvancedSearchModal = ({ isOpen, onOpenChange, facets = {}, onFacetsUpdate
                     combustibles={combustibles}
                     propulsores={propulsores}
                     cambios={cambios}
-                    tipusVehicleCounts={vehicleTypeCounts}
+                    tipusVehicleCounts={mapVehicleCounts(localFacets["tipus-vehicle"] || {})}
                     combustibleCounts={localFacets["tipus-combustible"] || {}}
                     propulsorCounts={localFacets["tipus-propulsor"] || {}}
                     canviCounts={localFacets["tipus-canvi"] || {}}
+                    estatCounts={localFacets["estat-vehicle"] || {}}
                   />
                 );
               })()}

@@ -57,9 +57,10 @@ interface BasicVehicleFiltersProps {
   combustibleCounts?: Record<string, number>;
   propulsorCounts?: Record<string, number>;
   canviCounts?: Record<string, number>;
+  estatCounts?: Record<string, number>;
 }
 
-const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados, combustibles, propulsores, cambios, colores, tipusVehicleCounts, combustibleCounts, propulsorCounts, canviCounts }: BasicVehicleFiltersProps) => {
+const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados, combustibles, propulsores, cambios, colores, tipusVehicleCounts, combustibleCounts, propulsorCounts, canviCounts, estatCounts }: BasicVehicleFiltersProps) => {
   const marcasCotxeLocal = [
     "Peugeot", "Volkswagen", "Ford", "Seat", "BMW", "Mercedes-Benz", 
     "Audi", "Toyota", "Hyundai", "Kia", "Nissan", "Honda", "Fiat",
@@ -141,13 +142,8 @@ const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados
   console.log("BasicVehicleFilters - filters.marcaCotxe:", filters.marcaCotxe);
   // Preparar combustibles con contadores
   const getCombustiblesWithCount = () => {
-    console.log("getCombustiblesWithCount - filters.tipusVehicle:", filters.tipusVehicle);
-    console.log("getCombustiblesWithCount - combustibleCounts:", combustibleCounts);
-    
     // Usar directamente las listas locales según el tipo de vehículo
     const baseList = filters.tipusVehicle === "MOTO" ? combustiblesMotoLocal : combustiblesCotxeLocal;
-    
-    console.log("getCombustiblesWithCount - baseList:", baseList);
     
     if (combustibleCounts && Object.keys(combustibleCounts).length > 0) {
       // Para motos, los facets vienen con claves directas como "Benzina", "Elèctric"
@@ -158,10 +154,9 @@ const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados
           const countByName = combustibleCounts[item.name] || 0;
           const countByValue = combustibleCounts[item.value] || 0;
           const count = Math.max(countByName, countByValue);
-          console.log(`getCombustiblesWithCount - item ${item.name}: countByName=${countByName}, countByValue=${countByValue}, final count=${count}`);
           return { nombre: item.name, count, value: item.value };
-        });
-        // No filtrar por count > 0 para mantener todas las opciones visibles
+        })
+        .filter(item => item.count > 0);  // Mostrar solo items con contador > 0
     }
     return baseList.map(item => ({ nombre: item.name, count: 0, value: item.value }));
   };
@@ -176,8 +171,8 @@ const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados
           const countByValue = propulsorCounts[item.value] || 0;
           const count = Math.max(countByName, countByValue);
           return { nombre: item.name, count, value: item.value };
-        });
-        // No filtrar por count > 0 para mantener todas las opciones visibles
+        })
+        .filter(item => item.count > 0);  // Mostrar solo items con contador > 0
     }
     return apiData.map(item => ({ nombre: item.name, count: 0, value: item.value }));
   };
@@ -192,13 +187,14 @@ const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados
           const countByValue = canviCounts[item.value] || 0;
           const count = Math.max(countByName, countByValue);
           return { nombre: item.name, count, value: item.value };
-        });
-        // No filtrar por count > 0 para mantener todas las opciones visibles
+        })
+        .filter(item => item.count > 0);  // Mostrar solo items con contador > 0
     }
     return apiData.map(item => ({ nombre: item.name, count: 0, value: item.value }));
   };
+
+
   const coloresToShow = (colores && colores.length > 0 ? colores.filter(c => typeof c === 'string') : coloresLocal);
-  const estadosToShow = estados && estados.length > 0 ? estados : ["Nou", "Km0", "Ocasió"];
 
   const vehicleTypes = [
     { value: "COTXE", label: "Coche", icon: Car },
@@ -476,17 +472,18 @@ const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados
             <SelectValue placeholder="Seleccionar estado" />
           </SelectTrigger>
           <SelectContent className="bg-white z-50">
-            {estadosToShow.map((estado) => {
-              const key = typeof estado === 'string' ? estado : (estado as any).value;
-              const value = typeof estado === 'string' ? estado : (estado as any).value;
-              const displayText = typeof estado === 'string' ? estado : ((estado as any).name || (estado as any).value);
-              
-              return (
-                <SelectItem key={key} value={value}>
-                  {displayText}
+            {["Nou", "Km0", "Ocasió", "Clàssic", "Seminou", "Lloguer", "Renting"]
+              .map((estado) => {
+                const count = estatCounts?.[estado] || 0;
+                const isSelected = filters.estatVehicle === estado;
+                return { estado, count, isSelected };
+              })
+              .filter(item => item.count > 0 || item.isSelected)  // Mostrar si tiene contador > 0 O está seleccionado
+              .map(({ estado, count }) => (
+                <SelectItem key={estado} value={estado}>
+                  {estado}{count > 0 ? ` (${count})` : ''}
                 </SelectItem>
-              );
-            })}
+              ))}
           </SelectContent>
         </Select>
       </div>
