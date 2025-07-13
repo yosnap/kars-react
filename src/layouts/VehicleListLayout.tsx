@@ -40,21 +40,21 @@ function useQueryParams() {
 function getOrderParams(sortBy: string) {
   switch (sortBy) {
     case "featured":
-      return { orderby: "anunci-destacat", order: "DESC" };
+      return { orderby: "featured", order: "DESC" };
     case "price_asc":
       return { orderby: "price", order: "ASC" };
     case "price_desc":
       return { orderby: "price", order: "DESC" };
     case "date_desc":
-      return { orderby: "data-creacio", order: "DESC" };
+      return { orderby: "date", order: "DESC" };
     case "date_asc":
-      return { orderby: "data-creacio", order: "ASC" };
+      return { orderby: "date", order: "ASC" };
     case "title_asc":
-      return { orderby: "titol-anunci", order: "ASC" };
+      return { orderby: "title", order: "ASC" };
     case "title_desc":
-      return { orderby: "titol-anunci", order: "DESC" };
+      return { orderby: "title", order: "DESC" };
     default:
-      return { orderby: "anunci-destacat", order: "DESC" };
+      return { orderby: "date", order: "DESC" };
   }
 }
 
@@ -78,7 +78,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [itemsPerPage, setItemsPerPage] = useState(12);
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortBy, setSortBy] = useState("featured");
+  const [sortBy, setSortBy] = useState("date_desc");
 
   // Estado para las marcas (brands) para los breadcrumbs
   const [brands, setBrands] = useState<{ value: string; label: string }[]>([]);
@@ -96,38 +96,43 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
     setVehicles([]); // Limpiar para mostrar skeletons
     import("../api/axiosClient").then(({ axiosAdmin }) => {
       const orderParams = getOrderParams(sortBy);
-      // Elimina sortBy de los filtros antes de enviar a la API
-      const { /* sortBy: _sortByFilter, */ ...filtersWithoutSortBy } = filters;
+      // Elimina sortBy y order de los filtros antes de enviar a la API
+      const { sortBy: _sortByFilter, order: _orderFilter, ...filtersWithoutSortBy } = filters;
       const params: Record<string, string | number | boolean> = {
-        ...initialFilters,
-        ...filtersWithoutSortBy,
-        "anunci-actiu": true,
-        ...(disableBaseQuery ? {} : {}),
-        page: currentPage,
-        per_page: itemsPerPage,
+        ...(!disableBaseQuery ? { "anunci-actiu": true } : {}),
         orderby: orderParams.orderby,
         ...(orderParams.order ? { order: orderParams.order } : {}),
+        ...initialFilters,
+        ...filtersWithoutSortBy,
+        page: currentPage,
+        per_page: itemsPerPage,
       };
       const endpoint = customEndpoint || "/vehicles";
       axiosAdmin.get(endpoint, { params })
         .then(res => {
-          // Ya no filtramos por anunci-actiu en el frontend
-          const activos = res.data.items || [];
+          const items = res.data.items || [];
+          // NO filtrar ya que el backend debería hacerlo
+          const activos = items;
+          console.log('Order params:', sortBy, orderParams);
+          console.log('First 3 vehicles dates:', activos.slice(0, 3).map(v => ({
+            title: v['titol-anunci'],
+            date: v['data-creacio'] || v['date'] || 'no date'
+          })));
           setVehicles(activos);
-          setTotalItems(res.data.total || activos.length || 0);
-          setTotalPages(res.data.pages || Math.ceil(activos.length / itemsPerPage) || 1);
+          
+          // Usar siempre los valores del backend para consistencia
+          setTotalItems(res.data.total || 0);
+          setTotalPages(res.data.pages || 1);
         })
         .catch(() => setError("Error al cargar vehículos"))
         .finally(() => setLoading(false));
     });
   }, [filters, initialFilters, currentPage, itemsPerPage, sortBy, disableBaseQuery, customEndpoint]);
 
-  // Sincroniza currentPage con el valor de la query string 'page'
+  // Sincroniza currentPage con el valor de la query string 'page' solo al cargar
   useEffect(() => {
     const pageFromQuery = Number(filters.page) || 1;
-    if (pageFromQuery !== currentPage) {
-      setCurrentPage(pageFromQuery);
-    }
+    setCurrentPage(pageFromQuery);
   }, [filters.page]);
 
   // Sincroniza itemsPerPage con la URL (per_page)
@@ -140,7 +145,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
 
   // Sincroniza sortBy con la URL
   useEffect(() => {
-    const sortByFromQuery = filters.sortBy || "featured";
+    const sortByFromQuery = filters.sortBy || "date_desc";
     if (sortByFromQuery !== sortBy) {
       setSortBy(sortByFromQuery);
     }
@@ -173,9 +178,12 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
   }, []);
 
   // Cambiar página
-  const handlePageChange = (page: number) => {
+  const handlePageChange = useCallback((page: number) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("page", page.toString());
+    navigate(`${location.pathname}?${params.toString()}`);
     setCurrentPage(page);
-  };
+  }, [navigate, location.pathname]);
 
   // Callback para aplicar filtros desde el sidebar
   const handleApplyFilters = (filters: Record<string, string>) => {
@@ -186,9 +194,9 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
     navigate(`${location.pathname}?${params.toString()}`);
   };
 
-  // Determina si hay filtros activos (excluyendo page, order, per_page, anunci-actiu, venut)
+  // Determina si hay filtros activos (excluyendo page, order, per_page, anunci-actiu, venut, sortBy)
   const hasActiveFilters = Object.entries(filters).some(
-    ([k, v]) => !["page", "order", "per_page", "anunci-actiu", "venut"].includes(k) && v
+    ([k, v]) => !["page", "order", "per_page", "anunci-actiu", "venut", "sortBy"].includes(k) && v
   );
   // Decide qué filtros pasar a VehicleFilters (excluyendo per_page y valores vacíos de la URL)
   const filtersForVehicleFilters = hasActiveFilters
@@ -318,7 +326,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
             {(() => {
               const appliedFilters: Record<string, string | boolean> = { ...initialFilters, ...filters };
               const filterEntries = Object.entries(appliedFilters).filter(
-                ([k, v]) => !["page", "order", "per_page", "anunci-actiu", "venut"].includes(k) && v
+                ([k, v]) => !["page", "order", "per_page", "anunci-actiu", "venut", "sortBy"].includes(k) && v
               );
               if (filterEntries.length === 0) return null;
               return <>
@@ -377,10 +385,20 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
-                    <PaginationPrevious
-                      onClick={currentPage > 1 ? () => handlePageChange(currentPage - 1) : undefined}
-                      className={currentPage <= 1 ? 'pointer-events-none opacity-50' : ''}
-                    />
+                    <button
+                      className={`flex items-center justify-center h-10 px-4 text-sm font-medium transition-colors border rounded-md gap-1 ${
+                        currentPage <= 1 
+                          ? 'pointer-events-none opacity-50 bg-background text-foreground border-input' 
+                          : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
+                      }`}
+                      onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
+                      disabled={currentPage <= 1}
+                    >
+                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="m15 18-6-6 6-6"/>
+                      </svg>
+                      <span>Previous</span>
+                    </button>
                   </PaginationItem>
                   {/* Números de página: sistema mejorado con inicio, fin y puntos suspensivos */}
                   {(() => {
@@ -394,12 +412,16 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
                     if (start > 1) {
                       pages.push(
                         <PaginationItem key={1}>
-                          <PaginationLink
-                            isActive={currentPage === 1}
+                          <button
+                            className={`flex items-center justify-center h-10 px-4 text-sm font-medium transition-colors border rounded-md ${
+                              currentPage === 1 
+                                ? 'bg-primary text-primary-foreground border-primary' 
+                                : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
+                            }`}
                             onClick={() => handlePageChange(1)}
                           >
                             1
-                          </PaginationLink>
+                          </button>
                         </PaginationItem>
                       );
                       if (start > 2) {
@@ -415,12 +437,16 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
                       if (i !== 1 && i !== totalPages) {
                         pages.push(
                           <PaginationItem key={i}>
-                            <PaginationLink
-                              isActive={currentPage === i}
+                            <button
+                              className={`flex items-center justify-center h-10 px-4 text-sm font-medium transition-colors border rounded-md ${
+                                currentPage === i 
+                                  ? 'bg-primary text-primary-foreground border-primary' 
+                                  : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
+                              }`}
                               onClick={() => handlePageChange(i)}
                             >
                               {i}
-                            </PaginationLink>
+                            </button>
                           </PaginationItem>
                         );
                       }
@@ -436,22 +462,36 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
                       }
                       pages.push(
                         <PaginationItem key={totalPages}>
-                          <PaginationLink
-                            isActive={currentPage === totalPages}
+                          <button
+                            className={`flex items-center justify-center h-10 px-4 text-sm font-medium transition-colors border rounded-md ${
+                              currentPage === totalPages 
+                                ? 'bg-primary text-primary-foreground border-primary' 
+                                : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
+                            }`}
                             onClick={() => handlePageChange(totalPages)}
                           >
                             {totalPages}
-                          </PaginationLink>
+                          </button>
                         </PaginationItem>
                       );
                     }
                     return pages;
                   })()}
                   <PaginationItem>
-                    <PaginationNext
-                      onClick={currentPage < totalPages ? () => handlePageChange(currentPage + 1) : undefined}
-                      className={currentPage >= totalPages ? 'pointer-events-none opacity-50' : ''}
-                    />
+                    <button
+                      className={`flex items-center justify-center h-10 px-4 text-sm font-medium transition-colors border rounded-md gap-1 ${
+                        currentPage >= totalPages 
+                          ? 'pointer-events-none opacity-50 bg-background text-foreground border-input' 
+                          : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
+                      }`}
+                      onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
+                      disabled={currentPage >= totalPages}
+                    >
+                      <span>Next</span>
+                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="m9 18 6-6-6-6"/>
+                      </svg>
+                    </button>
                   </PaginationItem>
                 </PaginationContent>
               </Pagination>
