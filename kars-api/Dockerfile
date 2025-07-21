@@ -6,12 +6,17 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
+COPY tsconfig.json ./
 
 # Install all dependencies (including dev dependencies for build)
 RUN npm ci
 
 # Copy source code
-COPY . .
+COPY src/ ./src/
+COPY prisma/ ./prisma/
+
+# Build TypeScript to JavaScript
+RUN npm run build
 
 # Production stage
 FROM node:18-alpine
@@ -29,10 +34,14 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install only production dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 
-# Copy application code
-COPY --chown=nodejs:nodejs . .
+# Copy built application from builder stage
+COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
+COPY --from=builder --chown=nodejs:nodejs /app/prisma ./prisma
+
+# Copy any additional runtime files (if needed)
+COPY --chown=nodejs:nodejs *.json ./
 
 # Switch to non-root user
 USER nodejs
@@ -43,5 +52,5 @@ EXPOSE 3001
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Start the application
-CMD ["node", "src/server.js"]
+# Start the compiled application
+CMD ["node", "dist/index.js"]
