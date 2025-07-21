@@ -149,6 +149,35 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDownloadJson = async () => {
+    console.log('📁 handleDownloadJson called - Download JSON');
+    
+    try {
+      const response = await axiosAdmin.get('/vehicles/json?format=full&limit=5000');
+      const jsonData = response.data;
+      
+      // Crear y descargar archivo JSON
+      const blob = new Blob([JSON.stringify(jsonData, null, 2)], {
+        type: 'application/json'
+      });
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `kars-vehicles-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      console.log(`✅ Descargado JSON con ${jsonData.total} vehículos`);
+      
+    } catch (error) {
+      console.error('Error descargando JSON:', error);
+      // No necesitamos mostrar toast, solo log
+    }
+  };
+
   const pollSyncStatus = async () => {
     // Polling cada 2 segundos para obtener el estado
     const interval = setInterval(async () => {
@@ -545,11 +574,24 @@ export default function AdminDashboard() {
                   )}
                   {importStatus === 'running' ? 'Importando...' : '🟢 JSON Import'}
                 </button>
+
+                <button 
+                  onClick={handleDownloadJson}
+                  disabled={syncStatus === 'running' || importStatus === 'running'}
+                  className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${
+                    syncStatus === 'running' || importStatus === 'running'
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-purple-600 text-white hover:bg-purple-700'
+                  }`}
+                >
+                  <FileText className="w-4 h-4" />
+                  📁 Descargar JSON
+                </button>
               </div>
 
               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                 <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Métodos de Importación</h4>
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid md:grid-cols-3 gap-4">
                   <div>
                     <h5 className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-2">🔗 Sincronización API</h5>
                     <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
@@ -566,6 +608,15 @@ export default function AdminDashboard() {
                       <li>• Procesamiento por lotes optimizado</li>
                       <li>• No requiere conexión externa</li>
                       <li>• Ideal cuando la API no está disponible</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h5 className="text-sm font-medium text-purple-700 dark:text-purple-300 mb-2">📁 Descargar JSON</h5>
+                    <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                      <li>• Descarga JSON desde la base de datos</li>
+                      <li>• Hasta 5000 vehículos</li>
+                      <li>• Formato completo con todos los campos</li>
+                      <li>• Para respaldos o migración</li>
                     </ul>
                   </div>
                 </div>
