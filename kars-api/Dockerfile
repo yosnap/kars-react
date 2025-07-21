@@ -25,7 +25,7 @@ RUN npm run build
 FROM node:18-alpine
 
 # Install dumb-init and OpenSSL for Prisma compatibility
-RUN apk add --no-cache dumb-init openssl1.1-compat
+RUN apk add --no-cache dumb-init openssl openssl-dev
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
