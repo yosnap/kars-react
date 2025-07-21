@@ -15,6 +15,9 @@ RUN npm ci
 COPY src/ ./src/
 COPY prisma/ ./prisma/
 
+# Generate Prisma client
+RUN npx prisma generate
+
 # Build TypeScript to JavaScript
 RUN npm run build
 
@@ -33,12 +36,16 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install only production dependencies
+# Install production dependencies
 RUN npm ci --omit=dev && npm cache clean --force
 
 # Copy built application from builder stage
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/prisma ./prisma
+
+# Copy generated Prisma client from builder stage
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 
 # Copy any additional runtime files (if needed)
 COPY --chown=nodejs:nodejs *.json ./
