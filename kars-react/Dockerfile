@@ -13,6 +13,11 @@ RUN npm install && npm cache clean --force
 # Copy source code
 COPY . .
 
+# Set production environment variables for build
+ENV VITE_API_BASE_URL=/api
+ENV VITE_API_ADMIN_USER=admin
+ENV VITE_API_ADMIN_PASS=Motoraldia.2025!
+
 # Build the application
 RUN npm run build
 
