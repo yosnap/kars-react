@@ -297,15 +297,13 @@ const VehicleDetail = () => {
               )}
             </div>
 
-            {/* Vehicle title */}
             <div>
               <h1 className="text-3xl font-bold text-white mb-6">
                 {decodeHtmlEntities(String(vehicle["titol-anunci"] || ""))}
               </h1>
             </div>
 
-            {/* Description */}
-            {vehicle["descripcio-anunci"] && (
+            {Boolean(vehicle["descripcio-anunci"]) && (
               <div className="bg-gray-900 rounded-lg p-6">
                 <div 
                   className="text-white prose prose-invert max-w-none [&_p]:mb-4 [&_br]:block [&_br]:content-[''] [&_br]:mt-2"
@@ -321,13 +319,13 @@ const VehicleDetail = () => {
               <div>
                 <h2 className="text-2xl font-bold text-white mb-4">Specifications</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-900 rounded-lg p-6">
-                  {vehicle["one-pedal"] && (
+                  {Boolean(vehicle["one-pedal"]) && (
                     <div>
                       <h3 className="text-lg font-semibold text-gray-400 mb-2">One Pedal</h3>
                       <p className="text-white">{String(vehicle["one-pedal"])}</p>
                     </div>
                   )}
-                  {vehicle["frenada-regenerativa"] && (
+                  {Boolean(vehicle["frenada-regenerativa"]) && (
                     <div>
                       <h3 className="text-lg font-semibold text-gray-400 mb-2">Frenada Regenerativa</h3>
                       <p className="text-white">{String(vehicle["frenada-regenerativa"])}</p>
@@ -362,7 +360,7 @@ const VehicleDetail = () => {
               <div className="space-y-4">
                 {/* Price section */}
                 <div className="border-b border-gray-700 pb-4">
-                  {vehicle["preu-anterior"] && (
+                  {Boolean(vehicle["preu-anterior"]) && (
                     <p className="text-gray-400 text-lg line-through text-center mb-1">
                       {formatPrice(typeof vehicle["preu-anterior"] === "string" || typeof vehicle["preu-anterior"] === "number" 
                         ? parseFloat(String(vehicle["preu-anterior"])) 
@@ -376,55 +374,55 @@ const VehicleDetail = () => {
 
                 {/* Vehicle details */}
                 <div className="space-y-3 text-white">
-                  {vehicle.any && (
+                  {Boolean(vehicle.any) && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Any:</span>
                       <span className="font-medium">{String(vehicle.any)}</span>
                     </div>
                   )}
-                  {vehicle["motor"] && (
+                  {Boolean(vehicle["motor"]) && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Motor:</span>
                       <span className="font-medium">{String(vehicle["motor"])}</span>
                     </div>
                   )}
-                  {vehicle["potencia-cv"] && (
+                  {Boolean(vehicle["potencia-cv"]) && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Potència:</span>
                       <span className="font-medium">{String(vehicle["potencia-cv"])} CV</span>
                     </div>
                   )}
-                  {vehicle["models-cotxe"] && (
+                  {Boolean(vehicle["models-cotxe"]) && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Model:</span>
                       <span className="font-medium">{String(vehicle["models-cotxe"])}</span>
                     </div>
                   )}
-                  {vehicle.quilometratge && (
+                  {Boolean(vehicle.quilometratge) && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Quilometratge:</span>
                       <span className="font-medium">{formatKilometers(String(vehicle.quilometratge))}</span>
                     </div>
                   )}
-                  {vehicle["tipus-cotxe"] && (
+                  {Boolean(vehicle["tipus-cotxe"]) && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Tipus:</span>
                       <span className="font-medium">{String(vehicle["tipus-cotxe"])}</span>
                     </div>
                   )}
-                  {vehicle["tipus-combustible"] && (
+                  {Boolean(vehicle["tipus-combustible"]) && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Combustible:</span>
                       <span className="font-medium">{String(vehicle["tipus-combustible"])}</span>
                     </div>
                   )}
-                  {vehicle["estat-vehicle"] && (
+                  {Boolean(vehicle["estat-vehicle"]) && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Estat:</span>
                       <span className="font-medium capitalize">{String(vehicle["estat-vehicle"])}</span>
                     </div>
                   )}
-                  {vehicle["nombre-de-portes"] && (
+                  {Boolean(vehicle["nombre-de-portes"]) && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Núm. de portes:</span>
                       <span className="font-medium">{String(vehicle["nombre-de-portes"])}</span>

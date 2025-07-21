@@ -124,7 +124,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
           // NO filtrar ya que el backend debería hacerlo
           const activos = items;
           console.log('Order params:', sortBy, orderParams);
-          console.log('First 3 vehicles dates:', activos.slice(0, 3).map(v => ({
+          console.log('First 3 vehicles dates:', activos.slice(0, 3).map((v: any) => ({
             title: v['titol-anunci'],
             date: v['data-creacio'] || v['date'] || 'no date'
           })));
@@ -271,6 +271,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
       ["anunci-actiu"]: v["anunci-actiu"] !== undefined && v["anunci-actiu"] !== null ? String(v["anunci-actiu"]) : "",
       venut: v.venut !== undefined && v.venut !== null ? String(v.venut) : "",
       ["anunci-destacat"]: v["anunci-destacat"] !== undefined && v["anunci-destacat"] !== null ? String(v["anunci-destacat"]) : "",
+      ["potencia-cv"]: v["potencia-cv"] !== undefined && v["potencia-cv"] !== null ? String(v["potencia-cv"]) : "",
     }));
     return (
       <div className={

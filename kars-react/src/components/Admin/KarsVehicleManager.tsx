@@ -143,15 +143,15 @@ export default function KarsVehicleManager() {
 
   const getSyncStatusIcon = (vehicle: KarsVehicle) => {
     if (vehicle.syncError) {
-      return <AlertCircle className="h-4 w-4 text-red-500" title={vehicle.syncError} />
+      return <AlertCircle className="h-4 w-4 text-red-500" />
     }
     if (vehicle.motoraldiaVehicleId && vehicle.syncedToMotoraldiaAt) {
-      return <CheckCircle className="h-4 w-4 text-green-500" title="Sincronitzat" />
+      return <CheckCircle className="h-4 w-4 text-green-500" />
     }
     if (vehicle.needsSync) {
-      return <Clock className="h-4 w-4 text-orange-500" title="Pendent sincronització" />
+      return <Clock className="h-4 w-4 text-orange-500" />
     }
-    return <RotateCcw className="h-4 w-4 text-gray-400" title="No necessita sincronització" />
+    return <RotateCcw className="h-4 w-4 text-gray-400" />
   }
 
   const getSyncStatusText = (vehicle: KarsVehicle) => {
