@@ -14,6 +14,7 @@ import {
 import { Link } from 'react-router-dom';
 import { VERSION_INFO } from '../../config/version';
 import AdminLayout from '../../components/Admin/AdminLayout';
+import { axiosAdmin } from '../../api/axiosClient';
 
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('overview');
@@ -38,49 +39,20 @@ export default function AdminDashboard() {
       
       // Hacer múltiples llamadas en paralelo para obtener todas las estadísticas
       const [totalResponse, soldResponse, availableResponse, activeResponse, inactiveResponse] = await Promise.all([
-        fetch('http://localhost:3001/api/vehicles?per_page=1', {
-          headers: {
-            'Authorization': 'Basic ' + btoa('admin:Motoraldia.2025!'),
-            'Content-Type': 'application/json'
-          }
-        }),
-        fetch('http://localhost:3001/api/vehicles?per_page=1&venut=true', {
-          headers: {
-            'Authorization': 'Basic ' + btoa('admin:Motoraldia.2025!'),
-            'Content-Type': 'application/json'
-          }
-        }),
-        fetch('http://localhost:3001/api/vehicles?per_page=1&anunci-actiu=true&venut=false', {
-          headers: {
-            'Authorization': 'Basic ' + btoa('admin:Motoraldia.2025!'),
-            'Content-Type': 'application/json'
-          }
-        }),
-        fetch('http://localhost:3001/api/vehicles?per_page=1&anunci-actiu=true', {
-          headers: {
-            'Authorization': 'Basic ' + btoa('admin:Motoraldia.2025!'),
-            'Content-Type': 'application/json'
-          }
-        }),
-        fetch('http://localhost:3001/api/vehicles?per_page=1&anunci-actiu=false', {
-          headers: {
-            'Authorization': 'Basic ' + btoa('admin:Motoraldia.2025!'),
-            'Content-Type': 'application/json'
-          }
-        })
+        axiosAdmin.get('/vehicles?per_page=1'),
+        axiosAdmin.get('/vehicles?per_page=1&venut=true'),
+        axiosAdmin.get('/vehicles?per_page=1&anunci-actiu=true&venut=false'),
+        axiosAdmin.get('/vehicles?per_page=1&anunci-actiu=true'),
+        axiosAdmin.get('/vehicles?per_page=1&anunci-actiu=false')
       ]);
       
-      if (!totalResponse.ok || !soldResponse.ok || !availableResponse.ok || !activeResponse.ok || !inactiveResponse.ok) {
-        throw new Error('Error fetching vehicle stats');
-      }
-      
-      const [totalData, soldData, availableData, activeData, inactiveData] = await Promise.all([
-        totalResponse.json(),
-        soldResponse.json(),
-        availableResponse.json(),
-        activeResponse.json(),
-        inactiveResponse.json()
-      ]);
+      const [totalData, soldData, availableData, activeData, inactiveData] = [
+        totalResponse.data,
+        soldResponse.data,
+        availableResponse.data,
+        activeResponse.data,
+        inactiveResponse.data
+      ];
       
       const stats = {
         total: totalData.total || 0,
@@ -116,19 +88,8 @@ export default function AdminDashboard() {
     setSyncMessage('Iniciando sincronización desde API externa...');
     
     try {
-      const response = await fetch('http://localhost:3001/api/sync/manual', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Basic ' + btoa('admin:Motoraldia.2025!')
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
+      const response = await axiosAdmin.post('/sync/manual');
+      const data = response.data;
       setSyncStatus('success');
       setSyncMessage(`Sincronización desde API iniciada exitosamente. ID: ${data.syncId}`);
       
@@ -142,8 +103,8 @@ export default function AdminDashboard() {
       if (error instanceof Error) {
         if (error.message.includes('500')) {
           setSyncMessage('Error 500: Problema en el servidor. Verifica que la API esté funcionando correctamente.');
-        } else if (error.message.includes('Failed to fetch')) {
-          setSyncMessage('Error de conexión: No se puede conectar al servidor API en localhost:3001');
+        } else if (error.message.includes('Network Error') || error.message.includes('Failed to fetch')) {
+          setSyncMessage('Error de conexión: No se puede conectar al servidor API');
         } else {
           setSyncMessage(`Error en la sincronización: ${error.message}`);
         }
@@ -159,23 +120,11 @@ export default function AdminDashboard() {
     setImportMessage('Iniciando importación desde archivo JSON...');
     
     try {
-      const response = await fetch('http://localhost:3001/api/admin/import-vehicles-json', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Basic ' + btoa('admin:Motoraldia.2025!')
-        },
-        body: JSON.stringify({
-          batchSize: 25, // Lotes más pequeños para no saturar
-          delayBetweenBatches: 2000 // 2 segundos entre lotes
-        })
+      const response = await axiosAdmin.post('/admin/import-vehicles-json', {
+        batchSize: 25, // Lotes más pequeños para no saturar
+        delayBetweenBatches: 2000 // 2 segundos entre lotes
       });
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
+      const data = response.data;
       setImportStatus('success');
       setImportMessage(`Importación desde JSON iniciada exitosamente. ID: ${data.importId}`);
       
@@ -189,8 +138,8 @@ export default function AdminDashboard() {
       if (error instanceof Error) {
         if (error.message.includes('500')) {
           setImportMessage('Error 500: Problema en el servidor. Verifica que el archivo JSON esté disponible.');
-        } else if (error.message.includes('Failed to fetch')) {
-          setImportMessage('Error de conexión: No se puede conectar al servidor API en localhost:3001');
+        } else if (error.message.includes('Network Error') || error.message.includes('Failed to fetch')) {
+          setImportMessage('Error de conexión: No se puede conectar al servidor API');
         } else {
           setImportMessage(`Error en la importación: ${error.message}`);
         }
@@ -204,8 +153,8 @@ export default function AdminDashboard() {
     // Polling cada 2 segundos para obtener el estado
     const interval = setInterval(async () => {
       try {
-        const response = await fetch('http://localhost:3001/api/sync/status');
-        const status = await response.json();
+        const response = await axiosAdmin.get('/sync/status');
+        const status = response.data;
         
         if (!status.isRunning) {
           clearInterval(interval);
@@ -235,12 +184,8 @@ export default function AdminDashboard() {
     // Polling cada 2 segundos para obtener el estado de importación
     const interval = setInterval(async () => {
       try {
-        const response = await fetch('http://localhost:3001/api/admin/import-status', {
-          headers: {
-            'Authorization': 'Basic ' + btoa('admin:Motoraldia.2025!')
-          }
-        });
-        const status = await response.json();
+        const response = await axiosAdmin.get('/admin/import-status');
+        const status = response.data;
         
         if (!status.isRunning) {
           clearInterval(interval);

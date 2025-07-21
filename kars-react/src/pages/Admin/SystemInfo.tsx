@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Cpu, Database, HardDrive, RefreshCw, Server, Monitor, Activity, Car, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import AdminLayout from '../../components/Admin/AdminLayout';
 import { VERSION_INFO } from '../../config/version';
+import { axiosAdmin } from '../../api/axiosClient';
 
 const SystemInfo = () => {
   const [systemData, setSystemData] = useState({
@@ -57,56 +58,22 @@ const SystemInfo = () => {
       
       // Hacer múltiples llamadas en paralelo para obtener todas las estadísticas
       const [totalResponse, soldResponse, availableResponse, activeResponse, inactiveResponse, carsResponse] = await Promise.all([
-        fetch('http://localhost:3001/api/vehicles?per_page=1', {
-          headers: {
-            'Authorization': 'Basic ' + btoa('admin:Motoraldia.2025!'),
-            'Content-Type': 'application/json'
-          }
-        }),
-        fetch('http://localhost:3001/api/vehicles?per_page=1&venut=true', {
-          headers: {
-            'Authorization': 'Basic ' + btoa('admin:Motoraldia.2025!'),
-            'Content-Type': 'application/json'
-          }
-        }),
-        fetch('http://localhost:3001/api/vehicles?per_page=1&anunci-actiu=true&venut=false', {
-          headers: {
-            'Authorization': 'Basic ' + btoa('admin:Motoraldia.2025!'),
-            'Content-Type': 'application/json'
-          }
-        }),
-        fetch('http://localhost:3001/api/vehicles?per_page=1&anunci-actiu=true', {
-          headers: {
-            'Authorization': 'Basic ' + btoa('admin:Motoraldia.2025!'),
-            'Content-Type': 'application/json'
-          }
-        }),
-        fetch('http://localhost:3001/api/vehicles?per_page=1&anunci-actiu=false', {
-          headers: {
-            'Authorization': 'Basic ' + btoa('admin:Motoraldia.2025!'),
-            'Content-Type': 'application/json'
-          }
-        }),
-        fetch('http://localhost:3001/api/vehicles?per_page=1&tipus-vehicle=cotxe', {
-          headers: {
-            'Authorization': 'Basic ' + btoa('admin:Motoraldia.2025!'),
-            'Content-Type': 'application/json'
-          }
-        })
+        axiosAdmin.get('/vehicles?per_page=1'),
+        axiosAdmin.get('/vehicles?per_page=1&venut=true'),
+        axiosAdmin.get('/vehicles?per_page=1&anunci-actiu=true&venut=false'),
+        axiosAdmin.get('/vehicles?per_page=1&anunci-actiu=true'),
+        axiosAdmin.get('/vehicles?per_page=1&anunci-actiu=false'),
+        axiosAdmin.get('/vehicles?per_page=1&tipus-vehicle=cotxe')
       ]);
       
-      if (!totalResponse.ok || !soldResponse.ok || !availableResponse.ok || !activeResponse.ok || !inactiveResponse.ok || !carsResponse.ok) {
-        throw new Error('Error fetching vehicle stats');
-      }
-      
-      const [totalData, soldData, availableData, activeData, inactiveData, carsData] = await Promise.all([
-        totalResponse.json(),
-        soldResponse.json(),
-        availableResponse.json(),
-        activeResponse.json(),
-        inactiveResponse.json(),
-        carsResponse.json()
-      ]);
+      const [totalData, soldData, availableData, activeData, inactiveData, carsData] = [
+        totalResponse.data,
+        soldResponse.data,
+        availableResponse.data,
+        activeResponse.data,
+        inactiveResponse.data,
+        carsResponse.data
+      ];
       
       const stats = {
         total: totalData.total || 0,
