@@ -89,12 +89,12 @@ router.get('/exterior-colors', async (req, res) => {
     
     const formattedColors = uniqueColors.map((color, index) => ({
       id: index + 1,
-      name: color || '',
-      slug: color?.toLowerCase().replace(/\s+/g, '-') || ''
+      name: String(color || ''),
+      slug: String(color || '').toLowerCase().replace(/\s+/g, '-') || ''
     }));
     
     res.json({
-      data: formattedColors.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+      data: formattedColors.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')))
     });
   } catch (error) {
     console.error('Error fetching exterior colors:', error);
