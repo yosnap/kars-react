@@ -1,0 +1,25 @@
+{
+  "name": "kars-monorepo",
+  "private": true,
+  "workspaces": [
+    "kars-react",
+    "kars-api"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:react\" \"npm run dev:api\"",
+    "dev:react": "npm run dev --workspace=kars-react",
+    "dev:api": "npm run dev --workspace=kars-api", 
+    "build": "npm run build --workspace=kars-react && npm run build --workspace=kars-api",
+    "build:react": "npm run build --workspace=kars-react",
+    "build:api": "npm run build --workspace=kars-api",
+    "lint": "npm run lint --workspace=kars-react",
+    "test": "npm run test --workspaces --if-present",
+    "install:all": "npm install && npm install --workspaces"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.11.1"
+  }
+}

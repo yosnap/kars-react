@@ -1,0 +1,544 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+  // Database: karsad - Vehicle management system for info@kars.ad
+}
+
+model Vehicle {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Campos básicos - Kars.ad vehicle management
+  originalId        String?  @map("original_id") // ID from Motoraldia API (for imports)
+  authorId          String?  @map("author_id") // Author ID from original API
+  status            String   @default("publish")
+  slug              String   @unique
+  titolAnunci       String   @map("titol-anunci") // Auto-generated: marca + modelo + versión
+  descripcioAnunci  String?  @map("descripcio-anunci") // Legacy field, use multilingual versions
+  
+  // Multilingual descriptions (CA is primary/default) - ONLY field that needs translation
+  descripcioAnunciCA String?  @map("descripcio-anunci-ca") // Catalan (primary language)
+  descripcioAnunciEN String?  @map("descripcio-anunci-en") // English
+  descripcioAnunciFR String?  @map("descripcio-anunci-fr") // French
+  descripcioAnunciES String?  @map("descripcio-anunci-es") // Spanish
+  
+  // Estado del anuncio
+  anunciActiu       Boolean  @map("anunci-actiu")
+  anunciDestacat    Int      @default(0) @map("anunci-destacat")
+  venut             Boolean  @default(false)
+  diesCaducitat     String?  @map("dies-caducitat")
+  
+  // Tipo y marca
+  tipusVehicle      String   @map("tipus-vehicle")
+  marquesAutocaravana String? @map("marques-autocaravana")
+  modelsAutocaravana String?  @map("models-autocaravana")
+  marcaCotxe        String?  @map("marca-cotxe")
+  marcaMoto         String?  @map("marca-moto")
+  modelsCotxe       String?  @map("models-cotxe")
+  modelsMoto        String?  @map("models-moto")
+  
+  // Especificaciones técnicas
+  estatVehicle      String?  @map("estat-vehicle")
+  tipusPropulsor    String?  @map("tipus-propulsor")
+  tipusCombustible  String?  @map("tipus-combustible")
+  tipusCanvi        String?  @map("tipus-canvi")
+  carrosseriaCotxe  String?  @map("carrosseria-cotxe")
+  carrosseriaMoto   String?  @map("carrosseria-moto")
+  carrosseriaCaravana String? @map("carrosseria-caravana")
+  
+  versio            String?
+  any               String?
+  quilometratge     String?
+  cilindrada        String?
+  traccio           String?
+  potenciaCv        String?  @map("potencia-cv")
+  numeroMotors      String?  @map("numero-motors")
+  cvMotorDavant     String?  @map("cv-motor-davant")
+  kwMotorDavant     String?  @map("kw-motor-davant")
+  potenciaKw        String?  @map("potencia-kw")
+  emissionsVehicle  String?  @map("emissions-vehicle")
+  cvMotorDarrere    String?  @map("cv-motor-darrere")
+  kwMotorDarrere    String?  @map("kw-motor-darrere")
+  potenciaCombinada String?  @map("potencia-combinada")
+  
+  // Vehículos eléctricos
+  autonomiaWltp           String? @map("autonomia-wltp")
+  autonomiaUrbanaWltp     String? @map("autonomia-urbana-wltp")
+  autonomiaExtraurbanaWltp String? @map("autonomia-extraurbana-wltp")
+  autonomiaElectrica      String? @map("autonomia-electrica")
+  bateria                 String?
+  cablesRecarrega         String? @map("cables-recarrega")
+  connectors              String?
+  velocitatRecarrega      String? @map("velocitat-recarrega")
+  frenadaRegenerativa     String? @map("frenada-regenerativa")
+  onePedal                String? @map("one-pedal")
+  tempsRecarregaTotal     String? @map("temps-recarrega-total")
+  tempsRecarregaFins80    String? @map("temps-recarrega-fins-80")
+  
+  // Características físicas
+  colorVehicle      String?  @map("color-vehicle")
+  placesCotxe       String?  @map("places-cotxe")
+  placesMoto        String?  @map("places-moto")
+  aireAcondicionat  String?  @map("aire-acondicionat")
+  tipusTapisseria   String?  @map("tipus-tapisseria")
+  portesCotxe       String?  @map("portes-cotxe")
+  climatitzacio     Boolean? @default(false)
+  colorTapisseria   String?  @map("color-tapisseria")
+  numeroMaletersCotxe String? @map("numero-maleters-cotxe")
+  capacitatMaletersCotxe String? @map("capacitat-maleters-cotxe")
+  capacitatTotalL   String?  @map("capacitat-total-l")
+  vehicleFumador    Boolean? @default(false) @map("vehicle-fumador")
+  rodaRecanvi       String?  @map("roda-recanvi")
+  
+  // Rendimiento y aceleración
+  acceleracio060    String?  @map("acceleracio-0-60")
+  acceleracio0100Cotxe String? @map("acceleracio-0-100-cotxe")
+  velocitatMaxima   String?  @map("velocitat-maxima")
+  
+  // Cambio de motos
+  tipusCanviMoto    String?  @map("tipus-de-canvi-moto")
+  
+  // Campos de precio adicionales
+  preuMensual       String?  @map("preu-mensual")
+  preuDiari         String?  @map("preu-diari")
+  preuAntic         String?  @map("preu-antic")
+  
+  // Video del vehículo
+  videoVehicle      String?  @map("video-vehicle")
+  
+  // Motores adicionales
+  cvMotor3          String?  @map("cv-motor-3")
+  kwMotor3          String?  @map("kw-motor-3")
+  cvMotor4          String?  @map("cv-motor-4")
+  kwMotor4          String?  @map("kw-motor-4")
+  
+  // Extras
+  extresCotxe       String[] @map("extres-cotxe")
+  extresMoto        String[] @map("extres-moto")
+  extresAutocaravana String[] @map("extres-autocaravana")
+  extresHabitacle   String[] @map("extres-habitacle")
+  
+  // Estado y garantías
+  garantia           Boolean? @default(false)
+  vehicleAccidentat  Boolean? @default(false) @map("vehicle-accidentat")
+  llibreManteniment  Boolean? @default(false) @map("llibre-manteniment")
+  revisionsOficials  Boolean? @default(false) @map("revisions-oficials")
+  impostosDeduibles  Boolean? @default(false) @map("impostos-deduibles")
+  vehicleACanvi      Boolean? @default(false) @map("vehicle-a-canvi")
+  nombrePropietaris  String?  @map("nombre-propietaris")
+  
+  // Precio
+  preu              String
+  
+  // Imágenes
+  imatgeDestacadaUrl String?  @map("imatge-destacada-url")
+  galeriaVehicleUrls String[] @map("galeria-vehicle-urls")
+  
+  // Metadatos
+  dataCreacio       DateTime @map("data-creacio")
+  
+  // Owner info
+  userId            String?  @map("user_id") @db.ObjectId
+  user              User?    @relation(fields: [userId], references: [id])
+  
+  // Legacy professional ID (for migration)
+  professionalId    String?  @map("professional-id")
+  
+  // Timestamps de sincronización TO Motoraldia (reverse sync)
+  lastSyncAt        DateTime? @map("last_sync_at") // Last sync TO Motoraldia
+  syncedToMotoraldiaAt DateTime? @map("synced_to_motoraldia_at") // When pushed to Motoraldia
+  motoraldiaVehicleId String? @map("motoraldia_vehicle_id") // ID in Motoraldia after sync
+  needsSync         Boolean  @default(true) @map("needs_sync") // Flag for pending sync
+  syncError         String?  @map("sync_error") // Last sync error message
+  
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@index([anunciActiu])
+  @@index([tipusVehicle])
+  @@index([marcaCotxe])
+  @@index([marcaMoto])
+  @@index([preu])
+  @@index([any])
+  @@index([dataCreacio])
+  @@index([anunciDestacat])
+  @@index([needsSync]) // For sync queue management
+  @@index([motoraldiaVehicleId]) // For reverse lookup
+}
+
+model User {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Datos de autenticación
+  username        String    @unique
+  email           String    @unique
+  passwordHash    String    @map("password_hash")
+  
+  // Datos del perfil
+  name            String?
+  phone           String?
+  address         String?
+  city            String?
+  website         String?
+  
+  // Tipo de usuario
+  role            String    @default("professional") // "professional", "admin", "user"
+  isActive        Boolean   @default(true) @map("is_active")
+  registeredDate  DateTime? @map("registered_date")
+  
+  // Campos específicos de profesionales
+  logoEmpresa         String?   @map("logo_empresa")
+  logoEmpresaHome     String?   @map("logo_empresa_home")
+  nomEmpresa          String?   @map("nom_empresa")
+  telefonMobile       String?   @map("telefon_mobile")
+  telefonComercial    String?   @map("telefon_comercial")
+  telefonWhatsapp     String?   @map("telefon_whatsapp")
+  localitat           String?   @map("localitat")
+  nomContacte         String?   @map("nom_contacte")
+  cognomsContacte     String?   @map("cognoms_contacte")
+  descripcioEmpresa   String?   @map("descripcio_empresa")
+  galeriaProfessionals String[] @map("galeria_professionals")
+  totalVehicles       Int       @default(0) @map("total_vehicles")
+  activeVehicles      Int       @default(0) @map("active_vehicles")
+  
+  // Relaciones
+  vehicles        Vehicle[]
+  professionals   Professional[]
+  
+  // Metadatos de migración
+  originalUserId  String?   @map("original_user_id") // ID de la API original
+  migratedAt      DateTime? @map("migrated_at")
+  lastLoginAt     DateTime? @map("last_login_at")
+  lastSyncAt      DateTime? @map("last_sync_at")
+  
+  // Timestamps
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  @@index([role])
+  @@index([originalUserId])
+}
+
+model Professional {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Referencia al usuario
+  userId          String    @map("user_id") @db.ObjectId
+  user            User      @relation(fields: [userId], references: [id])
+  
+  // Datos específicos del profesional
+  businessName    String?   @map("business_name")
+  taxId           String?   @map("tax_id")
+  license         String?
+  description     String?
+  
+  // Configuración
+  isVerified      Boolean   @default(false) @map("is_verified")
+  isPremium       Boolean   @default(false) @map("is_premium")
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime? @map("last_sync_at")
+  
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  @@index([userId])
+}
+
+
+model SyncLog {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  type            String    // "full", "incremental", "manual"
+  status          String    // "pending", "running", "completed", "failed"
+  startedAt       DateTime
+  completedAt     DateTime?
+  vehiclesProcessed Int     @default(0)
+  vehiclesCreated   Int     @default(0)
+  vehiclesUpdated   Int     @default(0)
+  vehiclesDeleted   Int     @default(0)
+  errorMessage    String?
+  
+  createdAt       DateTime  @default(now()) @map("created_at")
+}
+
+model Config {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  key             String    @unique
+  value           String
+  description     String?
+  
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+}
+
+model Brand {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  slug            String    @unique
+  name            String
+  vehicleType     String    @map("vehicle_type") // 'cotxe' o 'moto'
+  
+  // Relación con modelos
+  models          Model[]
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  @@index([vehicleType])
+}
+
+model Model {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  slug            String    
+  name            String
+  
+  // Relación con marca
+  brandId         String    @map("brand_id") @db.ObjectId
+  brand           Brand     @relation(fields: [brandId], references: [id])
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  @@unique([brandId, slug])
+  @@index([brandId])
+}
+
+model VehicleState {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String    // "Nou", "Ocasió", "Km0", etc.
+  value           String    @unique // "nou", "ocasio", "km0-gerencia", etc.
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+}
+
+model FuelType {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String    // "Benzina", "Dièsel", "Elèctric", etc.
+  value           String    @unique // "benzina", "diesel", "electric", etc.
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+}
+
+model TransmissionType {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String    // "Auto-Seqüencial", "Automàtic", "Manual", etc.
+  value           String    @unique // "auto-sequencial", "automatic", "manual", etc.
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+}
+
+model BodyType {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String    // "Utilitari Petit", "Sedan-Berlina", "SUV", etc.
+  value           String    @unique // "utilitari-petit", "sedan", "suv", etc.
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+}
+
+model MotorcycleBodyType {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String    // "Adventure Sport", "Café racer", "Naked", etc.
+  value           String    @unique // "adventure-sport", "cafe-racer", "naked", etc.
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+}
+
+model CaravanBodyType {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String    // "Caputxina", "Perfilada", "Integral", "Camper"
+  value           String    @unique // "c-caputxina", "c-perfilada", "c-integral", "c-camper"
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+}
+
+model CommercialVehicleBodyType {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String    // "Furgoneta comercial"
+  value           String    @unique // "c-furgo-industrial"
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+}
+
+model CarExtras {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String    // "ABS", "Airbag conductor", etc.
+  value           String    @unique // "abs", "airbag-conductor", etc.
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+}
+
+model MotorcycleExtras {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String    // "ABS", "ABS en corba", etc.
+  value           String    @unique // "abs", "abs-corba", etc.
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+}
+
+model CaravanExtras {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String    // "ABS", "Airbag conductor", etc.
+  value           String    @unique // "abs-caravana", "airbag-conductor", etc.
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+}
+
+model HabitacleExtras {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String    // "Aigua corrent", "Antena Satèl·lit", etc.
+  value           String    @unique // "aigua-corrent", "antena-satelit", etc.
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+}
+
+model ExteriorColor {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String    // "Bicolor", "Blanc", "Negre", etc.
+  value           String    @unique // "bicolor", "blanc", "negre", etc.
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+}
+
+model UpholsteryType {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String    // "Alcántara", "Cuir", "Teixit", etc.
+  value           String    @unique // "alcantara", "cuir", "teixit", etc.
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+}
+
+model UpholsteryColor {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String    // "Bicolor", "Negre", "Antracita", etc.
+  value           String    @unique // "tapisseria-bicolor", "tapisseria-negre", etc.
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+}
+
+model BlogPost {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Datos básicos del post
+  originalId      String    @unique @map("original_id") // ID de la API original
+  title           String
+  slug            String    @unique
+  content         String
+  excerpt         String?
+  
+  // Imagen destacada
+  featuredImage   String?   @map("featured_image")
+  
+  // Metadatos del post
+  date            DateTime
+  author          String
+  
+  // Categorías completas (JSON arrays)
+  categories      Json[]    @default([]) // Array de objetos {id, name, slug}
+  categoryNames   String[]  @default([]) @map("category_names") // Para búsquedas rápidas
+  
+  // Tags completas (JSON arrays)
+  tags            Json[]    @default([]) // Array de objetos {id, name, slug}
+  tagNames        String[]  @default([]) @map("tag_names") // Para búsquedas rápidas
+  
+  // SEO completo
+  seo             Json?     // Objeto SEO completo del payload
+  seoTitle        String?   @map("seo_title")
+  seoDescription  String?   @map("seo_description")
+  seoKeywords     String?   @map("seo_keywords")
+  ogImage         String?   @map("og_image")
+  ogType          String?   @map("og_type")
+  twitterCard     String?   @map("twitter_card")
+  canonicalUrl    String?   @map("canonical_url")
+  
+  // Estado del post
+  status          String    @default("publish")
+  isActive        Boolean   @default(true) @map("is_active")
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  @@index([status])
+  @@index([date])
+  @@index([isActive])
+  @@index([categoryNames])
+  @@index([tagNames])
+}
+
+model BlogSyncLog {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  type              String   // "manual", "automatic", "cron"
+  status            String   // "running", "completed", "failed"
+  startedAt         DateTime @map("started_at")
+  completedAt       DateTime? @map("completed_at")
+  
+  // Estadísticas de sincronización
+  postsProcessed    Int      @default(0) @map("posts_processed")
+  postsCreated      Int      @default(0) @map("posts_created")
+  postsUpdated      Int      @default(0) @map("posts_updated")
+  postsSkipped      Int      @default(0) @map("posts_skipped")
+  postsWithErrors   Int      @default(0) @map("posts_with_errors")
+  
+  // Información adicional
+  errorMessage      String?  @map("error_message")
+  errorDetails      Json?    @map("error_details")
+  summary           Json?    // Resumen detallado del proceso
+  
+  // Timestamps
+  createdAt         DateTime @default(now()) @map("created_at")
+  
+  @@index([type])
+  @@index([status])
+  @@index([startedAt])
+}

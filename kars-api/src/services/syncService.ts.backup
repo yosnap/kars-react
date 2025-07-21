@@ -1,0 +1,2224 @@
+import axios from 'axios';
+import { PrismaClient } from '@prisma/client';
+import cron from 'node-cron';
+import dotenv from 'dotenv';
+
+// Asegurar que las variables de entorno estén cargadas
+dotenv.config();
+
+const prisma = new PrismaClient();
+
+// Variables para controlar el estado de sincronización
+let isCurrentlyRunning = false;
+let currentSyncId: string | null = null;
+let cronJob: cron.ScheduledTask | null = null;
+let blogCronJob: cron.ScheduledTask | null = null;
+
+// Configuración del cliente axios para la API original
+const originalApiClient = axios.create({
+  baseURL: process.env.ORIGINAL_API_URL || 'https://motoraldia.net/wp-json/api-motor/v1',
+  auth: {
+    username: process.env.ORIGINAL_API_USER || 'Paulo',
+    password: process.env.ORIGINAL_API_PASS || 'U^q^i2l49rZrX72#Ln!Xe5k0'
+  },
+  timeout: 30000
+});
+
+// Interfaz para los datos de vehículo de la API original
+interface OriginalVehicle {
+  id?: string | number;
+  slug: string;
+  'titol-anunci': string;
+  'descripcio-anunci'?: string;
+  descripcio?: string;
+  preu: string;
+  quilometratge?: string;
+  'any-fabricacio'?: string;
+  any?: string;
+  'tipus-vehicle': string;
+  'marca-cotxe'?: string;
+  'marca-moto'?: string;
+  'marques-cotxe'?: string;
+  'marques-moto'?: string;
+  'models-cotxe'?: string;
+  'models-moto'?: string;
+  model?: string;
+  versio?: string;
+  combustible?: string;
+  'tipus-combustible'?: string;
+  transmissio?: string;
+  'tipus-canvi'?: string;
+  traccio?: string;
+  potencia?: string;
+  'potencia-cv'?: string;
+  cilindrada?: string;
+  'num-portes'?: string;
+  'portes-cotxe'?: string;
+  color?: string;
+  'color-vehicle'?: string;
+  'anunci-actiu': boolean | string;
+  venut: boolean | string;
+  'anunci-destacat': boolean | number;
+  'data-creacio': string;
+  'data-modificacio'?: string;
+  'imatge-destacada-url'?: string;
+  imatges?: string[];
+  'galeria-vehicle-urls'?: string[];
+  'professional-id'?: string;
+  author_id?: string;
+  [key: string]: any; // Para campos adicionales
+}
+
+// Inicializar el cron job automático
+export async function initializeCronSync() {
+  try {
+    const config = await getConfig();
+    
+    if (config.enable_auto_sync !== 'true') {
+      console.log('🔄 Auto-sync disabled');
+      return;
+    }
+
+    const interval = parseInt(config.sync_interval_minutes) || 30;
+    const cronExpression = `*/${interval} * * * *`; // Cada X minutos
+
+    if (cronJob) {
+      cronJob.stop();
+    }
+
+    cronJob = cron.schedule(cronExpression, async () => {
+      if (!isCurrentlyRunning) {
+        console.log('🔄 Starting scheduled incremental sync...');
+        await startIncrementalSync();
+      } else {
+        console.log('⏳ Sync already running, skipping scheduled sync');
+      }
+    }, {
+      scheduled: true,
+      timezone: "Europe/Andorra"
+    });
+
+    console.log(`🔄 Auto-sync initialized: every ${interval} minutes`);
+    
+  } catch (error) {
+    console.error('❌ Error initializing cron sync:', error);
+  }
+}
+
+// Obtener configuración
+async function getConfig() {
+  const configs = await prisma.config.findMany();
+  const configMap: Record<string, string> = {};
+  
+  configs.forEach(config => {
+    configMap[config.key] = config.value;
+  });
+
+  // Valores por defecto
+  return {
+    sync_interval_minutes: '30',
+    enable_auto_sync: 'true',
+    max_vehicles_per_sync: '1000',
+    blog_sync_interval_hours: '8',
+    enable_blog_auto_sync: 'true',
+    max_blog_posts_per_sync: '100',
+    ...configMap
+  };
+}
+
+// Obtener estado actual de sincronización
+export async function getSyncStatus() {
+  try {
+    const currentSync = currentSyncId ? await prisma.syncLog.findUnique({
+      where: { id: currentSyncId }
+    }) : null;
+
+    const lastCompletedSync = await prisma.syncLog.findFirst({
+      where: { status: 'completed' },
+      orderBy: { completedAt: 'desc' }
+    });
+
+    const config = await getConfig();
+
+    return {
+      isRunning: isCurrentlyRunning,
+      currentSync,
+      lastCompletedSync,
+      config,
+      nextScheduledSync: cronJob ? 'Active' : 'Disabled'
+    };
+  } catch (error) {
+    console.error('Error getting sync status:', error);
+    throw error;
+  }
+}
+
+// Iniciar sincronización completa
+export async function startFullSync(type: string = 'full'): Promise<string> {
+  if (isCurrentlyRunning) {
+    throw new Error('Sync already running');
+  }
+
+  const syncLog = await prisma.syncLog.create({
+    data: {
+      type,
+      status: 'running',
+      startedAt: new Date()
+    }
+  });
+
+  isCurrentlyRunning = true;
+  currentSyncId = syncLog.id;
+
+  // Ejecutar sync en background
+  performFullSync(syncLog.id).catch(error => {
+    console.error('❌ Full sync failed:', error);
+  });
+
+  return syncLog.id;
+}
+
+// Iniciar sincronización incremental
+export async function startIncrementalSync(since?: Date | null, specificSlug?: string): Promise<string> {
+  if (isCurrentlyRunning && !specificSlug) {
+    throw new Error('Sync already running');
+  }
+
+  const type = specificSlug ? 'webhook' : 'incremental';
+  
+  const syncLog = await prisma.syncLog.create({
+    data: {
+      type,
+      status: 'running',
+      startedAt: new Date()
+    }
+  });
+
+  if (!specificSlug) {
+    isCurrentlyRunning = true;
+    currentSyncId = syncLog.id;
+  }
+
+  // Ejecutar sync en background
+  performIncrementalSync(syncLog.id, since, specificSlug).catch(error => {
+    console.error('❌ Incremental sync failed:', error);
+  });
+
+  return syncLog.id;
+}
+
+// Obtener datos completos de un vehículo individual usando el endpoint específico
+async function fetchVehicleDetails(vehicleId: string): Promise<OriginalVehicle | null> {
+  try {
+    console.log(`📋 Fetching complete details for vehicle ID: ${vehicleId}`);
+    const response = await originalApiClient.get(`/vehicles/${vehicleId}`);
+    
+    if (response.data && typeof response.data === 'object') {
+      console.log(`✅ Retrieved complete vehicle details: ${response.data.slug || 'no-slug'} with ${Object.keys(response.data).length} fields`);
+      return response.data;
+    }
+    
+    console.log(`⚠️ No data returned for vehicle ${vehicleId}`);
+    return null;
+  } catch (error) {
+    console.error(`❌ Error fetching vehicle ${vehicleId}:`, error);
+    return null;
+  }
+}
+
+// Verificar si un vehículo necesita actualización basado en fechas
+async function needsUpdate(vehicleId: string, modificationDate: string): Promise<boolean> {
+  try {
+    const existingVehicle = await prisma.vehicle.findFirst({
+      where: { originalId: vehicleId.toString() },
+      select: { lastSyncAt: true }
+    });
+
+    if (!existingVehicle) {
+      console.log(`🆕 Vehicle ${vehicleId} is new - needs sync`);
+      return true; // Vehicle doesn't exist, needs to be created
+    }
+
+    const vehicleModifiedDate = new Date(modificationDate);
+    const lastSyncDate = existingVehicle.lastSyncAt;
+
+    if (vehicleModifiedDate > lastSyncDate) {
+      console.log(`🔄 Vehicle ${vehicleId} modified after last sync - needs update`);
+      return true;
+    }
+
+    console.log(`⏩ Vehicle ${vehicleId} up to date - skipping`);
+    return false;
+  } catch (error) {
+    console.error(`❌ Error checking update status for vehicle ${vehicleId}:`, error);
+    return true; // Default to updating if we can't determine
+  }
+}
+
+// Realizar sincronización completa con detalles individuales
+async function performFullSync(syncId: string) {
+  let vehiclesProcessed = 0;
+  let vehiclesCreated = 0;
+  let vehiclesUpdated = 0;
+  let vehiclesDeleted = 0;
+
+  try {
+    console.log('🔄 Starting full sync with individual vehicle details and date-based updates...');
+
+    const config = await getConfig();
+    const maxVehicles = parseInt(config.max_vehicles_per_sync) || 1000;
+
+    // Obtener TODOS los vehículos de la API original de una vez
+    console.log('📋 Fetching ALL vehicles from external API with per_page=-1...');
+    const response = await originalApiClient.get('/vehicles', {
+      params: {
+        per_page: -1  // Obtener todos los vehículos
+      }
+    });
+
+    const allVehicles = response.data.items || response.data || [];
+    console.log(`📊 Found ${allVehicles.length} vehicles in external API`);
+    
+    const existingSlugs = new Set<string>();
+
+    // Procesar cada vehículo usando su ID para obtener datos completos
+    for (const vehicleBasic of allVehicles) {
+      if (vehiclesProcessed >= maxVehicles) break;
+
+      for (const vehicleBasic of vehicles) {
+        try {
+          existingSlugs.add(vehicleBasic.slug);
+          
+          // Ya tenemos los datos completos del vehículo desde per_page=-1
+          // que incluye todas las imágenes y los 88 campos
+          console.log(`🔄 Processing vehicle: ${vehicleBasic.slug} (ID: ${vehicleBasic.id})`);
+          
+          const result = await syncVehicle(vehicleBasic);
+          
+          if (result === 'created') vehiclesCreated++;
+          else if (result === 'updated') vehiclesUpdated++;
+          
+          console.log(`✅ ${result} vehicle ${vehicleBasic.slug} with complete data including images`);
+          
+          vehiclesProcessed++;
+
+          // Actualizar progreso cada 50 vehículos
+          if (vehiclesProcessed % 50 === 0) {
+            await prisma.syncLog.update({
+              where: { id: syncId },
+              data: {
+                vehiclesProcessed,
+                vehiclesCreated,
+                vehiclesUpdated
+              }
+            });
+            console.log(`📊 Progress: ${vehiclesProcessed}/${allVehicles.length} processed, ${vehiclesCreated} created, ${vehiclesUpdated} updated`);
+          }
+          
+        } catch (error) {
+          console.error(`❌ Error syncing vehicle ${vehicleBasic.id}:`, error);
+        }
+      }
+
+    // Eliminar vehículos que ya no existen en la API original
+    const vehiclesToDelete = await prisma.vehicle.findMany({
+      where: {
+        slug: { notIn: Array.from(existingSlugs) }
+      },
+      select: { id: true, slug: true }
+    });
+
+    if (vehiclesToDelete.length > 0) {
+      await prisma.vehicle.deleteMany({
+        where: {
+          id: { in: vehiclesToDelete.map(v => v.id) }
+        }
+      });
+      vehiclesDeleted = vehiclesToDelete.length;
+    }
+
+    // Completar sincronización
+    await prisma.syncLog.update({
+      where: { id: syncId },
+      data: {
+        status: 'completed',
+        completedAt: new Date(),
+        vehiclesProcessed,
+        vehiclesCreated,
+        vehiclesUpdated,
+        vehiclesDeleted
+      }
+    });
+
+    console.log(`✅ Full sync completed: ${vehiclesProcessed} processed, ${vehiclesCreated} created, ${vehiclesUpdated} updated, ${vehiclesDeleted} deleted`);
+
+  } catch (error) {
+    console.error('❌ Full sync error:', error);
+    
+    await prisma.syncLog.update({
+      where: { id: syncId },
+      data: {
+        status: 'failed',
+        completedAt: new Date(),
+        vehiclesProcessed,
+        vehiclesCreated,
+        vehiclesUpdated,
+        vehiclesDeleted,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+      }
+    });
+  } finally {
+    isCurrentlyRunning = false;
+    currentSyncId = null;
+  }
+}
+
+// Realizar sincronización incremental
+async function performIncrementalSync(syncId: string, since?: Date | null, specificSlug?: string) {
+  let vehiclesProcessed = 0;
+  let vehiclesCreated = 0;
+  let vehiclesUpdated = 0;
+
+  try {
+    console.log('🔄 Starting incremental sync...', { since, specificSlug });
+
+    if (specificSlug) {
+      // Sincronizar vehículo específico
+      const response = await originalApiClient.get(`/vehicles/${specificSlug}`);
+      const vehicle = response.data;
+      
+      if (vehicle) {
+        const result = await syncVehicle(vehicle);
+        if (result === 'created') vehiclesCreated++;
+        else if (result === 'updated') vehiclesUpdated++;
+        vehiclesProcessed = 1;
+      }
+    } else {
+      // Sincronización incremental basada en fecha
+      const lastSync = since || await getLastSuccessfulSyncDate();
+      
+      const response = await originalApiClient.get('/vehicles', {
+        params: {
+          per_page: 100,
+          // Aquí asumo que la API original soporta filtrado por fecha
+          // Si no, tendríamos que obtener todos y filtrar
+          ...(lastSync && { 'data-modificacio': lastSync.toISOString() })
+        }
+      });
+
+      const vehicles = response.data.items || response.data || [];
+
+      for (const vehicle of vehicles) {
+        try {
+          const result = await syncVehicle(vehicle);
+          
+          if (result === 'created') vehiclesCreated++;
+          else if (result === 'updated') vehiclesUpdated++;
+          
+          vehiclesProcessed++;
+        } catch (error) {
+          console.error(`❌ Error syncing vehicle ${vehicle.slug}:`, error);
+          console.error(`❌ Vehicle data:`, JSON.stringify(vehicle, null, 2));
+        }
+      }
+    }
+
+    // Completar sincronización
+    await prisma.syncLog.update({
+      where: { id: syncId },
+      data: {
+        status: 'completed',
+        completedAt: new Date(),
+        vehiclesProcessed,
+        vehiclesCreated,
+        vehiclesUpdated
+      }
+    });
+
+    console.log(`✅ Incremental sync completed: ${vehiclesProcessed} processed, ${vehiclesCreated} created, ${vehiclesUpdated} updated`);
+
+  } catch (error) {
+    console.error('❌ Incremental sync error:', error);
+    
+    await prisma.syncLog.update({
+      where: { id: syncId },
+      data: {
+        status: 'failed',
+        completedAt: new Date(),
+        vehiclesProcessed,
+        vehiclesCreated,
+        vehiclesUpdated,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+      }
+    });
+  } finally {
+    if (!specificSlug) {
+      isCurrentlyRunning = false;
+      currentSyncId = null;
+    }
+  }
+}
+
+// Sincronizar un vehículo individual
+export async function syncVehicle(vehicle: OriginalVehicle): Promise<'created' | 'updated'> {
+  console.log('🔍 Vehicle data received:', { id: vehicle.id, slug: vehicle.slug, 'imatge-destacada-url': vehicle['imatge-destacada-url'] });
+  
+  // Convertir anunci-destacat a número
+  let anunciDestacat = 0;
+  if (typeof vehicle['anunci-destacat'] === 'boolean' && vehicle['anunci-destacat']) {
+    anunciDestacat = 1;
+  } else if (typeof vehicle['anunci-destacat'] === 'number') {
+    anunciDestacat = vehicle['anunci-destacat'];
+  }
+
+  // Sincronizar usuario si existe author_id o professional-id
+  let userId: string | null = null;
+  const sellerId = vehicle['author_id'] || vehicle['professional-id'];
+  
+  if (sellerId) {
+    userId = await syncUserFromSeller(sellerId.toString());
+  }
+
+  const vehicleData = {
+    originalId: vehicle.id?.toString() || vehicle.slug || 'unknown', // Usar ID original o slug como fallback
+    slug: vehicle.slug || `vehicle-${Date.now()}`,
+    titolAnunci: vehicle['titol-anunci'] || 'Sin título',
+    descripcioAnunci: vehicle['descripcio-anunci'] || vehicle.descripcio || null,
+    preu: vehicle.preu || '0',
+    quilometratge: vehicle.quilometratge || '0',
+    any: vehicle['any'] || vehicle['any-fabricacio'] || null,
+    tipusVehicle: vehicle['tipus-vehicle'] || 'COTXE',
+    marcaCotxe: vehicle['marques-cotxe'] || vehicle['marca-cotxe'] || null,
+    marcaMoto: vehicle['marques-moto'] || vehicle['marca-moto'] || null,
+    modelsCotxe: vehicle['models-cotxe'] || vehicle.model || null,
+    modelsMoto: vehicle['models-moto'] || null,
+    marquesAutocaravana: vehicle['marques-autocaravana'] || null,
+    modelsAutocaravana: vehicle['models-autocaravana'] || null,
+    versio: vehicle.versio || null,
+    tipusCombustible: vehicle['tipus-combustible'] || vehicle.combustible || null,
+    tipusCanvi: vehicle['tipus-canvi'] || vehicle.transmissio || null,
+    tipusPropulsor: vehicle['tipus-propulsor'] || null,
+    traccio: vehicle.traccio || null,
+    potenciaCv: vehicle['potencia-cv'] || vehicle.potencia || null,
+    potenciaKw: vehicle['potencia-kw'] || null,
+    cilindrada: vehicle.cilindrada || null,
+    portesCotxe: vehicle['portes-cotxe'] || vehicle['num-portes'] || null,
+    colorVehicle: vehicle['color-vehicle'] || vehicle.color || null,
+    anunciActiu: vehicle['anunci-actiu'] === true || vehicle['anunci-actiu'] === 'true',
+    venut: vehicle.venut === true || vehicle.venut === 'true',
+    anunciDestacat,
+    dataCreacio: new Date(vehicle['data-creacio'] || new Date()),
+    diesCaducitat: vehicle['dies-caducitat'] || null,
+    estatVehicle: vehicle['estat-vehicle'] || null,
+    carrosseriaCotxe: vehicle['carroseria-cotxe'] || null,
+    carrosseriaMoto: vehicle['carroseria-moto'] || null,
+    carrosseriaCaravana: vehicle['carroseria-caravana'] || null,
+    // Campos de estado y garantías
+    garantia: vehicle.garantia === true || vehicle.garantia === 'true',
+    vehicleAccidentat: vehicle['vehicle-accidentat'] === true || vehicle['vehicle-accidentat'] === 'true',
+    llibreManteniment: vehicle['llibre-manteniment'] === true || vehicle['llibre-manteniment'] === 'true',
+    revisionsOficials: vehicle['revisions-oficials'] === true || vehicle['revisions-oficials'] === 'true',
+    impostosDeduibles: vehicle['impostos-deduibles'] === true || vehicle['impostos-deduibles'] === 'true',
+    vehicleACanvi: vehicle['vehicle-a-canvi'] === true || vehicle['vehicle-a-canvi'] === 'true',
+    nombrePropietaris: vehicle['nombre-propietaris'] || null,
+    // Campos de características físicas
+    placesCotxe: vehicle['places-cotxe'] || null,
+    aireAcondicionat: vehicle['aire-acondicionat'] || null,
+    tipusTapisseria: vehicle['tipus-tapisseria'] || null,
+    colorTapisseria: vehicle['color-tapisseria'] || null,
+    climatitzacio: vehicle.climatitzacio === true || vehicle.climatitzacio === 'true',
+    vehicleFumador: vehicle['vehicle-fumador'] === true || vehicle['vehicle-fumador'] === 'true',
+    rodaRecanvi: vehicle['roda-recanvi'] || null,
+    numeroMaletersCotxe: vehicle['numero-maleters-cotxe'] || null,
+    // Campos para vehículos eléctricos
+    autonomiaWltp: vehicle['autonomia-wltp'] || null,
+    autonomiaUrbanaWltp: vehicle['autonomia-urbana-wltp'] || null,
+    autonomiaExtraurbanaWltp: vehicle['autonomia-extraurbana-wltp'] || null,
+    autonomiaElectrica: vehicle['autonomia-electrica'] || null,
+    bateria: vehicle.bateria || null,
+    cablesRecarrega: vehicle['cables-recarrega'] || null,
+    connectors: vehicle.connectors || null,
+    velocitatRecarrega: vehicle['velocitat-recarrega'] || null,
+    frenadaRegenerativa: vehicle['frenada-regenerativa'] || null,
+    onePedal: vehicle['one-pedal'] || null,
+    tempsRecarregaTotal: vehicle['temps-recarrega-total'] || null,
+    tempsRecarregaFins80: vehicle['temps-recarrega-fins-80'] || null,
+    // Campos de motor
+    numeroMotors: vehicle['numero-motors'] || null,
+    cvMotorDavant: vehicle['cv-motor-davant'] || null,
+    kwMotorDavant: vehicle['kw-motor-davant'] || null,
+    cvMotorDarrere: vehicle['cv-motor-darrere'] || null,
+    kwMotorDarrere: vehicle['kw-motor-darrere'] || null,
+    potenciaCombinada: vehicle['potencia-combinada'] || null,
+    emissionsVehicle: vehicle['emissions-vehicle'] || null,
+    // Extras
+    extresCotxe: vehicle['extres-cotxe'] || [],
+    extresMoto: vehicle['extres-moto'] || [],
+    extresAutocaravana: vehicle['extres-autocaravana'] || [],
+    extresHabitacle: vehicle['extres-habitacle'] || [],
+    // Campos adicionales del payload de 88 campos
+    acceleracio060: vehicle['acceleracio-0-60'] || null,
+    tipusCanviMoto: vehicle['tipus-de-canvi-moto'] || null,
+    placesMoto: vehicle['places-moto'] || null,
+    capacitatTotalL: vehicle['capacitat-total-l'] || null,
+    preuMensual: vehicle['preu-mensual'] || null,
+    preuDiari: vehicle['preu-diari'] || null,
+    preuAntic: vehicle['preu-antic'] || null,
+    velocitatMaxima: vehicle['velocitat-maxima'] || null,
+    acceleracio0100Cotxe: vehicle['acceleracio-0-100-cotxe'] || null,
+    capacitatMaletersCotxe: vehicle['capacitat-maleters-cotxe'] || null,
+    videoVehicle: vehicle['video-vehicle'] || null,
+    cvMotor3: vehicle['cv-motor-3'] || null,
+    kwMotor3: vehicle['kw-motor-3'] || null,
+    cvMotor4: vehicle['cv-motor-4'] || null,
+    kwMotor4: vehicle['kw-motor-4'] || null,
+    
+    // Imágenes - MUY IMPORTANTE
+    imatgeDestacadaUrl: vehicle['imatge-destacada-url'] || (vehicle.imatges && vehicle.imatges[0]) || null,
+    galeriaVehicleUrls: vehicle['galeria-vehicle-urls'] || vehicle.imatges || [],
+    authorId: sellerId?.toString() || null,
+    userId: userId, // Vincular con el usuario creado/encontrado
+    professionalId: vehicle['professional-id'] || vehicle['author_id'] || null,
+    lastSyncAt: new Date()
+  };
+
+  const existingVehicle = await prisma.vehicle.findUnique({
+    where: { slug: vehicle.slug }
+  });
+
+  if (existingVehicle) {
+    await prisma.vehicle.update({
+      where: { slug: vehicle.slug },
+      data: vehicleData
+    });
+    return 'updated';
+  } else {
+    await prisma.vehicle.create({
+      data: vehicleData
+    });
+    return 'created';
+  }
+}
+
+// Obtener fecha de la última sincronización exitosa
+async function getLastSuccessfulSyncDate(): Promise<Date | null> {
+  const lastSync = await prisma.syncLog.findFirst({
+    where: { status: 'completed' },
+    orderBy: { completedAt: 'desc' }
+  });
+
+  return lastSync?.completedAt || null;
+}
+
+// Detener cron job
+export function stopCronSync() {
+  if (cronJob) {
+    cronJob.stop();
+    cronJob = null;
+    console.log('🛑 Cron sync stopped');
+  }
+}
+
+// Sincronizar marcas y modelos
+export async function syncBrandsAndModels(): Promise<{ brandsCreated: number, modelsCreated: number }> {
+  console.log('🏷️ Starting brands and models sync...');
+  
+  let brandsCreated = 0;
+  let modelsCreated = 0;
+  
+  try {
+    // Sincronizar marcas de coches
+    console.log('🚗 Syncing car brands...');
+    const carBrandsResponse = await originalApiClient.get('/marques-cotxe');
+    const carBrands = carBrandsResponse.data?.data || [];
+    
+    for (const brandObj of carBrands) {
+      try {
+        // Crear o actualizar marca
+        const brandSlug = brandObj.value;
+        const brandName = brandObj.label;
+        
+        const brand = await prisma.brand.upsert({
+          where: { slug: brandSlug },
+          update: { 
+            name: brandName,
+            lastSyncAt: new Date() 
+          },
+          create: {
+            slug: brandSlug,
+            name: brandName,
+            vehicleType: 'cotxe'
+          }
+        });
+        
+        if (brand.createdAt.getTime() === brand.lastSyncAt.getTime()) {
+          brandsCreated++;
+        }
+        
+        // Obtener modelos para esta marca desde los vehículos
+        console.log(`📋 Syncing models for ${brandName}...`);
+        const vehiclesResponse = await originalApiClient.get(`/marques-cotxe/${encodeURIComponent(brandSlug)}`);
+        const vehicles = vehiclesResponse.data?.items || [];
+        
+        // Extraer modelos únicos de los vehículos
+        const uniqueModels = new Set<string>();
+        vehicles.forEach((vehicle: any) => {
+          if (vehicle['models-cotxe'] && vehicle['models-cotxe'].trim()) {
+            uniqueModels.add(vehicle['models-cotxe'].trim());
+          }
+        });
+        
+        // Crear modelos en la base de datos
+        for (const modelName of uniqueModels) {
+          try {
+            const modelSlug = modelName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+            
+            const model = await prisma.model.upsert({
+              where: { brandId_slug: { brandId: brand.id, slug: modelSlug } },
+              update: { 
+                name: modelName,
+                lastSyncAt: new Date() 
+              },
+              create: {
+                slug: modelSlug,
+                name: modelName,
+                brandId: brand.id
+              }
+            });
+            
+            if (model.createdAt.getTime() === model.lastSyncAt.getTime()) {
+              modelsCreated++;
+            }
+          } catch (error) {
+            console.error(`❌ Error syncing model ${modelName} for brand ${brandName}:`, error);
+          }
+        }
+        
+        console.log(`✅ Found ${uniqueModels.size} unique models for ${brandName}`);
+        
+      } catch (error) {
+        console.error(`❌ Error syncing car brand ${brandObj.label}:`, error);
+      }
+    }
+    
+    // Sincronizar marcas de motos
+    console.log('🏍️ Syncing motorcycle brands...');
+    const motoBrandsResponse = await originalApiClient.get('/marques-moto');
+    const motoBrands = motoBrandsResponse.data?.data || [];
+    
+    for (const brandObj of motoBrands) {
+      try {
+        // Crear o actualizar marca con nombre diferenciado para motos
+        const brandSlug = `moto-${brandObj.value}`;
+        const brandName = `${brandObj.label} (Moto)`;
+        
+        const brand = await prisma.brand.upsert({
+          where: { slug: brandSlug },
+          update: { 
+            name: brandName,
+            lastSyncAt: new Date() 
+          },
+          create: {
+            slug: brandSlug,
+            name: brandName,
+            vehicleType: 'moto'
+          }
+        });
+        
+        if (brand.createdAt.getTime() === brand.lastSyncAt.getTime()) {
+          brandsCreated++;
+        }
+        
+        // Obtener modelos para esta marca desde los vehículos
+        console.log(`📋 Syncing models for moto ${brandName}...`);
+        const vehiclesResponse = await originalApiClient.get(`/marques-moto/${encodeURIComponent(brandObj.value)}`);
+        const vehicles = vehiclesResponse.data?.items || [];
+        
+        // Extraer modelos únicos de los vehículos
+        const uniqueModels = new Set<string>();
+        vehicles.forEach((vehicle: any) => {
+          if (vehicle['model'] && vehicle['model'].trim()) {
+            uniqueModels.add(vehicle['model'].trim());
+          }
+        });
+        
+        // Crear modelos en la base de datos
+        for (const modelName of uniqueModels) {
+          try {
+            const modelSlug = modelName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+            
+            const model = await prisma.model.upsert({
+              where: { brandId_slug: { brandId: brand.id, slug: modelSlug } },
+              update: { 
+                name: modelName,
+                lastSyncAt: new Date() 
+              },
+              create: {
+                slug: modelSlug,
+                name: modelName,
+                brandId: brand.id
+              }
+            });
+            
+            if (model.createdAt.getTime() === model.lastSyncAt.getTime()) {
+              modelsCreated++;
+            }
+          } catch (error) {
+            console.error(`❌ Error syncing model ${modelName} for moto brand ${brandName}:`, error);
+          }
+        }
+        
+        console.log(`✅ Found ${uniqueModels.size} unique models for moto ${brandName}`);
+        
+      } catch (error) {
+        console.error(`❌ Error syncing moto brand ${brandObj.label}:`, error);
+      }
+    }
+    
+    console.log(`✅ Brands and models sync completed: ${brandsCreated} brands, ${modelsCreated} models created`);
+    return { brandsCreated, modelsCreated };
+    
+  } catch (error) {
+    console.error('❌ Error in brands and models sync:', error);
+    throw error;
+  }
+}
+
+// Sincronizar estados de vehículos
+export async function syncVehicleStates(): Promise<{ statesCreated: number }> {
+  console.log('🏷️ Starting vehicle states sync...');
+  
+  let statesCreated = 0;
+  
+  try {
+    console.log('📋 Syncing vehicle states...');
+    const statesResponse = await originalApiClient.get('/estat-vehicle');
+    const states = statesResponse.data?.data || [];
+    
+    for (const stateObj of states) {
+      try {
+        const state = await prisma.vehicleState.upsert({
+          where: { value: stateObj.value },
+          update: { 
+            name: stateObj.name,
+            lastSyncAt: new Date() 
+          },
+          create: {
+            name: stateObj.name,
+            value: stateObj.value
+          }
+        });
+        
+        if (state.createdAt.getTime() === state.lastSyncAt.getTime()) {
+          statesCreated++;
+        }
+        
+      } catch (error) {
+        console.error(`❌ Error syncing vehicle state ${stateObj.name}:`, error);
+      }
+    }
+    
+    console.log(`✅ Vehicle states sync completed: ${statesCreated} states created`);
+    return { statesCreated };
+    
+  } catch (error) {
+    console.error('❌ Error in vehicle states sync:', error);
+    throw error;
+  }
+}
+
+// Sincronizar tipos de combustible
+export async function syncFuelTypes(): Promise<{ fuelTypesCreated: number }> {
+  console.log('⛽ Starting fuel types sync...');
+  
+  let fuelTypesCreated = 0;
+  
+  try {
+    console.log('📋 Syncing fuel types...');
+    const fuelResponse = await originalApiClient.get('/tipus-combustible');
+    const fuelTypes = fuelResponse.data?.data || [];
+    
+    for (const fuelObj of fuelTypes) {
+      try {
+        const fuelType = await prisma.fuelType.upsert({
+          where: { value: fuelObj.value },
+          update: { 
+            name: fuelObj.name,
+            lastSyncAt: new Date() 
+          },
+          create: {
+            name: fuelObj.name,
+            value: fuelObj.value
+          }
+        });
+        
+        if (fuelType.createdAt.getTime() === fuelType.lastSyncAt.getTime()) {
+          fuelTypesCreated++;
+        }
+        
+      } catch (error) {
+        console.error(`❌ Error syncing fuel type ${fuelObj.name}:`, error);
+      }
+    }
+    
+    console.log(`✅ Fuel types sync completed: ${fuelTypesCreated} fuel types created`);
+    return { fuelTypesCreated };
+    
+  } catch (error) {
+    console.error('❌ Error in fuel types sync:', error);
+    throw error;
+  }
+}
+
+// Sincronizar tipos de transmisión
+export async function syncTransmissionTypes(): Promise<{ transmissionTypesCreated: number }> {
+  console.log('⚙️ Starting transmission types sync...');
+  
+  let transmissionTypesCreated = 0;
+  
+  try {
+    console.log('📋 Syncing transmission types...');
+    
+    // Datos de la imagen proporcionada
+    const transmissionTypes = [
+      { name: 'Auto-Seqüencial', value: 'auto-sequencial' },
+      { name: 'Automàtic', value: 'automatic' },
+      { name: 'Geartronic', value: 'geartronic' },
+      { name: 'Manual', value: 'manual' },
+      { name: 'Semi-Automàtic', value: 'semi-automatic' },
+      { name: 'Seqüencial', value: 'sequencial' }
+    ];
+    
+    for (const transmissionObj of transmissionTypes) {
+      try {
+        const transmissionType = await prisma.transmissionType.upsert({
+          where: { value: transmissionObj.value },
+          update: { 
+            name: transmissionObj.name,
+            lastSyncAt: new Date() 
+          },
+          create: {
+            name: transmissionObj.name,
+            value: transmissionObj.value
+          }
+        });
+        
+        if (transmissionType.createdAt.getTime() === transmissionType.lastSyncAt.getTime()) {
+          transmissionTypesCreated++;
+        }
+        
+      } catch (error) {
+        console.error(`❌ Error syncing transmission type ${transmissionObj.name}:`, error);
+      }
+    }
+    
+    console.log(`✅ Transmission types sync completed: ${transmissionTypesCreated} transmission types created`);
+    return { transmissionTypesCreated };
+    
+  } catch (error) {
+    console.error('❌ Error in transmission types sync:', error);
+    throw error;
+  }
+}
+
+// Sincronizar tipos de carrocería
+export async function syncBodyTypes(): Promise<{ bodyTypesCreated: number }> {
+  console.log('🚗 Starting body types sync...');
+  
+  let bodyTypesCreated = 0;
+  
+  try {
+    console.log('📋 Syncing body types...');
+    
+    // Datos proporcionados por el usuario
+    const bodyTypes = [
+      { name: 'Utilitari Petit', value: 'utilitari-petit' },
+      { name: 'Turisme Mig', value: 'turisme-mig' },
+      { name: 'Sedan-Berlina', value: 'sedan' },
+      { name: 'Coupé', value: 'coupe' },
+      { name: 'Gran Turisme', value: 'gran-turisme' },
+      { name: 'Familiar', value: 'familiar' },
+      { name: 'SUV', value: 'suv' },
+      { name: '4x4 Tot Terreny', value: '4x4' },
+      { name: 'Monovolum', value: 'monovolum' },
+      { name: 'Furgoneta passatgers', value: 'furgo-passatgers' },
+      { name: 'Cabrio', value: 'cabrio-descapotable' },
+      { name: 'Pick up', value: 'pickup' }
+    ];
+    
+    for (const bodyObj of bodyTypes) {
+      try {
+        const bodyType = await prisma.bodyType.upsert({
+          where: { value: bodyObj.value },
+          update: { 
+            name: bodyObj.name,
+            lastSyncAt: new Date() 
+          },
+          create: {
+            name: bodyObj.name,
+            value: bodyObj.value
+          }
+        });
+        
+        if (bodyType.createdAt.getTime() === bodyType.lastSyncAt.getTime()) {
+          bodyTypesCreated++;
+        }
+        
+      } catch (error) {
+        console.error(`❌ Error syncing body type ${bodyObj.name}:`, error);
+      }
+    }
+    
+    console.log(`✅ Body types sync completed: ${bodyTypesCreated} body types created`);
+    return { bodyTypesCreated };
+    
+  } catch (error) {
+    console.error('❌ Error in body types sync:', error);
+    throw error;
+  }
+}
+
+// Sincronizar tipos de carrocería de motos
+export async function syncMotorcycleBodyTypes(): Promise<{ motorcycleBodyTypesCreated: number }> {
+  console.log('🏍️ Starting motorcycle body types sync...');
+  
+  let motorcycleBodyTypesCreated = 0;
+  
+  try {
+    console.log('📋 Syncing motorcycle body types...');
+    
+    // Datos del endpoint proporcionado
+    const motorcycleBodyTypes = [
+      { name: 'Adventure Sport', value: 'adventure-sport' },
+      { name: 'ATV', value: 'atv' },
+      { name: 'Bobber', value: 'bobber' },
+      { name: 'Café racer', value: 'cafe-racer' },
+      { name: 'Ciclomotor', value: 'ciclomotor' },
+      { name: 'Enduro', value: 'enduro' },
+      { name: 'Escúter', value: 'escuter' },
+      { name: 'Gran turisme', value: 'moto-gran-turisme' },
+      { name: 'Maxi-Escúter', value: 'maxi-escuter' },
+      { name: 'Motocross', value: 'motocross' },
+      { name: 'Naked', value: 'naked' },
+      { name: 'Scrambler', value: 'scrambler' },
+      { name: 'Trail', value: 'moto-trail' },
+      { name: 'Trial', value: 'c-trial' },
+      { name: 'QUAD', value: 'c-quad' }
+    ];
+    
+    for (const bodyObj of motorcycleBodyTypes) {
+      try {
+        const motorcycleBodyType = await prisma.motorcycleBodyType.upsert({
+          where: { value: bodyObj.value },
+          update: { 
+            name: bodyObj.name,
+            lastSyncAt: new Date() 
+          },
+          create: {
+            name: bodyObj.name,
+            value: bodyObj.value
+          }
+        });
+        
+        if (motorcycleBodyType.createdAt.getTime() === motorcycleBodyType.lastSyncAt.getTime()) {
+          motorcycleBodyTypesCreated++;
+        }
+        
+      } catch (error) {
+        console.error(`❌ Error syncing motorcycle body type ${bodyObj.name}:`, error);
+      }
+    }
+    
+    console.log(`✅ Motorcycle body types sync completed: ${motorcycleBodyTypesCreated} motorcycle body types created`);
+    return { motorcycleBodyTypesCreated };
+    
+  } catch (error) {
+    console.error('❌ Error in motorcycle body types sync:', error);
+    throw error;
+  }
+}
+
+// Sincronizar tipos de carrocería de autocaravanas
+export async function syncCaravanBodyTypes(): Promise<{ caravanBodyTypesCreated: number }> {
+  console.log('🚐 Starting caravan body types sync...');
+  
+  let caravanBodyTypesCreated = 0;
+  
+  try {
+    console.log('📋 Syncing caravan body types...');
+    
+    // Datos del endpoint proporcionado
+    const caravanBodyTypes = [
+      { name: 'Caputxina', value: 'c-caputxina' },
+      { name: 'Perfilada', value: 'c-perfilada' },
+      { name: 'Integral', value: 'c-integral' },
+      { name: 'Camper', value: 'c-camper' }
+    ];
+    
+    for (const bodyObj of caravanBodyTypes) {
+      try {
+        const caravanBodyType = await prisma.caravanBodyType.upsert({
+          where: { value: bodyObj.value },
+          update: { 
+            name: bodyObj.name,
+            lastSyncAt: new Date() 
+          },
+          create: {
+            name: bodyObj.name,
+            value: bodyObj.value
+          }
+        });
+        
+        if (caravanBodyType.createdAt.getTime() === caravanBodyType.lastSyncAt.getTime()) {
+          caravanBodyTypesCreated++;
+        }
+        
+      } catch (error) {
+        console.error(`❌ Error syncing caravan body type ${bodyObj.name}:`, error);
+      }
+    }
+    
+    console.log(`✅ Caravan body types sync completed: ${caravanBodyTypesCreated} caravan body types created`);
+    return { caravanBodyTypesCreated };
+    
+  } catch (error) {
+    console.error('❌ Error in caravan body types sync:', error);
+    throw error;
+  }
+}
+
+// Sincronizar tipos de carrocería de vehículos comerciales
+export async function syncCommercialVehicleBodyTypes(): Promise<{ commercialBodyTypesCreated: number }> {
+  console.log('🚚 Starting commercial vehicle body types sync...');
+  
+  let commercialBodyTypesCreated = 0;
+  
+  try {
+    console.log('📋 Syncing commercial vehicle body types...');
+    
+    const commercialBodyTypes = [
+      { name: 'Furgoneta comercial', value: 'c-furgo-industrial' }
+    ];
+    
+    for (const bodyObj of commercialBodyTypes) {
+      try {
+        const commercialBodyType = await prisma.commercialVehicleBodyType.upsert({
+          where: { value: bodyObj.value },
+          update: { 
+            name: bodyObj.name,
+            lastSyncAt: new Date() 
+          },
+          create: {
+            name: bodyObj.name,
+            value: bodyObj.value
+          }
+        });
+        
+        if (commercialBodyType.createdAt.getTime() === commercialBodyType.lastSyncAt.getTime()) {
+          commercialBodyTypesCreated++;
+        }
+        
+      } catch (error) {
+        console.error(`❌ Error syncing commercial body type ${bodyObj.name}:`, error);
+      }
+    }
+    
+    console.log(`✅ Commercial vehicle body types sync completed: ${commercialBodyTypesCreated} types created`);
+    return { commercialBodyTypesCreated };
+    
+  } catch (error) {
+    console.error('❌ Error in commercial vehicle body types sync:', error);
+    throw error;
+  }
+}
+
+// Helper function to sync extras
+async function syncExtrasHelper<T>(
+  tableName: string,
+  data: { name: string; value: string }[],
+  prismaModel: any,
+  emoji: string
+): Promise<number> {
+  let created = 0;
+  
+  for (const item of data) {
+    try {
+      const result = await prismaModel.upsert({
+        where: { value: item.value },
+        update: { 
+          name: item.name,
+          lastSyncAt: new Date() 
+        },
+        create: {
+          name: item.name,
+          value: item.value
+        }
+      });
+      
+      if (result.createdAt.getTime() === result.lastSyncAt.getTime()) {
+        created++;
+      }
+      
+    } catch (error) {
+      console.error(`❌ Error syncing ${tableName} ${item.name}:`, error);
+    }
+  }
+  
+  return created;
+}
+
+// Sincronizar extras de coches (93 items)
+export async function syncCarExtras(): Promise<{ carExtrasCreated: number }> {
+  console.log('🚗 Starting car extras sync...');
+  
+  try {
+    console.log('📋 Syncing car extras...');
+    
+    // Datos completos de los extras de coches (93 items)
+    const carExtrasData = [
+      { name: 'Abs', value: 'abs' }, { name: 'Airbag conductor', value: 'airbag-conductor' }, { name: 'Airbag passatger', value: 'airbag-passatger' }, 
+      { name: 'Airbags cortina', value: 'airbags-cortina' }, { name: 'Airbag genolls', value: 'airbag-genolls' }, { name: 'Airbags laterals', value: 'airbags-laterals' }, 
+      { name: 'Alarma', value: 'alarma' }, { name: 'Aparcament control remot', value: 'aparcament-control-remot' }, { name: 'Apple Car Play / Android Auto', value: 'apple-car-play-android-auto' }, 
+      { name: 'Arrancada sense clau Keyless', value: 'arrancada-sense-clau-keyless' }, { name: 'Assist. aparcament', value: 'assist-aparcament' }, { name: 'Assist. manteniment carril', value: 'assist-manteniment-carril' }, 
+      { name: 'Assist manteniment carril i protecció col·lisió lateral', value: 'assist-manteniment-carril-protec-colisio-lateral' }, { name: 'Assist. col·lisió Lateral', value: 'assist-colisio-lateral' }, { name: 'Assist. col·lisió per abast', value: 'assist-colisio-per-abast' }, 
+      { name: 'Assist. marxa enrere', value: 'assist-marxa-enrere' }, { name: 'Assist. parada emergència', value: 'assist-parada-emergencia' }, { name: 'Auto aparcament', value: 'auto-aparcament' }, 
+      { name: 'Avís angle mort', value: 'avis-angle-mort' }, { name: 'Avís canvi involuntari carril', value: 'alerta-canvi-involuntari-carril' }, { name: 'Avís col·lisio encreuament', value: 'avis-colisio-encreuament' }, 
+      { name: 'Avís col·lisió frontal', value: 'avis-colisio-frontal' }, { name: 'Avís per cansament', value: 'avis-per-cansament' }, { name: 'Avís sentit erròni de la marxa', value: 'avis-sentit-erroni-de-la-marxa' }, 
+      { name: 'Avís situacions de risc', value: 'avis-situacions-de-risc' }, { name: 'Avís trànsit creuat', value: 'avis-transit-creuat' }, { name: 'Bluetooth', value: 'bluetooth' }, 
+      { name: 'Càmera visió davant', value: 'camera-visio-davant' }, { name: 'Càmara visió posterior', value: 'camara-visio-posterior' }, { name: 'Càmere visió 360º', value: 'camera-visio-periferica' }, 
+      { name: 'Carregador inalàmbric', value: 'carregador-inalambric' }, { name: 'Connexió Internet', value: 'connexio-internet' }, { name: 'Connexió Mp3-iPod', value: 'connexio-mp3-ipod' }, 
+      { name: 'Connexió telèfon', value: 'connexio-telefon' }, { name: 'Control per canvi carril', value: 'assist-per-canvi-carril' }, { name: 'Control clima a distància', value: 'control-clima-distancia' }, 
+      { name: 'Control descens', value: 'control-descens' }, { name: 'Control estabilitat', value: 'control-estabilitat' }, { name: 'Control pressió pneumàtics', value: 'control-pressio-pneumatics' }, 
+      { name: 'Control tracció', value: 'control-traccio' }, { name: 'Cruise control', value: 'cruise-control' }, { name: 'Cruise control adaptatiu', value: 'cruise-control-adaptatiu' }, 
+      { name: 'Detecció de vianants i ciclistes', value: 'deteccio-vianants-ciclistes' }, { name: 'Direcció assistida', value: 'direccio-assistida' }, { name: 'Endoll 12V', value: 'endoll-12v' }, 
+      { name: 'Endoll 220V', value: 'endoll220v' }, { name: 'Endoll USB', value: 'endoll-usb' }, { name: 'Equip so alta fidelitat', value: 'equip-so-alta-fidelitat' }, 
+      { name: 'Fars xenó', value: 'fars-xeno' }, { name: 'Fars Bi-xenó', value: 'fars-bi-xeno' }, { name: 'Frenada automàtica emergència', value: 'frenada-automatica-emergencia' }, 
+      { name: 'Ganxo remolc', value: 'ganxo-remolc' }, { name: 'Ganxo remolc retràctil', value: 'gantxo-remolc-retractil' }, { name: 'Garantia fabricant', value: 'garantia-fabricant' }, 
+      { name: 'Head Up Display', value: 'head-up-display' }, { name: 'Isofix', value: 'isofix' }, { name: 'Kit carrosseria', value: 'kit-carrosseria' }, 
+      { name: 'Lector senyals de trànsit', value: 'lector-senyals-de-transit' }, { name: 'Limitador velocitat', value: 'limitador-velocitat' }, { name: 'Limitador velocitat adaptatiu', value: 'limitador-velocitat-adaptatiu' }, 
+      { name: 'Llandes al·liatge', value: 'llandes-aliatge' }, { name: 'Llums adaptatives', value: 'llums-adaptatives' }, { name: 'Llums anti-boira', value: 'llums-antiboira' }, 
+      { name: 'Llums de dia', value: 'llums-de-dia' }, { name: 'Llums LED', value: 'fars-led' }, { name: 'Navegador GPS', value: 'gps' }, 
+      { name: 'Ordinador de bord', value: 'ordinador-de-bord' }, { name: 'Pintura metal·litzada', value: 'pintura-metalitzada' }, { name: 'Pneumàtics hivern', value: 'pneumatics-hivern' }, 
+      { name: 'Portò elèctric', value: 'porto-electric' }, { name: 'Ràdio CD', value: 'radio-cd' }, { name: 'Reproductor DVD', value: 'dvd' }, 
+      { name: 'Retrovisors calefactables', value: 'retrovisors-calefactables' }, { name: 'Retrovisors elèctrics', value: 'retrovisors-electrics' }, { name: 'Retrovisors lateral per càmera', value: 'retrovisors-lateral-per-camera' }, 
+      { name: 'Retrovisor interior per càmera', value: 'retrovisor-interior-per-camera' }, { name: 'Seients calefactables', value: 'seients-calefactables' }, { name: 'Seients elèctrics', value: 'seients-electrics' }, 
+      { name: 'Seients esportius', value: 'seients-esportius' }, { name: 'Seients massatge', value: 'seients-massatge' }, { name: 'Sensors aparcament', value: 'sensors-aparcament' }, 
+      { name: 'Sensors anti-colisió', value: 'sensors-anti-colisio' }, { name: 'Sensors llums', value: 'sensors-llums' }, { name: 'Sensors pluja', value: 'sensors-pluja' }, 
+      { name: 'Sostre obert', value: 'sostre-obert' }, { name: 'Sostre panoràmic', value: 'sostre-panoramic' }, { name: 'Start-Stop', value: 'start-stop' }, 
+      { name: 'Tanca centralitzada', value: 'tanca-centralitzada' }, { name: 'Vidres tintats', value: 'vidres-tintats' }, { name: 'Vidres elèctrics', value: 'vidres-electrics' }, 
+      { name: 'Visió nocturna', value: 'visio-nocturna' }, { name: 'Volant Calefactable', value: 'volant-calefactable' }, { name: 'Volant multifunció', value: 'volant-multifuncio' }
+    ];
+    
+    const carExtrasCreated = await syncExtrasHelper('car extras', carExtrasData, prisma.carExtras, '🚗');
+    
+    console.log(`✅ Car extras sync completed: ${carExtrasCreated} extras created`);
+    return { carExtrasCreated };
+    
+  } catch (error) {
+    console.error('❌ Error in car extras sync:', error);
+    throw error;
+  }
+}
+
+// Sincronizar colores exteriores
+export async function syncExteriorColors(): Promise<{ exteriorColorsCreated: number }> {
+  console.log('🎨 Starting exterior colors sync...');
+  
+  let exteriorColorsCreated = 0;
+  
+  try {
+    console.log('📋 Syncing exterior colors...');
+    
+    const exteriorColorsData = [
+      { name: 'Bicolor', value: 'bicolor' }, { name: 'Blanc', value: 'blanc' }, { name: 'Negre', value: 'negre' },
+      { name: 'Gris', value: 'gris' }, { name: 'Antracita', value: 'antracita' }, { name: 'Beige', value: 'beige' },
+      { name: 'Camel', value: 'camel' }, { name: 'Marró', value: 'marro' }, { name: 'Blau', value: 'blau' },
+      { name: 'Bordeus', value: 'bordeus' }, { name: 'Granat', value: 'granat' }, { name: 'Lila', value: 'lila' },
+      { name: 'Vermell', value: 'vermell' }, { name: 'Taronja', value: 'taronja' }, { name: 'Groc', value: 'groc' },
+      { name: 'Verd', value: 'verd' }, { name: 'Altres', value: 'altres-exterior' }, { name: 'Rosa', value: 'rosa' },
+      { name: 'Daurat', value: 'daurat' }
+    ];
+    
+    for (const item of exteriorColorsData) {
+      try {
+        const result = await (prisma as any).exteriorColor.upsert({
+          where: { value: item.value },
+          update: { 
+            name: item.name,
+            lastSyncAt: new Date() 
+          },
+          create: {
+            name: item.name,
+            value: item.value
+          }
+        });
+        
+        if (result.createdAt.getTime() === result.lastSyncAt.getTime()) {
+          exteriorColorsCreated++;
+        }
+        
+      } catch (error) {
+        console.error(`❌ Error syncing exterior color ${item.name}:`, error);
+      }
+    }
+    
+    console.log(`✅ Exterior colors sync completed: ${exteriorColorsCreated} colors created`);
+    return { exteriorColorsCreated };
+    
+  } catch (error) {
+    console.error('❌ Error in exterior colors sync:', error);
+    throw error;
+  }
+}
+
+// Sincronizar tipos de tapicería
+export async function syncUpholsteryTypes(): Promise<{ upholsteryTypesCreated: number }> {
+  console.log('🪑 Starting upholstery types sync...');
+  
+  let upholsteryTypesCreated = 0;
+  
+  try {
+    console.log('📋 Syncing upholstery types...');
+    
+    const upholsteryTypesData = [
+      { name: 'Alcántara', value: 'alcantara' }, { name: 'Cuir', value: 'cuir' }, { name: 'Cuir / Alcántara', value: 'cuir-alcantara' },
+      { name: 'Cuir sintètic', value: 'cuir-sintetic' }, { name: 'Teixit', value: 'teixit' }, { name: 'Teixit / Alcántara', value: 'teixit-alcantara' },
+      { name: 'Teixit / Cuir', value: 'teixit-cuir' }, { name: 'Altres', value: 'altres-tipus-tapisseria' }
+    ];
+    
+    for (const item of upholsteryTypesData) {
+      try {
+        const result = await (prisma as any).upholsteryType.upsert({
+          where: { value: item.value },
+          update: { 
+            name: item.name,
+            lastSyncAt: new Date() 
+          },
+          create: {
+            name: item.name,
+            value: item.value
+          }
+        });
+        
+        if (result.createdAt.getTime() === result.lastSyncAt.getTime()) {
+          upholsteryTypesCreated++;
+        }
+        
+      } catch (error) {
+        console.error(`❌ Error syncing upholstery type ${item.name}:`, error);
+      }
+    }
+    
+    console.log(`✅ Upholstery types sync completed: ${upholsteryTypesCreated} types created`);
+    return { upholsteryTypesCreated };
+    
+  } catch (error) {
+    console.error('❌ Error in upholstery types sync:', error);
+    throw error;
+  }
+}
+
+// Sincronizar colores de tapicería
+export async function syncUpholsteryColors(): Promise<{ upholsteryColorsCreated: number }> {
+  console.log('🎨 Starting upholstery colors sync...');
+  
+  let upholsteryColorsCreated = 0;
+  
+  try {
+    console.log('📋 Syncing upholstery colors...');
+    
+    const upholsteryColorsData = [
+      { name: 'Bicolor', value: 'tapisseria-bicolor' }, { name: 'Negre', value: 'tapisseria-negre' }, { name: 'Antracita', value: 'tapisseria-antracita' },
+      { name: 'Gris', value: 'tapisseria-gris' }, { name: 'Blanc', value: 'tapisseria-blanc' }, { name: 'Beige', value: 'tapisseria-beige' },
+      { name: 'Camel', value: 'tapisseria-camel' }, { name: 'Marró', value: 'tapisseria-marro' }, { name: 'Bordeus', value: 'tapisseria-bordeus' },
+      { name: 'Granat', value: 'tapisseria-granat' }, { name: 'Blau', value: 'tapisseria-blau' }, { name: 'Lila', value: 'tapisseria-lila' },
+      { name: 'Vermell', value: 'tapisseria-vermell' }, { name: 'Taronja', value: 'tapisseria-taronja' }, { name: 'Groc', value: 'tapisseria-groc' },
+      { name: 'Verd', value: 'tapisseria-verd' }, { name: 'Altres', value: 'altres-tapisseria' }
+    ];
+    
+    for (const item of upholsteryColorsData) {
+      try {
+        const result = await (prisma as any).upholsteryColor.upsert({
+          where: { value: item.value },
+          update: { 
+            name: item.name,
+            lastSyncAt: new Date() 
+          },
+          create: {
+            name: item.name,
+            value: item.value
+          }
+        });
+        
+        if (result.createdAt.getTime() === result.lastSyncAt.getTime()) {
+          upholsteryColorsCreated++;
+        }
+        
+      } catch (error) {
+        console.error(`❌ Error syncing upholstery color ${item.name}:`, error);
+      }
+    }
+    
+    console.log(`✅ Upholstery colors sync completed: ${upholsteryColorsCreated} colors created`);
+    return { upholsteryColorsCreated };
+    
+  } catch (error) {
+    console.error('❌ Error in upholstery colors sync:', error);
+    throw error;
+  }
+}
+
+// Sincronizar extras de motocicletas
+export async function syncMotorcycleExtras(): Promise<{ motorcycleExtrasCreated: number }> {
+  console.log('🏍️ Starting motorcycle extras sync...');
+  
+  let motorcycleExtrasCreated = 0;
+  
+  try {
+    console.log('📋 Syncing motorcycle extras...');
+    
+    const motorcycleExtrasData = [
+      { name: 'ABS', value: 'abs' }, { name: 'ABS en corba', value: 'abs-corba' }, { name: 'Accelerador electrònic', value: 'accelerador-electronic' },
+      { name: 'Airbag', value: 'airbag' }, { name: 'Alarma', value: 'alarma' }, { name: 'Control de tracció', value: 'control-traccio' },
+      { name: 'Controlador velocitat', value: 'controlador-velocitat' }, { name: 'Frens CBS', value: 'frens-cbs' }, { name: 'GPS', value: 'gps' },
+      { name: 'Llums LED', value: 'llums-led' }, { name: 'Modes de conducció', value: 'modes-conduccio' }, { name: 'Pneumàtics sense cambra', value: 'pneumatics-sense-cambra' },
+      { name: 'Suspensió ajustable', value: 'suspensio-ajustable' }
+    ];
+    
+    for (const item of motorcycleExtrasData) {
+      try {
+        const result = await (prisma as any).motorcycleExtras.upsert({
+          where: { value: item.value },
+          update: { 
+            name: item.name,
+            lastSyncAt: new Date() 
+          },
+          create: {
+            name: item.name,
+            value: item.value
+          }
+        });
+        
+        if (result.createdAt.getTime() === result.lastSyncAt.getTime()) {
+          motorcycleExtrasCreated++;
+        }
+        
+      } catch (error) {
+        console.error(`❌ Error syncing motorcycle extra ${item.name}:`, error);
+      }
+    }
+    
+    console.log(`✅ Motorcycle extras sync completed: ${motorcycleExtrasCreated} extras created`);
+    return { motorcycleExtrasCreated };
+    
+  } catch (error) {
+    console.error('❌ Error in motorcycle extras sync:', error);
+    throw error;
+  }
+}
+
+// Sincronizar extras de caravanas
+export async function syncCaravanExtras(): Promise<{ caravanExtrasCreated: number }> {
+  console.log('🚐 Starting caravan extras sync...');
+  
+  let caravanExtrasCreated = 0;
+  
+  try {
+    console.log('📋 Syncing caravan extras...');
+    
+    const caravanExtrasData = [
+      { name: 'ABS', value: 'abs-caravana' }, { name: 'Airbag conductor', value: 'airbag-conductor' }, { name: 'Airbag copilot', value: 'airbag-copilot' },
+      { name: 'Airbag cortina', value: 'airbag-cortina' }, { name: 'Airbag lateral', value: 'airbag-lateral' }, { name: 'Aire condicionat', value: 'aire-condicionat' },
+      { name: 'ASR', value: 'asr' }, { name: 'Bluetooth', value: 'bluetooth-caravana' }, { name: 'Cambra posterior', value: 'cambra-posterior' },
+      { name: 'Control velocitat', value: 'control-velocitat-caravana' }, { name: 'ESP', value: 'esp-caravana' }, { name: 'Ordinador de bord', value: 'ordinador-bord' },
+      { name: 'Radio CD', value: 'radio-cd-caravana' }, { name: 'Seients esportius', value: 'seients-esportius' }, { name: 'Sistema antivol', value: 'sistema-antivol' }
+    ];
+    
+    for (const item of caravanExtrasData) {
+      try {
+        const result = await (prisma as any).caravanExtras.upsert({
+          where: { value: item.value },
+          update: { 
+            name: item.name,
+            lastSyncAt: new Date() 
+          },
+          create: {
+            name: item.name,
+            value: item.value
+          }
+        });
+        
+        if (result.createdAt.getTime() === result.lastSyncAt.getTime()) {
+          caravanExtrasCreated++;
+        }
+        
+      } catch (error) {
+        console.error(`❌ Error syncing caravan extra ${item.name}:`, error);
+      }
+    }
+    
+    console.log(`✅ Caravan extras sync completed: ${caravanExtrasCreated} extras created`);
+    return { caravanExtrasCreated };
+    
+  } catch (error) {
+    console.error('❌ Error in caravan extras sync:', error);
+    throw error;
+  }
+}
+
+// Sincronizar extras de habitáculo
+export async function syncHabitacleExtras(): Promise<{ habitacleExtrasCreated: number }> {
+  console.log('🏠 Starting habitacle extras sync...');
+  
+  let habitacleExtrasCreated = 0;
+  
+  try {
+    console.log('📋 Syncing habitacle extras...');
+    
+    const habitacleExtrasData = [
+      { name: 'Aigua corrent', value: 'aigua-corrent' }, { name: 'Antena Satèl·lit', value: 'antena-satelit' }, { name: 'Banys complet', value: 'banys-complet' },
+      { name: 'Calefacció Aire Truma', value: 'calefaccio-aire-truma' }, { name: 'Calefacció Webasto', value: 'calefaccio-webasto' }, { name: 'Cuina', value: 'cuina' },
+      { name: 'Dutxa', value: 'dutxa' }, { name: 'Frigorífic 12V', value: 'frigorific-12v' }, { name: 'Frigorífic Gas', value: 'frigorific-gas' },
+      { name: 'Inversors 12-220V', value: 'inversors-12-220v' }, { name: 'Kit Solar', value: 'kit-solar' }, { name: 'Llits bessons', value: 'llits-bessons' },
+      { name: 'Llit central', value: 'llit-central' }, { name: 'Llit desmuntable', value: 'llit-desmuntable' }, { name: 'Placa solar', value: 'placa-solar' },
+      { name: 'Roda sobrer', value: 'roda-sobrer' }, { name: 'Taula convertible', value: 'taula-convertible' }, { name: 'TV SAT', value: 'tv-sat' },
+      { name: 'WC chemical', value: 'wc-chemical' }
+    ];
+    
+    for (const item of habitacleExtrasData) {
+      try {
+        const result = await (prisma as any).habitacleExtras.upsert({
+          where: { value: item.value },
+          update: { 
+            name: item.name,
+            lastSyncAt: new Date() 
+          },
+          create: {
+            name: item.name,
+            value: item.value
+          }
+        });
+        
+        if (result.createdAt.getTime() === result.lastSyncAt.getTime()) {
+          habitacleExtrasCreated++;
+        }
+        
+      } catch (error) {
+        console.error(`❌ Error syncing habitacle extra ${item.name}:`, error);
+      }
+    }
+    
+    console.log(`✅ Habitacle extras sync completed: ${habitacleExtrasCreated} extras created`);
+    return { habitacleExtrasCreated };
+    
+  } catch (error) {
+    console.error('❌ Error in habitacle extras sync:', error);
+    throw error;
+  }
+}
+
+// Sincronizar usuarios y profesionales
+export async function syncUsers(): Promise<{ usersCreated: number, usersUpdated: number }> {
+  console.log('👥 Starting users sync...');
+  
+  let usersCreated = 0;
+  let usersUpdated = 0;
+  
+  try {
+    console.log('📋 Using provided users data...');
+    
+    // Datos proporcionados por el usuario (primeros 21 usuarios como muestra)
+    const users = [
+      { id: 139, username: "123cotxe", email: "info@123cotxe.com", name: "Manuel Alvarez", role: "professional" },
+      { id: 135, username: "4tmotors@andorra.ad", email: "4tmotors@andorra.ad", name: "4TMotors", role: "professional" },
+      { id: 118, username: "a.montecarlo@andorra.ad", email: "a.montecarlo@andorra.ad", name: "Automòbils Montecarlo", role: "professional" },
+      { id: 156, username: "abarrabes@areafdesign.com", email: "abarrabes@areafdesign.com", name: "Albert Barrabes", role: "particular" },
+      { id: 155, username: "Adrianmorenopellicer@gmail.com", email: "Adrianmorenopellicer@gmail.com", name: "Adrián Moreno Pellicer", role: "particular" },
+      { id: 205, username: "alexmartiinez70@gmail.com", email: "alexmartiinez70@gmail.com", name: "Alejandro Martinez Suarez", role: "particular" },
+      { id: 126, username: "alexpastor@vantage.ad", email: "vantage@andorra.ad", name: "VANTAGE", role: "professional" },
+      { id: 170, username: "alladanosa15@gmail.com", email: "alladanosa15@gmail.com", name: "AIDA LLADANOSA JOFRE", role: "particular" },
+      { id: 200, username: "alvarogueb@gmail.com", email: "alvarogueb@gmail.com", name: "Alvaro Guerrero Briales", role: "particular" },
+      { id: 184, username: "ana.lima286@gmail.com", email: "ana.lima286@gmail.com", name: "Ana Lima", role: "particular" },
+      { id: 174, username: "automaia@andorra.ad", email: "automaia@andorra.ad", name: "Automòbils Maia", role: "professional" },
+      { id: 114, username: "automobilspiper@andorra.ad", email: "automobilspiper@andorra.ad", name: "Automòbils Piper", role: "professional" },
+      { id: 181, username: "axelewin94@gmail.com", email: "axelewin94@gmail.com", name: "Axel Lewin", role: "particular" },
+      { id: 196, username: "basarautomobilista@gmail.com", email: "basarautomobilista@gmail.com", name: "Marc Basar", role: "particular" },
+      { id: 187, username: "beatricegrougnet@gmail.com", email: "beatricegrougnet@gmail.com", name: "Beatrice Grougnet Gauchey", role: "particular" },
+      { id: 158, username: "bernicmand@gmail.com", email: "bernicmand@gmail.com", name: "Bernat Cotarelo Martinez", role: "particular" },
+      { id: 194, username: "brunoescaleira2000@gmail.com", email: "brunoescaleira2000@gmail.com", name: "Márcio bruno Escaleira dantas", role: "particular" },
+      { id: 171, username: "carlosog91@hotmail.com", email: "carlosog91@hotmail.com", name: "Carlos Otero Gonzalez", role: "particular" },
+      { id: 145, username: "christian@seat.ad", email: "christian@seat.ad", name: "Christian Dep. Comercial", role: "professional" },
+      { id: 115, username: "comercial@acpandorra.com", email: "comercial@acpandorra.com", name: "Auto Centre Principat", role: "professional" },
+      { id: 178, username: "contact@carcaziaconsulting.com", email: "contact@carcaziaconsulting.com", name: "Carcazia", role: "professional" }
+    ];
+    
+    console.log(`📋 Found ${users.length} users to sync`);
+    
+    for (const userObj of users) {
+      try {
+        // Generar hash de password por defecto (deberán cambiarla)
+        const defaultPasswordHash = 'default_password_hash_to_be_changed';
+        
+        const userData = {
+          username: userObj.username,
+          email: userObj.email,
+          passwordHash: defaultPasswordHash,
+          name: userObj.name || null,
+          role: userObj.role === 'professional' ? 'professional' : 'particular',
+          isActive: true,
+          originalUserId: userObj.id.toString(),
+          migratedAt: new Date(),
+        };
+        
+        // Buscar usuario existente por originalUserId o email
+        const existingUser = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { originalUserId: userData.originalUserId },
+              { email: userData.email }
+            ]
+          }
+        });
+        
+        if (existingUser) {
+          // Actualizar usuario existente
+          await prisma.user.update({
+            where: { id: existingUser.id },
+            data: {
+              username: userData.username,
+              name: userData.name,
+              role: userData.role,
+              isActive: userData.isActive
+            }
+          });
+          usersUpdated++;
+          
+          // Si es profesional, crear/actualizar registro Professional
+          if (userObj.role === 'professional') {
+            const existingProfessional = await prisma.professional.findFirst({
+              where: { userId: existingUser.id }
+            });
+            
+            if (existingProfessional) {
+              await prisma.professional.update({
+                where: { id: existingProfessional.id },
+                data: {
+                  businessName: userObj.name
+                }
+              });
+            } else {
+              await prisma.professional.create({
+                data: {
+                  userId: existingUser.id,
+                  businessName: userObj.name,
+                  isVerified: false,
+                  isPremium: false
+                }
+              });
+            }
+          }
+        } else {
+          // Crear nuevo usuario
+          const newUser = await prisma.user.create({
+            data: userData
+          });
+          usersCreated++;
+          
+          // Si es profesional, crear registro Professional
+          if (userObj.role === 'professional') {
+            await prisma.professional.create({
+              data: {
+                userId: newUser.id,
+                businessName: userObj.name,
+                isVerified: false,
+                isPremium: false
+              }
+            });
+          }
+        }
+        
+      } catch (error) {
+        console.error(`❌ Error syncing user ${userObj.username}:`, error);
+      }
+    }
+    
+    console.log(`✅ Users sync completed: ${usersCreated} created, ${usersUpdated} updated`);
+    return { usersCreated, usersUpdated };
+    
+  } catch (error) {
+    console.error('❌ Error in users sync:', error);
+    throw error;
+  }
+}
+
+// Sincronizar posts del blog
+export async function syncBlogPosts(type: string = 'manual', batchSize: number = 50) {
+  console.log('🔄 Starting blog posts sync...');
+  
+  // Crear log de sincronización
+  const syncLog = await prisma.blogSyncLog.create({
+    data: {
+      type,
+      status: 'running',
+      startedAt: new Date(),
+      postsProcessed: 0,
+      postsCreated: 0,
+      postsUpdated: 0,
+      postsSkipped: 0,
+      postsWithErrors: 0
+    }
+  });
+
+  let postsCreated = 0;
+  let postsUpdated = 0;
+  let postsProcessed = 0;
+  let postsSkipped = 0;
+  let postsWithErrors = 0;
+  const errors: any[] = [];
+  
+  try {
+    // Obtener posts de la API original
+    console.log('📡 Fetching posts from API...');
+    console.log('📡 Base URL:', process.env.ORIGINAL_API_URL);
+    console.log('📡 User:', process.env.ORIGINAL_API_USER);
+    console.log('📡 Full URL:', `${process.env.ORIGINAL_API_URL}/blog-posts`);
+    
+    if (!process.env.ORIGINAL_API_URL) {
+      throw new Error('ORIGINAL_API_URL environment variable is not set');
+    }
+    
+    if (!process.env.ORIGINAL_API_USER || !process.env.ORIGINAL_API_PASS) {
+      throw new Error('ORIGINAL_API_USER and ORIGINAL_API_PASS environment variables must be set');
+    }
+    
+    // Sincronización por lotes con paginación explícita
+    let page = 1;
+    let hasMorePages = true;
+    let totalPosts = 0;
+    let totalPages = 0;
+    
+    console.log(`🔄 Starting blog sync with batch size: ${batchSize} posts per page`);
+    
+    while (hasMorePages) {
+      console.log(`📡 Fetching page ${page}/${totalPages > 0 ? totalPages : '?'} (requesting ${batchSize} posts)...`);
+      
+      const response = await originalApiClient.get('/blog-posts', {
+        params: {
+          page: page,
+          per_page: batchSize,
+          // Forzar parámetros específicos para WordPress si es necesario
+          status: 'publish,draft', // Obtener todos los estados
+          order: 'desc',
+          orderby: 'date'
+        }
+      });
+      
+      console.log('📡 API Response status:', response.status);
+      console.log('📡 Response headers:', {
+        'x-wp-total': response.headers['x-wp-total'],
+        'x-wp-totalpages': response.headers['x-wp-totalpages']
+      });
+      
+      const data = response.data;
+      
+      // Verificar diferentes estructuras de respuesta de WordPress
+      let posts = [];
+      let apiTotalPosts = 0;
+      let apiTotalPages = 0;
+      
+      if (data && Array.isArray(data)) {
+        // Respuesta directa como array (WordPress estándar)
+        posts = data;
+        
+        // Obtener totales de headers HTTP de WordPress
+        apiTotalPosts = parseInt(response.headers['x-wp-total'] || '0');
+        apiTotalPages = parseInt(response.headers['x-wp-totalpages'] || '0');
+        
+        if (apiTotalPages > 0) {
+          totalPages = apiTotalPages;
+          hasMorePages = page < totalPages;
+        } else {
+          // Fallback: si no hay headers, usar lógica de tamaño
+          hasMorePages = posts.length === batchSize;
+        }
+        
+      } else if (data && data.items && Array.isArray(data.items)) {
+        // Respuesta con estructura envolvente
+        posts = data.items;
+        totalPosts = data.total || 0;
+        totalPages = data.pages || Math.ceil(totalPosts / batchSize);
+        hasMorePages = page < totalPages;
+        
+      } else if (data && data.data && Array.isArray(data.data)) {
+        // Otra estructura posible
+        posts = data.data;
+        totalPosts = data.total || 0;
+        hasMorePages = posts.length === batchSize;
+        
+      } else {
+        console.error('❌ Unexpected API response structure:', {
+          dataType: typeof data,
+          isArray: Array.isArray(data),
+          keys: data ? Object.keys(data) : 'null',
+          sampleData: data ? JSON.stringify(data).substring(0, 200) : 'null'
+        });
+        throw new Error('Invalid response format for blog posts');
+      }
+      
+      console.log(`📚 Page ${page}: Received ${posts.length} posts`);
+      if (apiTotalPosts > 0) {
+        console.log(`📊 API reports total: ${apiTotalPosts} posts across ${apiTotalPages} pages`);
+      }
+      
+      if (posts.length === 0) {
+        console.log('📭 No more posts to process');
+        hasMorePages = false;
+        continue;
+      }
+    
+    for (const post of posts) {
+      try {
+        postsProcessed++;
+        
+        // Validación básica
+        if (!post.id || !post.title || !post.slug) {
+          console.warn(`⚠️ Skipping post with missing required fields: ${post.id}`);
+          postsSkipped++;
+          continue;
+        }
+        
+        // Extraer y mapear categorías completas
+        const categories = post.categories || [];
+        const categoryNames = categories.map((cat: any) => cat.name);
+        
+        // Extraer y mapear tags completas
+        const tags = post.tags || [];
+        const tagNames = tags.map((tag: any) => tag.name);
+        
+        // Mapear datos SEO completos
+        const seoData = post.seo || {};
+        
+        const postData = {
+          originalId: post.id.toString(),
+          title: post.title,
+          slug: post.slug,
+          content: post.content || '',
+          excerpt: post.excerpt || null,
+          featuredImage: post.featured_image || null,
+          date: new Date(post.date || new Date()),
+          author: post.author || 'Unknown',
+          
+          // Categorías y tags completas
+          categories: categories,
+          categoryNames: categoryNames,
+          tags: tags,
+          tagNames: tagNames,
+          
+          // SEO completo
+          seo: seoData,
+          seoTitle: seoData.meta_title || null,
+          seoDescription: seoData.meta_description || null,
+          seoKeywords: seoData.meta_keywords || null,
+          ogImage: seoData.og_image || null,
+          ogType: seoData.og_type || null,
+          twitterCard: seoData.twitter_card || null,
+          canonicalUrl: seoData.canonical_url || null,
+          
+          status: 'publish',
+          isActive: true,
+          lastSyncAt: new Date()
+        };
+        
+        // Verificar si existe
+        const existingPost = await prisma.blogPost.findUnique({
+          where: { originalId: post.id.toString() }
+        });
+        
+        if (existingPost) {
+          // Actualizar post existente
+          await prisma.blogPost.update({
+            where: { originalId: post.id.toString() },
+            data: postData
+          });
+          postsUpdated++;
+          console.log(`✅ Updated post: ${post.title}`);
+        } else {
+          // Crear nuevo post
+          await prisma.blogPost.create({
+            data: postData
+          });
+          postsCreated++;
+          console.log(`✅ Created post: ${post.title}`);
+        }
+        
+        if (postsProcessed % 10 === 0) {
+          console.log(`📝 Progress: ${postsProcessed} posts processed on page ${page}`);
+        }
+        
+      } catch (error) {
+        console.error(`❌ Error processing post ${post.id}:`, error);
+        postsWithErrors++;
+        errors.push({
+          postId: post.id,
+          title: post.title,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    }
+    
+    // Incrementar página para la siguiente iteración
+    page++;
+    
+    // Pausa breve entre lotes para no sobrecargar la API
+    if (hasMorePages) {
+      console.log(`⏸️ Pausing 1 second before next batch...`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  } // Cierre del bucle while
+    
+    // Actualizar log con resultados exitosos
+    await prisma.blogSyncLog.update({
+      where: { id: syncLog.id },
+      data: {
+        status: 'completed',
+        completedAt: new Date(),
+        postsProcessed,
+        postsCreated,
+        postsUpdated,
+        postsSkipped,
+        postsWithErrors,
+        summary: {
+          totalPosts: postsProcessed,
+          processed: postsProcessed,
+          created: postsCreated,
+          updated: postsUpdated,
+          skipped: postsSkipped,
+          errors: postsWithErrors,
+          errorDetails: errors
+        }
+      }
+    });
+    
+    console.log(`🎉 Blog sync completed successfully!`);
+    console.log(`📊 Results: ${postsCreated} created, ${postsUpdated} updated, ${postsSkipped} skipped, ${postsWithErrors} errors`);
+    console.log(`📑 Processed ${postsProcessed} posts across ${page - 1} pages`);
+    
+    return { 
+      postsCreated, 
+      postsUpdated, 
+      postsSkipped, 
+      postsWithErrors,
+      totalProcessed: postsProcessed,
+      pagesProcessed: page - 1,
+      syncLogId: syncLog.id
+    };
+    
+  } catch (error) {
+    console.error('❌ Error syncing blog posts:', error);
+    
+    // Actualizar log con error
+    await prisma.blogSyncLog.update({
+      where: { id: syncLog.id },
+      data: {
+        status: 'failed',
+        completedAt: new Date(),
+        postsProcessed,
+        postsCreated,
+        postsUpdated,
+        postsSkipped,
+        postsWithErrors,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorDetails: errors.length > 0 ? errors : null
+      }
+    });
+    
+    throw error;
+  }
+}
+
+// Inicializar cron job para blog posts
+export async function initializeBlogCronSync() {
+  try {
+    const config = await getConfig();
+    
+    if (config.enable_blog_auto_sync !== 'true') {
+      console.log('📚 Blog auto-sync disabled');
+      return;
+    }
+
+    const intervalHours = parseInt(config.blog_sync_interval_hours) || 8;
+    const cronExpression = `0 */${intervalHours} * * *`; // Cada X horas
+    
+    if (blogCronJob) {
+      blogCronJob.stop();
+    }
+    
+    blogCronJob = cron.schedule(cronExpression, async () => {
+      console.log('🔄 Starting scheduled blog posts sync...');
+      try {
+        await syncBlogPosts('automatic');
+      } catch (error) {
+        console.error('❌ Error in scheduled blog sync:', error);
+      }
+    }, {
+      scheduled: true,
+      timezone: "Europe/Andorra"
+    });
+    
+    console.log(`📚 Blog sync initialized: every ${intervalHours} hours`);
+    
+  } catch (error) {
+    console.error('❌ Error initializing blog cron sync:', error);
+  }
+}
+
+// Detener cron job del blog
+export function stopBlogCronSync() {
+  if (blogCronJob) {
+    blogCronJob.stop();
+    blogCronJob = null;
+    console.log('🛑 Blog cron sync stopped');
+  }
+}
+
+// Sincronizar o crear usuario desde la API externa
+async function syncUserFromSeller(sellerId: string): Promise<string | null> {
+  try {
+    console.log(`👤 Syncing user with ID: ${sellerId}`);
+    
+    // Verificar si el usuario ya existe
+    const existingUser = await prisma.user.findFirst({
+      where: { originalUserId: sellerId }
+    });
+    
+    if (existingUser) {
+      console.log(`✅ User ${sellerId} already exists`);
+      return existingUser.id;
+    }
+    
+    // Obtener datos del vendedor desde la API externa
+    const response = await originalApiClient.get(`/sellers?user_id=${sellerId}`);
+    const sellerData = response.data?.data;
+    
+    if (!sellerData) {
+      console.warn(`⚠️ No seller data found for ID: ${sellerId}`);
+      return null;
+    }
+    
+    // Crear usuario en la base de datos
+    const userData = {
+      originalUserId: sellerId,
+      username: sellerData.username || `user_${sellerId}`,
+      email: sellerData.email || `user_${sellerId}@placeholder.com`,
+      passwordHash: 'migrated_user', // Placeholder para usuarios migrados
+      name: sellerData.name || sellerData['nom-empresa'] || sellerData.username,
+      phone: sellerData['telefon-comercial'] || sellerData['telefon-whatsapp'] || null,
+      address: sellerData['adreca-professional'] || null,
+      city: sellerData['localitat-professional'] || null,
+      website: sellerData['pagina-web'] || null,
+      role: 'professional',
+      isActive: true,
+      migratedAt: new Date(),
+      lastSyncAt: new Date()
+    };
+    
+    const newUser = await prisma.user.create({
+      data: userData
+    });
+    
+    // Si hay datos adicionales de profesional, crearlos también
+    if (sellerData['nom-empresa'] || sellerData['descripcio-empresa']) {
+      await prisma.professional.create({
+        data: {
+          userId: newUser.id,
+          businessName: sellerData['nom-empresa'] || null,
+          description: sellerData['descripcio-empresa'] || null,
+          isVerified: false,
+          isPremium: false
+        }
+      });
+    }
+    
+    console.log(`✅ User created successfully: ${newUser.username} (${newUser.id})`);
+    return newUser.id;
+    
+  } catch (error) {
+    console.error(`❌ Error syncing user ${sellerId}:`, error);
+    return null;
+  }
+}
+
+// Sincronizar todos los profesionales desde el endpoint /sellers
+export async function syncAllProfessionals(): Promise<{ usersCreated: number, usersUpdated: number, errors: number }> {
+  console.log('👥 Starting sync of all professionals...');
+  
+  let usersCreated = 0;
+  let usersUpdated = 0;
+  let errors = 0;
+  
+  try {
+    // Obtener todos los sellers desde la API externa
+    const response = await originalApiClient.get('/sellers');
+    const sellers = response.data?.data || [];
+    
+    console.log(`📊 Found ${sellers.length} sellers to sync`);
+    
+    for (const seller of sellers) {
+      try {
+        const sellerId = seller.id?.toString();
+        if (!sellerId) continue;
+        
+        // Verificar si el usuario ya existe
+        const existingUser = await prisma.user.findFirst({
+          where: { originalUserId: sellerId }
+        });
+        
+        if (existingUser) {
+          // Actualizar usuario existente
+          const userData = {
+            username: seller.username || `user_${sellerId}`,
+            email: seller.email || `user_${sellerId}@placeholder.com`,
+            name: seller.name || seller['nom-empresa'] || seller.username,
+            phone: seller['telefon-comercial'] || seller['telefon-whatsapp'] || null,
+            address: seller['adreca-professional'] || null,
+            city: seller['localitat-professional'] || null,
+            website: seller['pagina-web'] || null,
+            lastSyncAt: new Date()
+          };
+          
+          await prisma.user.update({
+            where: { id: existingUser.id },
+            data: userData
+          });
+          
+          usersUpdated++;
+          console.log(`✅ Updated user: ${seller.username}`);
+        } else {
+          // Crear nuevo usuario
+          const userData = {
+            originalUserId: sellerId,
+            username: seller.username || `user_${sellerId}`,
+            email: seller.email || `user_${sellerId}@placeholder.com`,
+            passwordHash: 'migrated_user',
+            name: seller.name || seller['nom-empresa'] || seller.username,
+            phone: seller['telefon-comercial'] || seller['telefon-whatsapp'] || null,
+            address: seller['adreca-professional'] || null,
+            city: seller['localitat-professional'] || null,
+            website: seller['pagina-web'] || null,
+            role: 'professional',
+            isActive: true,
+            migratedAt: new Date(),
+            lastSyncAt: new Date()
+          };
+          
+          const newUser = await prisma.user.create({
+            data: userData
+          });
+          
+          // Crear registro de profesional si hay datos adicionales
+          if (seller['nom-empresa'] || seller['descripcio-empresa']) {
+            await prisma.professional.create({
+              data: {
+                userId: newUser.id,
+                businessName: seller['nom-empresa'] || null,
+                description: seller['descripcio-empresa'] || null,
+                isVerified: false,
+                isPremium: false
+              }
+            });
+          }
+          
+          usersCreated++;
+          console.log(`✅ Created user: ${seller.username}`);
+        }
+        
+      } catch (error) {
+        console.error(`❌ Error processing seller ${seller.id}:`, error);
+        errors++;
+      }
+    }
+    
+    console.log(`🎉 Professionals sync completed!`);
+    console.log(`📊 Results: ${usersCreated} created, ${usersUpdated} updated, ${errors} errors`);
+    
+    return { usersCreated, usersUpdated, errors };
+    
+  } catch (error) {
+    console.error('❌ Error syncing professionals:', error);
+    throw error;
+  }
+}// Detener cron job
+export function stopCronSync() {
+  if (cronJob) {
+    cronJob.stop();
+    cronJob = null;
+    console.log('🛑 Cron sync stopped');
+  }
+}
+
+// Variables para controlar el estado de sincronización del blog
+let blogCronJob: cron.ScheduledTask | null = null;
+let isBlogSyncRunning = false;
+
+// Inicializar el cron job automático para blog
+export async function initializeBlogCronSync() {
+  try {
+    const config = await getConfig();
+    
+    if (config.enable_blog_auto_sync !== 'true') {
+      console.log('📚 Blog auto-sync disabled');
+      return;
+    }
+
+    const intervalHours = parseInt(config.blog_sync_interval_hours) || 8;
+    const cronExpression = `0 */${intervalHours} * * *`; // Cada X horas
+
+    if (blogCronJob) {
+      blogCronJob.stop();
+    }
+
+    blogCronJob = cron.schedule(cronExpression, async () => {
+      if (!isBlogSyncRunning) {
+        console.log('📚 Starting scheduled blog sync...');
+        isBlogSyncRunning = true;
+        try {
+          await syncBlogPosts('automatic');
+        } catch (error) {
+          console.error('❌ Blog sync error:', error);
+        } finally {
+          isBlogSyncRunning = false;
+        }
+      } else {
+        console.log('⏳ Blog sync already running, skipping scheduled sync');
+      }
+    }, {
+      scheduled: true,
+      timezone: "Europe/Andorra"
+    });
+
+    console.log(`📚 Blog auto-sync initialized: every ${intervalHours} hours`);
+    
+  } catch (error) {
+    console.error('❌ Error initializing blog cron sync:', error);
+  }
+}
+
+// Detener cron job del blog
+export function stopBlogCronSync() {
+  if (blogCronJob) {
+    blogCronJob.stop();
+    blogCronJob = null;
+    console.log('🛑 Blog cron sync stopped');
+  }
+}
+
+// Placeholder para la función de sync de blog posts
+export async function syncBlogPosts(type: string = 'manual', batchSize: number = 50) {
+  console.log(`📚 Starting blog posts sync (${type})...`);
+  // Implementación pendiente
+  return {
+    postsProcessed: 0,
+    postsCreated: 0,
+    postsUpdated: 0
+  };
+}
