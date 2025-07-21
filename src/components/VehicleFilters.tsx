@@ -178,17 +178,17 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({ initialFilters, onApply
     <form onSubmit={handleApply} className="space-y-4">
       {/* Tipo de vehículo */}
       <div>
-        <label className="block text-sm font-medium mb-1">Tipo de vehículo</label>
+        <label className="block text-sm font-medium mb-1">Tipus de vehicle</label>
         <select
           className="w-full border rounded px-3 py-2"
           value={filters["tipus-vehicle"]}
           onChange={(e) => handleChange("tipus-vehicle", e.target.value)}
         >
-          <option value="">Todos</option>
-          <option value="cotxe">Coche</option>
-          <option value="moto-quad-atv">Moto</option>
-          <option value="autocaravana-camper">Autocaravana</option>
-          <option value="vehicle-comercial">Vehículo comercial</option>
+          <option key="tous" value="">Tots</option>
+          <option key="cotxe" value="cotxe">Cotxe</option>
+          <option key="moto-quad-atv" value="moto-quad-atv">Moto</option>
+          <option key="autocaravana-camper" value="autocaravana-camper">Autocaravana</option>
+          <option key="vehicle-comercial" value="vehicle-comercial">Vehicle comercial</option>
         </select>
       </div>
       {/* Marca */}
@@ -199,7 +199,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({ initialFilters, onApply
           value={filters["marques-cotxe"]}
           onChange={(e) => handleChange("marques-cotxe", e.target.value)}
         >
-          <option value="">Todas</option>
+          <option key="todas" value="">Totes</option>
           {brands.map((b) => (
             <option key={b.value} value={b.value}>{b.label}</option>
           ))}
@@ -214,27 +214,27 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({ initialFilters, onApply
           onChange={(e) => handleChange("models-cotxe", e.target.value)}
           disabled={!filters["marques-cotxe"]}
         >
-          <option value="">Todos</option>
+          <option key="todos-models" value="">Tots</option>
           {models.map((m) => (
             <option key={m.value} value={m.value}>{m.label}</option>
           ))}
         </select>
         {!filters["marques-cotxe"] && (
           <p className="text-xs text-gray-500 mt-1">
-            Selecciona una marca para elegir el modelo
+            Selecciona una marca per triar el model
           </p>
         )}
       </div>
       {/* Estado */}
       <div>
-        <label className="block text-sm font-medium mb-1">Estado</label>
+        <label className="block text-sm font-medium mb-1">Estat</label>
         <select
           className="w-full border border-gray-300 bg-white text-gray-900 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200"
           value={lockedStateValue !== undefined ? lockedStateValue : filters["estat-vehicle"]}
           onChange={(e) => handleChange("estat-vehicle", e.target.value)}
           disabled={lockedStateValue != null}
         >
-          <option value="">Todos</option>
+          <option key="todos-states" value="">Tots</option>
           {states.map((s) => (
             <option key={s.value} value={s.value}>{s.label}</option>
           ))}
@@ -248,7 +248,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({ initialFilters, onApply
           value={filters["tipus-combustible"]}
           onChange={(e) => handleChange("tipus-combustible", e.target.value)}
         >
-          <option value="">Todos</option>
+          <option key="todos-fuels" value="">Tots</option>
           {fuels.map((f) => (
             <option key={f.value} value={f.value}>{f.label}</option>
           ))}
@@ -258,9 +258,9 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({ initialFilters, onApply
       <div>
         <button
           type="submit"
-          className="w-full bg-primary hover:bg-secondary text-white px-4 py-2 rounded font-semibold transition-colors"
+          className="w-full bg-primary hover:bg-secondary text-white px-4 py-2 rounded-lg font-semibold transition-colors"
         >
-          Aplicar filtros
+          Aplicar filtres
         </button>
       </div>
     </form>

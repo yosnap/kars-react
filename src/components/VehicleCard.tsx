@@ -20,6 +20,7 @@ export interface VehicleUI {
   preu?: string;
   "color-vehicle"?: string;
   "tipus-combustible"?: string;
+  "potencia-cv"?: string;
   slug?: string;
   "anunci-actiu"?: string;
   venut?: string;
@@ -32,7 +33,15 @@ interface VehicleCardProps {
   crown?: boolean;
   onUserAction?: () => void;
   searchQuery?: string;
+  showSoldButton?: boolean;
 }
+
+// Función para decodificar entidades HTML
+const decodeHtmlEntities = (text: string) => {
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = text;
+  return textarea.value;
+};
 
 function highlightText(text: string, query?: string) {
   if (!query) return text;
@@ -42,7 +51,7 @@ function highlightText(text: string, query?: string) {
   );
 }
 
-const VehicleCard = ({ vehicle, onUserAction, searchQuery }: VehicleCardProps) => {
+const VehicleCard = ({ vehicle, onUserAction, searchQuery, showSoldButton = false }: VehicleCardProps) => {
   const navigate = useNavigate();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { showToast } = useToast();
@@ -77,7 +86,7 @@ const VehicleCard = ({ vehicle, onUserAction, searchQuery }: VehicleCardProps) =
     if (favTimeout.current) clearTimeout(favTimeout.current);
     favTimeout.current = setTimeout(() => setFavAnim(false), 350);
     showToast(
-      wasFavorite ? "Eliminado de favoritos" : "Añadido a favoritos",
+      wasFavorite ? "Eliminat de favorits" : "Afegit a favorits",
       wasFavorite ? "info" : "success"
     );
   };
@@ -86,18 +95,18 @@ const VehicleCard = ({ vehicle, onUserAction, searchQuery }: VehicleCardProps) =
   const isSold = vehicle["venut"] === "true";
 
   return (
-    <Card className={`overflow-hidden hover:shadow-lg transition-shadow relative group${isInactive ? " opacity-50" : ""}`}>
+    <div className={`bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden relative group flex flex-col h-full${isInactive ? " opacity-50" : ""}`}>
       {/* Ribbon vendido */}
       {isSold && (
         <div className="absolute -left-8 top-4 z-30" style={{ transform: 'rotate(-45deg)' }}>
           <span className="bg-red-600 text-white text-xs font-bold px-8 py-1 shadow-lg uppercase tracking-wider select-none">
-            Vendido
+            Venut
           </span>
         </div>
       )}
       {/* Badge destacado */}
       {String(vehicle["anunci-destacat"]) === "true" && (
-        <div className="absolute top-2 left-2 z-10">
+        <div className="absolute top-3 left-3 z-10">
           <div className="bg-tertiary rounded-full p-2 shadow-lg">
             <Crown className="w-4 h-4 text-white" />
           </div>
@@ -107,91 +116,128 @@ const VehicleCard = ({ vehicle, onUserAction, searchQuery }: VehicleCardProps) =
       {isInactive && (
         <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
           <span className="bg-gray-700 text-white text-base font-bold px-6 py-2 rounded-full shadow-lg opacity-90">
-            Vehículo Inactiu
+            Vehicle Inactiu
           </span>
         </div>
       )}
-      {/* Icono favoritos */}
-      <div className="absolute top-2 right-2 z-10">
+      {/* Icona favorits */}
+      <div className="absolute top-3 right-3 z-10">
         <div
-          className={`rounded-full p-2 shadow hover:shadow-lg transition-colors cursor-pointer ${isFavorite(String(vehicle.id)) ? "bg-primary" : "bg-white/80 backdrop-blur-sm hover:bg-white"} ${favAnim ? "animate-fav-bounce" : ""}`}
+          className={`rounded-full p-2.5 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer ${isFavorite(String(vehicle.id)) ? "bg-primary hover:bg-primary" : "bg-white/90 backdrop-blur-sm hover:bg-white"} ${favAnim ? "animate-fav-bounce" : ""}`}
           onClick={handleToggleFavorite}
         >
-          <Star className={`w-4 h-4 transition-colors ${isFavorite(String(vehicle.id)) ? "text-white" : "text-gray-600 group-hover:text-primary"}`} />
+          <Star className={`w-5 h-5 transition-colors ${isFavorite(String(vehicle.id)) ? "text-white fill-white" : "text-gray-600 hover:text-primary"}`} />
         </div>
       </div>
+      
       {/* Imagen */}
       <div
-        className="aspect-video overflow-hidden cursor-pointer"
+        className="aspect-[4/3] overflow-hidden cursor-pointer rounded-t-2xl flex-shrink-0"
         onClick={handleViewMore}
         tabIndex={0}
         onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && handleViewMore()}
-        aria-label={`Ver detalle de ${vehicle["titol-anunci"] ?? "vehículo"}`}
+        aria-label={`Veure detall de ${decodeHtmlEntities(vehicle["titol-anunci"] ?? "vehicle")}`}
         role="button"
       >
-        <img
-          src={vehicle["imatge-destacada-url"] ?? ""}
-          alt={vehicle["titol-anunci"] ?? ""}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-        />
-      </div>
-      <CardContent className="p-4">
-        <div className="space-y-3">
-          {/* Estado del vehículo */}
-          <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
-            {vehicle["estat-vehicle"]}
-          </Badge>
-          {/* Título del anuncio */}
-          <h3
-            className="font-semibold text-lg truncate cursor-pointer"
-            title={vehicle["titol-anunci"] ?? ""}
-            onClick={handleViewMore}
-            tabIndex={0}
-            onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && handleViewMore()}
-            aria-label={`Ver detalle de ${vehicle["titol-anunci"] ?? "vehículo"}`}
-            role="button"
-          >
-            {highlightText(vehicle["titol-anunci"] ?? "", searchQuery ?? "")}
-          </h3>
-          {/* Precio */}
-          <div className="pt-1">
-            <p className="text-2xl font-bold text-primary">
-              {formatPrice(vehicle["preu"])}
-            </p>
+        {vehicle["imatge-destacada-url"] ? (
+          <img
+            src={vehicle["imatge-destacada-url"]}
+            alt={decodeHtmlEntities(vehicle["titol-anunci"] ?? "")}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400">
+            <svg className="w-16 h-16" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+            </svg>
           </div>
-          {/* Información del vehículo */}
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <span>{vehicle["any"]}</span>
-            <span>|</span>
-            <span>{formatKilometers(vehicle["quilometratge"])} </span>
-            <span>|</span>
-            <span
-              className="truncate whitespace-nowrap max-w-[110px] inline-block align-bottom"
-              title={vehicle["tipus-combustible"]}
-            >
-              {vehicle["tipus-combustible"] && vehicle["tipus-combustible"].length > 18
-                ? vehicle["tipus-combustible"].slice(0, 15) + '...'
-                : vehicle["tipus-combustible"]}
+        )}
+      </div>
+      
+      {/* Contenido */}
+      <div className="p-4 flex flex-col flex-grow">
+        {/* Estado del vehículo */}
+        {vehicle["estat-vehicle"] && (
+          <div className="mb-3">
+            <span className="inline-block text-xs font-medium px-2 py-1 rounded text-primary" style={{ backgroundColor: '#eeeeee' }}>
+              {vehicle["estat-vehicle"]}
             </span>
           </div>
-          {/* Badge profesional si aplica */}
-          <div className="pt-2">
-            <Badge variant="outline" className="text-xs">
-              Profesional
-            </Badge>
-          </div>
-          {/* Botón Ver más */}
-          <div className="pt-2">
-            <button
-              className="w-full block bg-primary hover:bg-secondary text-white py-2 px-4 rounded-lg font-medium transition-colors text-center cursor-pointer"
-              onClick={handleViewMore}
-            >
-              Veure més
-            </button>
-          </div>
+        )}
+        
+        {/* Título del anuncio */}
+        <h3
+          className="font-semibold text-lg text-gray-900 mb-2 cursor-pointer hover:text-gray-700 transition-colors truncate"
+          title={decodeHtmlEntities(vehicle["titol-anunci"] ?? "")}
+          onClick={handleViewMore}
+          tabIndex={0}
+          onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && handleViewMore()}
+          aria-label={`Veure detall de ${decodeHtmlEntities(vehicle["titol-anunci"] ?? "vehicle")}`}
+          role="button"
+        >
+          {highlightText(decodeHtmlEntities(vehicle["titol-anunci"] ?? ""), searchQuery ?? "")}
+        </h3>
+        
+        {/* Precio anterior tachado - siempre mantener espacio */}
+        <div className="mb-1 h-5">
+          <span className="text-gray-400 line-through text-sm">
+            {Number(vehicle["preu"]) > 0 ? formatPrice(Number(vehicle["preu"]) + 2000) : ""}
+          </span>
         </div>
-      </CardContent>
-    </Card>
+        
+        {/* Precio actual */}
+        <div className="mb-4">
+          <span className="text-2xl font-bold text-primary">
+            {formatPrice(vehicle["preu"])}
+          </span>
+        </div>
+        
+        {/* Información del vehículo con iconos - Km, CV, Año */}
+        <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
+          {vehicle["quilometratge"] && (
+            <div className="flex items-center gap-1">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd"/>
+              </svg>
+              <span>{formatKilometers(vehicle["quilometratge"])}</span>
+            </div>
+          )}
+          
+          {/* Mostrar CV del vehículo */}
+          {vehicle["potencia-cv"] && (
+            <div className="flex items-center gap-1">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd"/>
+              </svg>
+              <span>{vehicle["potencia-cv"]} cv</span>
+            </div>
+          )}
+          
+          {vehicle["any"] && (
+            <div className="flex items-center gap-1">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"/>
+              </svg>
+              <span>{vehicle["any"]}</span>
+            </div>
+          )}
+        </div>
+        
+        {/* Botón Ver vehículo - se mantiene en la parte inferior */}
+        <div className="mt-auto">
+          <button
+            className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-200 text-center ${
+              showSoldButton 
+                ? "bg-black text-white hover:bg-primary" 
+                : "bg-primary text-white hover:bg-black"
+            }`}
+            onClick={handleViewMore}
+          >
+            {showSoldButton ? "Venut" : "Veure vehicle"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

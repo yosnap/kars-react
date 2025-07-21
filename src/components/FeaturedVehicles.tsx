@@ -1,208 +1,155 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, Pagination, Autoplay } from 'swiper/modules';
 import VehicleCard from "./VehicleCard";
 import { axiosAdmin } from "../api/axiosClient";
 import type { Vehicle } from "../types/Vehicle";
 import { VehicleCardSkeleton } from "./VehicleCard";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const AUTOPLAY_INTERVAL = 4000;
-
-const getVisibleCount = () => {
-  if (typeof window === "undefined") return 4;
-  if (window.innerWidth < 640) return 1; // móvil
-  if (window.innerWidth < 1024) return 2; // tablet
-  return 4; // desktop
-};
+// Import Swiper styles
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
+import 'swiper/css/autoplay';
 
 const FeaturedVehicles = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [visibleCount, setVisibleCount] = useState(getVisibleCount());
-  const autoplayRef = useRef<number | null>(null);
-  const [isHovered, setIsHovered] = useState(false);
-
-  // Responsivo: cambia visibleCount según ancho
-  useEffect(() => {
-    const handleResize = () => setVisibleCount(getVisibleCount());
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   useEffect(() => {
     setLoading(true);
-    axiosAdmin.get("/vehicles", {
-      params: {
-        "anunci-destacat": true,
-        "anunci-actiu": true,
-        venut: false,
-        per_page: 100,
-        orderby: "anunci-destacat",
-        order: "DESC"
-      }
-    })
+    
+    const params = {
+      "anunci-destacat": 1,
+      "anunci-actiu": true,
+      venut: false,
+      per_page: 100,
+      orderby: "anunci-destacat",
+      order: "DESC"
+    };
+    
+    axiosAdmin.get("/vehicles", { params })
       .then(res => {
-        // Filtrar solo activos y no vendidos (ambos como string)
         const activos = (res.data.items || []).filter(
-          (v: Record<string, string>) => v["anunci-actiu"] === "true" && v["venut"] === "false"
+          (v: any) => v["anunci-actiu"] === "true" || v["anunci-actiu"] === true
         );
         setVehicles(activos);
+      })
+      .catch(() => {
+        // Error silencioso
       })
       .finally(() => setLoading(false));
   }, []);
 
-  // Número de grupos posibles
-  const totalGroups = Math.max(vehicles.length - visibleCount + 1, 1);
-
-  // Autoplay
-  useEffect(() => {
-    if (isHovered || vehicles.length <= visibleCount) {
-      if (autoplayRef.current) clearInterval(autoplayRef.current);
-      return;
-    }
-    autoplayRef.current = window.setInterval(() => {
-      setCurrentIndex((prev) => {
-        const next = prev + 1 >= totalGroups ? 0 : prev + 1;
-        return next;
-      });
-    }, AUTOPLAY_INTERVAL);
-    return () => {
-      if (autoplayRef.current) clearInterval(autoplayRef.current);
-    };
-  }, [vehicles.length, isHovered, visibleCount, totalGroups]);
-
-  const handlePrev = () => {
-    setCurrentIndex((prev) => {
-      const next = prev === 0 ? totalGroups - 1 : prev - 1;
-      return next;
-    });
-  };
-  const handleNext = () => {
-    setCurrentIndex((prev) => {
-      const next = prev + 1 >= totalGroups ? 0 : prev + 1;
-      return next;
-    });
-  };
-
-  // Limitar el índice si cambia el número de grupos
-  useEffect(() => {
-    if (currentIndex > totalGroups - 1) {
-      setCurrentIndex(Math.max(totalGroups - 1, 0));
-    }
-  }, [totalGroups, currentIndex]);
-
-  // Pausa de autoplay al interactuar
-  const pauseAutoplay = () => {
-    setIsHovered(true);
-    if (autoplayRef.current) clearInterval(autoplayRef.current);
-    setTimeout(() => setIsHovered(false), 3000);
-  };
-
-  // Render cards visibles (ventana deslizante)
-  const renderCards = () => {
-    if (loading) {
-      return (
-        <div className="flex w-full gap-6 justify-center">
-          {[...Array(visibleCount)].map((_, i) => (
-            <div key={i} className="w-full max-w-xs flex-shrink-0" style={{ flex: `0 0 ${100 / visibleCount}%` }}>
-              <VehicleCardSkeleton />
-            </div>
-          ))}
-        </div>
-      );
-    }
-    if (vehicles.length === 0) {
-      return <div className="text-center w-full py-8 text-primary">No hay vehículos destacados en este momento.</div>;
-    }
-    const windowVehicles = vehicles.slice(currentIndex, currentIndex + visibleCount);
+  if (loading) {
     return (
-      <div className="flex w-full gap-6 justify-center">
-        {windowVehicles.map((vehicle) => {
-          const uiVehicle = {
-            id: String(vehicle.id),
-            ["titol-anunci"]: vehicle["titol-anunci"] ?? "",
-            ["descripcio-anunci"]: vehicle["descripcio-anunci"] ?? "",
-            ["marques-cotxe"]: vehicle["marques-cotxe"] ?? "",
-            ["models-cotxe"]: vehicle["models-cotxe"] ?? "",
-            ["estat-vehicle"]: vehicle["estat-vehicle"] ?? "",
-            any: vehicle["any"] ?? "",
-            quilometratge: vehicle["quilometratge"] !== undefined && vehicle["quilometratge"] !== null ? String(vehicle["quilometratge"]) : "",
-            preu: vehicle["preu"] !== undefined && vehicle["preu"] !== null ? String(vehicle["preu"]) : "",
-            ["color-vehicle"]: vehicle["color-vehicle"] ?? "",
-            ["tipus-combustible"]: vehicle["tipus-combustible"] ?? "",
-            slug: vehicle["slug"] ?? "",
-            ["anunci-destacat"]: vehicle["anunci-destacat"] !== undefined ? String(vehicle["anunci-destacat"]) : "",
-            ["imatge-destacada-url"]: vehicle["imatge-destacada-url"] ?? "",
-            ["anunci-actiu"]: vehicle["anunci-actiu"] !== undefined ? String(vehicle["anunci-actiu"]) : undefined,
-            venut: vehicle["venut"] !== undefined ? String(vehicle["venut"]) : undefined
-          };
-          return (
-            <div
-              key={vehicle.id}
-              className="w-full max-w-xs flex-shrink-0"
-              style={{ flex: `0 0 ${100 / visibleCount}%` }}
-            >
-              <VehicleCard vehicle={uiVehicle} onUserAction={pauseAutoplay} />
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
-  return (
-    <section className="py-12 bg-tertiary w-full">
-      <div className="container mx-auto px-0 w-full relative flex flex-col items-center">
-        <h2 className="text-2xl font-bold text-center mb-2 text-primary">Vehículos Destacados</h2>
-        <p className="text-center mb-6 text-primary">
-          Los mejores vehículos seleccionados por nuestros profesionales
-        </p>
-        {/* Flechas fuera del contenedor principal, alineadas a los extremos */}
-        {!loading && (
-          <button
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-primary text-white rounded-full p-2 shadow-lg hover:bg-secondary transition disabled:opacity-30"
-            onClick={handlePrev}
-            disabled={vehicles.length <= visibleCount}
-            aria-label="Anterior"
-            style={{ marginLeft: '-32px' }}
-          >
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" /></svg>
-          </button>
-        )}
-        <div
-          className="w-full flex justify-center items-center overflow-hidden px-4"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-          style={{ maxWidth: '100%' }}
-        >
-          {renderCards()}
-        </div>
-        {!loading && (
-          <button
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-primary text-white rounded-full p-2 shadow-lg hover:bg-secondary transition disabled:opacity-30"
-            onClick={handleNext}
-            disabled={vehicles.length <= visibleCount}
-            aria-label="Siguiente"
-            style={{ marginRight: '-32px' }}
-          >
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" /></svg>
-          </button>
-        )}
-        {/* Dots de navegación ocultos */}
-        {/* {totalGroups > 1 && (
-          <div className="flex justify-center gap-2 mt-4">
-            {Array.from({ length: totalGroups }).map((_, idx) => (
-              <button
-                key={idx}
-                className={`w-3 h-3 rounded-full ${idx === currentIndex ? 'bg-primary' : 'bg-gray-300'} transition`}
-                onClick={() => setCurrentIndex(idx)}
-                aria-label={`Ir al grupo ${idx + 1}`}
-              />
+      <section className="py-12 w-full">
+        <div className="container mx-auto px-0 w-full">
+          <h2 className="text-4xl font-bold text-center mb-8 text-white">Vehicles Destacats</h2>
+          <div className="flex gap-6 overflow-hidden px-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="flex-shrink-0 w-[calc(25%-18px)]">
+                <VehicleCardSkeleton />
+              </div>
             ))}
           </div>
-        )} */}
+        </div>
+      </section>
+    );
+  }
+
+  if (vehicles.length === 0) {
+    return (
+      <section className="py-12 w-full">
+        <div className="container mx-auto px-0 w-full">
+          <h2 className="text-4xl font-bold text-center mb-8 text-white">Vehicles Destacats</h2>
+          <div className="text-center py-8 text-white">
+            No hi ha vehicles destacats en aquest moment.
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="py-12 w-full">
+      <div className="container mx-auto px-0 w-full relative">
+        <h2 className="text-4xl font-bold text-center mb-8 text-white">Vehicles Destacats</h2>
+        
+        <div className="relative px-4">
+          {/* Botones de navegación personalizados */}
+          <div className="swiper-button-prev-custom absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-primary text-white rounded-full p-2 shadow-lg hover:bg-secondary transition-all cursor-pointer" style={{ marginLeft: '-32px' }}>
+            <ChevronLeft className="w-5 h-5" />
+          </div>
+          
+          <div className="swiper-button-next-custom absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-primary text-white rounded-full p-2 shadow-lg hover:bg-secondary transition-all cursor-pointer" style={{ marginRight: '-32px' }}>
+            <ChevronRight className="w-5 h-5" />
+          </div>
+
+          <Swiper
+            modules={[Navigation, Pagination, Autoplay]}
+            spaceBetween={24}
+            slidesPerView={1}
+            loop={true}
+            autoplay={{
+              delay: 4000,
+              disableOnInteraction: false,
+              pauseOnMouseEnter: true,
+            }}
+            navigation={{
+              prevEl: '.swiper-button-prev-custom',
+              nextEl: '.swiper-button-next-custom',
+            }}
+            breakpoints={{
+              640: {
+                slidesPerView: 1,
+                spaceBetween: 24,
+              },
+              1024: {
+                slidesPerView: 2,
+                spaceBetween: 24,
+              },
+              1280: {
+                slidesPerView: 4,
+                spaceBetween: 24,
+              },
+            }}
+            className="featured-vehicles-swiper"
+          >
+            {vehicles.map((vehicle) => {
+              const uiVehicle = {
+                id: String(vehicle.id),
+                ["titol-anunci"]: vehicle["titol-anunci"] ?? "",
+                ["descripcio-anunci"]: vehicle["descripcio-anunci"] ?? "",
+                ["marques-cotxe"]: vehicle["marques-cotxe"] ?? "",
+                ["models-cotxe"]: vehicle["models-cotxe"] ?? "",
+                ["estat-vehicle"]: vehicle["estat-vehicle"] ?? "",
+                any: vehicle["any"] ?? "",
+                quilometratge: vehicle["quilometratge"] !== undefined && vehicle["quilometratge"] !== null ? String(vehicle["quilometratge"]) : "",
+                preu: vehicle["preu"] !== undefined && vehicle["preu"] !== null ? String(vehicle["preu"]) : "",
+                ["color-vehicle"]: vehicle["color-vehicle"] ?? "",
+                ["tipus-combustible"]: vehicle["tipus-combustible"] ?? "",
+                ["potencia-cv"]: vehicle["potencia-cv"] !== undefined && vehicle["potencia-cv"] !== null ? String(vehicle["potencia-cv"]) : "",
+                slug: vehicle["slug"] ?? "",
+                ["anunci-destacat"]: vehicle["anunci-destacat"] !== undefined ? String(vehicle["anunci-destacat"]) : "",
+                ["imatge-destacada-url"]: vehicle["imatge-destacada-url"] ?? "",
+                ["anunci-actiu"]: vehicle["anunci-actiu"] !== undefined ? String(vehicle["anunci-actiu"]) : undefined,
+                venut: vehicle["venut"] !== undefined ? String(vehicle["venut"]) : undefined
+              };
+
+              return (
+                <SwiperSlide key={vehicle.id}>
+                  <VehicleCard vehicle={uiVehicle} />
+                </SwiperSlide>
+              );
+            })}
+          </Swiper>
+        </div>
       </div>
+      
     </section>
   );
 };
 
-export default FeaturedVehicles; 
+export default FeaturedVehicles;

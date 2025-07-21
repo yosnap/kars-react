@@ -6,6 +6,13 @@ import { useFavorites } from "../hooks/useFavorites";
 import { useToast } from "../hooks/use-toast";
 import React from "react";
 
+// Función para decodificar entidades HTML
+const decodeHtmlEntities = (text: string) => {
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = text;
+  return textarea.value;
+};
+
 // Tipo visual para tarjetas de vehículo
 export interface VehicleUI {
   id: string;
@@ -19,6 +26,7 @@ export interface VehicleUI {
   preu?: string;
   "color-vehicle"?: string;
   "tipus-combustible"?: string;
+  "potencia-cv"?: string;
   slug?: string;
   "anunci-actiu"?: string;
   venut?: string;
@@ -30,6 +38,7 @@ interface VehicleListCardProps {
   vehicle: VehicleUI;
   onUserAction?: () => void;
   searchQuery?: string;
+  showSoldButton?: boolean;
 }
 
 function highlightText(text: string, query?: string) {
@@ -40,7 +49,7 @@ function highlightText(text: string, query?: string) {
   );
 }
 
-const VehicleListCard = ({ vehicle, onUserAction, searchQuery }: VehicleListCardProps) => {
+const VehicleListCard = ({ vehicle, onUserAction, searchQuery, showSoldButton = false }: VehicleListCardProps) => {
   const navigate = useNavigate();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { showToast } = useToast();
@@ -67,7 +76,7 @@ const VehicleListCard = ({ vehicle, onUserAction, searchQuery }: VehicleListCard
     const wasFavorite = isFavorite(String(vehicle.id));
     toggleFavorite(String(vehicle.id));
     showToast(
-      wasFavorite ? "Eliminado de favoritos" : "Añadido a favoritos",
+      wasFavorite ? "Eliminat de favorits" : "Afegit a favorits",
       wasFavorite ? "info" : "success"
     );
   };
@@ -108,7 +117,7 @@ const VehicleListCard = ({ vehicle, onUserAction, searchQuery }: VehicleListCard
             </div>
             <img
               src={vehicle["imatge-destacada-url"]}
-              alt={vehicle["titol-anunci"]}
+              alt={decodeHtmlEntities(vehicle["titol-anunci"] ?? "")}
               className="w-full h-full object-cover"
             />
           </div>
@@ -125,8 +134,8 @@ const VehicleListCard = ({ vehicle, onUserAction, searchQuery }: VehicleListCard
                   </Link>
                 )}
                 <h3 className="font-semibold text-xl truncate" style={{ lineHeight: '1.2' }}>
-                  <span onClick={handleViewMore} style={{ cursor: 'pointer' }} title={vehicle["titol-anunci"]}>
-                    {highlightText(vehicle["titol-anunci"] ?? "", searchQuery ?? "")}
+                  <span onClick={handleViewMore} style={{ cursor: 'pointer' }} title={decodeHtmlEntities(vehicle["titol-anunci"] ?? "")}>
+                    {highlightText(decodeHtmlEntities(vehicle["titol-anunci"] ?? ""), searchQuery ?? "")}
                   </span>
                 </h3>
                 <p className="text-gray-600 text-sm line-clamp-2" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} dangerouslySetInnerHTML={{ __html: highlightText(vehicle["descripcio-anunci"] ?? "", searchQuery) }} />
@@ -153,10 +162,14 @@ const VehicleListCard = ({ vehicle, onUserAction, searchQuery }: VehicleListCard
                   <Gauge className="w-4 h-4" />
                   <span>{formatKilometers(vehicle["quilometratge"] ?? "")} </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Fuel className="w-4 h-4" />
-                  <span>{vehicle["tipus-combustible"]}</span>
-                </div>
+                {vehicle["potencia-cv"] && (
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd"/>
+                    </svg>
+                    <span>{vehicle["potencia-cv"]} cv</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <Palette className="w-4 h-4" />
                   <span>{vehicle["color-vehicle"]}</span>
@@ -165,9 +178,13 @@ const VehicleListCard = ({ vehicle, onUserAction, searchQuery }: VehicleListCard
               {/* Botón */}
               <button 
                 onClick={handleViewMore}
-                className="bg-primary hover:bg-secondary text-white py-2 px-6 rounded-lg font-medium transition-colors ml-2"
+                className={`py-2 px-6 rounded-lg font-medium transition-colors ml-2 ${
+                  showSoldButton 
+                    ? "bg-black text-white hover:bg-primary" 
+                    : "bg-primary hover:bg-secondary text-white"
+                }`}
               >
-                Veure més
+                {showSoldButton ? "Venut" : "Veure més"}
               </button>
             </div>
           </div>

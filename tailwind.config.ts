@@ -19,6 +19,9 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				'sans': ['Roboto', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -26,11 +29,11 @@ export default {
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
 				primary: {
-					DEFAULT: '#F57C0B',
+					DEFAULT: '#ff0000',
 					foreground: '#FFFFFF'
 				},
 				secondary: {
-					DEFAULT: '#DE4C02',
+					DEFAULT: '#cc0000',
 					foreground: '#FFFFFF'
 				},
 				tertiary: {

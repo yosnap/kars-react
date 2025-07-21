@@ -9,6 +9,7 @@ export default function CotxesDeSegonaMaAAndorra() {
       ]}
       initialFilters={{ "estat-vehicle": "ocasio", "anunci-actiu": true }}
       lockedStateValue="ocasio"
+      hideFilters={true}
     />
   );
 } 

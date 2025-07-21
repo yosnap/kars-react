@@ -6,6 +6,9 @@ import VehicleDetail from "./pages/VehicleDetail";
 import NewVehicle from "./pages/NewVehicle";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import AdminDashboard from "./pages/Admin/AdminDashboard";
+import SystemInfo from "./pages/Admin/SystemInfo";
+import KarsVehicles from "./pages/Admin/KarsVehicles";
 import { useAuth } from "./context/AuthContext";
 import Header from "./components/Header";
 import CotxesAndorra from "./pages/CotxesAndorra";
@@ -17,7 +20,12 @@ import CotxesKm0AAndorra from "./pages/cotxes-km0-a-andorra";
 import CotxesLloguerPage from "./pages/cotxes-lloguer-a-andorra";
 import CotxesClassicsPage from "./pages/cotxes-classics-a-andorra";
 import CotxesRentingPage from "./pages/cotxes-renting-a-andorra";
-import FavoritosPage from "./pages/favoritos";
+import FavoritosPage from "./pages/favorits";
+import UltimesVendes from "./pages/UltimesVendes";
+import QuiSom from "./pages/QuiSom";
+import Taller from "./pages/Taller";
+import Serveis from "./pages/Serveis";
+import Contacta from "./pages/Contacta";
 import ProfessionalProfile from "./pages/ProfessionalProfile";
 import VehicleListLayout from "./layouts/VehicleListLayout";
 import SearchModal from "./components/SearchModal";
@@ -68,8 +76,10 @@ function App() {
       if (searchTerm) params["search"] = searchTerm;
       const res = await axiosAdmin.get("/vehicles", { params });
       const items = Array.isArray(res.data.items) ? res.data.items : [];
+      console.log('Search results:', { params, total: res.data.total, itemsCount: items.length });
       setSearchResults(items);
-    } catch {
+    } catch (error) {
+      console.error('Search error:', error);
       setSearchResults([]);
     } finally {
       setIsLoading(false);
@@ -98,8 +108,13 @@ function App() {
           <Route path="/professional/:id" element={<ProfessionalProfile />} />
           <Route path="/new" element={<NewVehicle />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/vehicles-andorra" element={<CotxesAndorra />} />
-          <Route path="/favoritos" element={<FavoritosPage />} />
+          <Route path="/vehicles" element={<CotxesAndorra />} />
+          <Route path="/favorits" element={<FavoritosPage />} />
+          <Route path="/ultimes-vendes" element={<UltimesVendes />} />
+          <Route path="/qui-som" element={<QuiSom />} />
+          <Route path="/taller" element={<Taller />} />
+          <Route path="/serveis" element={<Serveis />} />
+          <Route path="/contacta" element={<Contacta />} />
           {/* Subpages for vehicle states */}
           <Route path="/cotxes-nous-a-andorra" element={<CotxesNousPage />} />
           <Route path="/cotxes-seminous-a-andorra" element={<CotxesSeminousPage />} />
@@ -110,6 +125,11 @@ function App() {
           <Route path="/cotxes-renting-a-andorra" element={<CotxesRentingPage />} />
           {/* Ruta privada para dashboard */}
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          {/* Rutas para admin dashboard */}
+          <Route path="/admin" element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
+          <Route path="/admin/kars-vehicles" element={<PrivateRoute><KarsVehicles /></PrivateRoute>} />
+          <Route path="/admin/system-info" element={<PrivateRoute><SystemInfo /></PrivateRoute>} />
+          <Route path="/admin/logs" element={<PrivateRoute><SystemInfo /></PrivateRoute>} />
           {/* Ruta dinámica para estado de vehículo */}
           <Route path="/estat-vehicle/:slug" element={<EstatVehiclePage />} />
         </Routes>

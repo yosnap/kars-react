@@ -9,6 +9,7 @@ export default function CotxesSeminousAAndorra() {
       ]}
       initialFilters={{ "estat-vehicle": "seminou", "anunci-actiu": true }}
       lockedStateValue="seminou"
+      hideFilters={true}
     />
   );
 } 

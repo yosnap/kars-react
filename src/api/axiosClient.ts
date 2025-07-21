@@ -11,6 +11,8 @@ function getBasicAuthHeader(username: string, password: string) {
 const USER = import.meta.env.VITE_API_ADMIN_USER;
 const PASS = import.meta.env.VITE_API_ADMIN_PASS;
 
+// Configuración completada correctamente
+
 // Cliente Axios configurable
 export function createAxiosClient(username: string, password: string) {
   return axios.create({
@@ -22,4 +24,6 @@ export function createAxiosClient(username: string, password: string) {
 }
 
 // Cliente por defecto (admin, para Home) usando datos hardcodeados
-export const axiosAdmin = createAxiosClient(USER, PASS); 
+export const axiosAdmin = USER && PASS ? createAxiosClient(USER, PASS) : axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+}); 

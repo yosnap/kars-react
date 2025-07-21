@@ -1,6 +1,6 @@
 import * as React from "react";
 
-// Icono estrella para favoritos
+// Icona estrella per a favorits
 const StarIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
     width={24}

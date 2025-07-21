@@ -6,55 +6,32 @@ import { axiosAdmin } from "../api/axiosClient";
 interface Professional {
   id: number | string;
   name?: string;
-  "nom-empresa"?: string;
+  company?: string;
   role?: string;
-  active_vehicles?: number;
+  vehicleCount?: number;
+  avatar?: string;
+  logoEmpresa?: string;
+  logoEmpresaHome?: string;
 }
 
 const ProfessionalsSection = () => {
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  // Estado para los logos individuales
-  const [logos, setLogos] = useState<Record<string, string>>(/* id -> url */ {});
-  const [loadingLogos, setLoadingLogos] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     setLoading(true);
-    axiosAdmin.get("/sellers")
+    
+    axiosAdmin.get("/sellers?limit=50")
       .then(res => {
         const data = Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data?.items) ? res.data.items : []);
-        // Filtrar solo profesionales
-        setProfessionals(data.filter((p: Professional) => p.role === "professional"));
+        setProfessionals(data);
       })
-      .catch(() => setError("Error al cargar profesionales"))
+      .catch(() => {
+        setError("Error al cargar profesionales");
+      })
       .finally(() => setLoading(false));
   }, []);
-
-  // Carga individual de logos
-  useEffect(() => {
-    professionals.forEach((professional) => {
-      const id = String(professional.id);
-      if (logos[id] || loadingLogos[id]) return; // Ya cargado o en proceso
-      setLoadingLogos(prev => ({ ...prev, [id]: true }));
-      axiosAdmin.get(`/sellers?user_id=${id}`)
-        .then(res => {
-          let seller = null;
-          if (Array.isArray(res.data?.data)) {
-            seller = res.data.data.length > 0 ? res.data.data[0] : null;
-          } else if (res.data?.data && typeof res.data.data === 'object') {
-            seller = res.data.data;
-          }
-          const logo = seller?.["logo-empresa-home"] || seller?.["logo-empresa"] || "";
-          if (logo) {
-            setLogos(prev => ({ ...prev, [id]: logo }));
-          }
-        })
-        .catch(() => {})
-        .finally(() => setLoadingLogos(prev => ({ ...prev, [id]: false })));
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [professionals]);
 
   return (
     <section className="py-12 bg-primary/5">
@@ -66,10 +43,10 @@ const ProfessionalsSection = () => {
           {error && <div className="text-red-600">{error}</div>}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-6">
             {professionals.map((professional) => {
-              const id = String(professional.id);
-              const name = professional["nom-empresa"] || professional.name || "";
-              const logo = logos[id] || "";
-              const isLoadingLogo = loadingLogos[id];
+              const name = professional.company || professional.name || "";
+              const logo = professional.logoEmpresaHome || professional.logoEmpresa || professional.avatar || "";
+              const vehicleCount = professional.vehicleCount || 0;
+              
               return (
                 <Link
                   to={`/professional/${professional.id}`}
@@ -78,9 +55,7 @@ const ProfessionalsSection = () => {
                   style={{ minHeight: 140 }}
                 >
                   <Avatar className="w-16 h-16 mb-3 bg-gray-100 group-hover:bg-primary/10 border border-primary/10 group-hover:border-primary transition-colors">
-                    {isLoadingLogo ? (
-                      <span className="w-full h-full flex items-center justify-center animate-pulse text-xs text-gray-400">Cargando...</span>
-                    ) : logo ? (
+                    {logo ? (
                       <AvatarImage src={logo} alt={name} className="object-contain" />
                     ) : (
                       <AvatarFallback>{name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
@@ -89,8 +64,8 @@ const ProfessionalsSection = () => {
                   <h3 className="text-sm font-medium text-primary group-hover:underline transition-colors">
                     {name}
                   </h3>
-                  {typeof professional.active_vehicles === 'number' && professional.active_vehicles > 0 && (
-                    <span className="text-xs text-primary mt-1">{professional.active_vehicles} vehículos</span>
+                  {vehicleCount > 0 && (
+                    <span className="text-xs text-primary mt-1">{vehicleCount} vehículos</span>
                   )}
                 </Link>
               );

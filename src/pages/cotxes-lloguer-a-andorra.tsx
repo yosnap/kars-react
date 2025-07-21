@@ -9,6 +9,7 @@ export default function CotxesLloguerAAndorra() {
       ]}
       initialFilters={{ "estat-vehicle": "lloguer", "anunci-actiu": true }}
       lockedStateValue="lloguer"
+      hideFilters={true}
     />
   );
 } 

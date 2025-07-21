@@ -9,6 +9,7 @@ export default function CotxesKm0AAndorra() {
       ]}
       initialFilters={{ "estat-vehicle": "km0-gerencia", "anunci-actiu": true }}
       lockedStateValue="km0-gerencia"
+      hideFilters={true}
     />
   );
 } 

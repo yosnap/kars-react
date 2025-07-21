@@ -9,6 +9,7 @@ export default function CotxesNousAAndorra() {
       ]}
       initialFilters={{ "estat-vehicle": "nou" }}
       lockedStateValue="nou"
+      hideFilters={true}
     />
   );
 } 

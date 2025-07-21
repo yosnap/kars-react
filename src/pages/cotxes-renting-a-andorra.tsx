@@ -9,6 +9,7 @@ export default function CotxesRentingAAndorra() {
       ]}
       initialFilters={{ "estat-vehicle": "renting", "anunci-actiu": true }}
       lockedStateValue="renting"
+      hideFilters={true}
     />
   );
 } 

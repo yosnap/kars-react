@@ -5,6 +5,18 @@ export type Vehicle = {
   id: string;
   "titol-anunci"?: string;
   "descripcio-anunci"?: string;
+  
+  // Multilingual descriptions
+  "descripcio-anunci-ca"?: string; // Catalan (primary)
+  "descripcio-anunci-en"?: string; // English
+  "descripcio-anunci-fr"?: string; // French
+  "descripcio-anunci-es"?: string; // Spanish
+  
+  // Sync fields for Motoraldia integration
+  "needs-sync"?: boolean; // Flag for pending sync
+  "motoraldia-vehicle-id"?: string; // ID in Motoraldia after sync
+  "sync-error"?: string; // Last sync error message
+  "synced-to-motoraldia-at"?: string; // When pushed to Motoraldia
   "marques-cotxe"?: string;
   "models-cotxe"?: string;
   "versio"?: string;

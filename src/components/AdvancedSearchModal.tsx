@@ -438,7 +438,7 @@ const AdvancedSearchModal = ({ isOpen, onOpenChange, facets = {}, onFacetsUpdate
       }
     });
     const queryString = searchParams.toString();
-    const resultsUrl = queryString ? `/vehicles-andorra?${queryString}` : "/vehicles-andorra";
+    const resultsUrl = queryString ? `/vehicles?${queryString}` : "/vehicles";
     navigate(resultsUrl);
     onOpenChange(false);
   };

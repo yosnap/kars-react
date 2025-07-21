@@ -9,6 +9,7 @@ export default function CotxesClassicsAAndorra() {
       ]}
       initialFilters={{ "estat-vehicle": "classic", "anunci-actiu": true }}
       lockedStateValue="classic"
+      hideFilters={true}
     />
   );
 } 

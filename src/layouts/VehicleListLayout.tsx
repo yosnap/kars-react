@@ -24,6 +24,9 @@ interface VehicleListLayoutProps {
   disableBaseQuery?: boolean; // Si true, no añade anunci-actiu ni venut
   customEndpoint?: string; // Nuevo prop para endpoint personalizado
   lockedStateValue?: string; // Nuevo prop para bloquear el select de estado
+  hideFilters?: boolean; // Nuevo prop para ocultar los filtros
+  showSoldButton?: boolean; // Nuevo prop para mostrar botón "Venut" en lugar de "Veure vehicle"
+  defaultSortBy?: string; // Ordenación por defecto
   // basePath?: string;
 }
 
@@ -65,6 +68,9 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
   disableBaseQuery = false,
   customEndpoint,
   lockedStateValue,
+  hideFilters = false, // Por defecto, mostrar filtros (compatibilidad)
+  showSoldButton = false, // Por defecto, no mostrar botón vendido
+  defaultSortBy = "date_desc", // Por defecto, orden por fecha descendente
   // basePath = "/vehicles-andorra",
 }) => {
   const filters = useQueryParams();
@@ -78,7 +84,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [itemsPerPage, setItemsPerPage] = useState(12);
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortBy, setSortBy] = useState("date_desc");
+  const [sortBy, setSortBy] = useState(defaultSortBy);
 
   // Estado para las marcas (brands) para los breadcrumbs
   const [brands, setBrands] = useState<{ value: string; label: string }[]>([]);
@@ -99,7 +105,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
       // Elimina sortBy y order de los filtros antes de enviar a la API
       const { sortBy: _sortByFilter, order: _orderFilter, ...filtersWithoutSortBy } = filters;
       const params: Record<string, string | number | boolean> = {
-        ...(!disableBaseQuery ? { "anunci-actiu": true } : {}),
+        ...(!disableBaseQuery ? { "anunci-actiu": "true", "venut": "false" } : {}),
         orderby: orderParams.orderby,
         ...(orderParams.order ? { order: orderParams.order } : {}),
         ...initialFilters,
@@ -108,9 +114,13 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
         per_page: itemsPerPage,
       };
       const endpoint = customEndpoint || "/vehicles";
+      
+      
       axiosAdmin.get(endpoint, { params })
         .then(res => {
+          console.log('✅ API Response received:', res.status, res.data);
           const items = res.data.items || [];
+          console.log('📦 Items extracted:', items.length, 'items');
           // NO filtrar ya que el backend debería hacerlo
           const activos = items;
           console.log('Order params:', sortBy, orderParams);
@@ -124,7 +134,11 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
           setTotalItems(res.data.total || 0);
           setTotalPages(res.data.pages || 1);
         })
-        .catch(() => setError("Error al cargar vehículos"))
+        .catch(err => {
+          console.error('❌ API Error:', err);
+          console.error('❌ Error response:', err.response);
+          setError("Error al cargar vehículos");
+        })
         .finally(() => setLoading(false));
     });
   }, [filters, initialFilters, currentPage, itemsPerPage, sortBy, disableBaseQuery, customEndpoint]);
@@ -145,11 +159,11 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
 
   // Sincroniza sortBy con la URL
   useEffect(() => {
-    const sortByFromQuery = filters.sortBy || "date_desc";
+    const sortByFromQuery = filters.sortBy || defaultSortBy;
     if (sortByFromQuery !== sortBy) {
       setSortBy(sortByFromQuery);
     }
-  }, [filters.sortBy]);
+  }, [filters.sortBy, defaultSortBy]);
 
   // Cambiar orden y sincronizar con la URL
   const handleSortByChange = useCallback((value: string) => {
@@ -229,7 +243,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
     if (loading && vehicles.length === 0) {
       if (viewMode === "grid") {
         return (
-          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6`}>
+          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6`}>
             {[...Array(itemsPerPage)].map((_, i) => (
               <VehicleCardSkeleton key={i} />
             ))}
@@ -261,66 +275,79 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
     return (
       <div className={
         viewMode === "grid"
-          ? `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6`
+          ? `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6`
           : "space-y-4"
       }>
         {vehiclesUI.map((v) =>
           viewMode === "grid"
-            ? <VehicleCard key={v.id} vehicle={v} />
-            : <VehicleListCard key={v.id} vehicle={v} />
+            ? <VehicleCard key={v.id} vehicle={v} showSoldButton={showSoldButton} />
+            : <VehicleListCard key={v.id} vehicle={v} showSoldButton={showSoldButton} />
         )}
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Breadcrumbs siempre en una columna y ancho completo */}
-      {breadcrumbs.length > 0 && (
-        <PageBreadcrumbs
-          items={breadcrumbs.map(b => ({
-            ...b,
-            label: {
-              ca: b.label.ca ?? "",
-              es: b.label.es ?? "",
-              en: b.label.en ?? "",
-              fr: b.label.fr ?? ""
-            }
-          }))}
-          brands={brands}
-        />
-      )}
-      <div className="container mx-auto px-4 py-8 flex flex-col md:flex-row gap-8">
-        {/* Sidebar de filtros */}
-        <aside className="w-full md:w-72 flex-shrink-0 mb-8 md:mb-0">
-          <div className="bg-white border border-gray-200 shadow-lg rounded-2xl p-6 sticky top-8">
-            <h2 className="text-xl font-bold mb-4">Filtrar vehículos</h2>
-            <VehicleFilters
-              key={lockedStateValue ? `locked-${lockedStateValue}` : JSON.stringify(filtersForVehicleFilters)}
-              initialFilters={filtersForVehicleFilters}
-              onApply={handleApplyFilters}
-              lockedStateValue={lockedStateValue}
+    <div className="min-h-screen">
+      <div className="container mx-auto px-4 py-8">
+
+        {/* Migas de pan minimalistas */}
+        {breadcrumbs.length > 0 && (
+          <div className="mb-4 text-white [&_*]:!text-white [&_a]:!text-white [&_a]:hover:!text-primary [&_.text-primary]:!text-primary [&_[aria-current='page']]:!text-primary">
+            <PageBreadcrumbs
+              items={breadcrumbs.map(b => ({
+                ...b,
+                label: {
+                  ca: b.label.ca ?? "",
+                  es: b.label.es ?? "",
+                  en: b.label.en ?? "",
+                  fr: b.label.fr ?? ""
+                }
+              }))}
+              brands={brands}
             />
           </div>
-        </aside>
+        )}
+
+        {/* Título de la página */}
+        <div className="mb-6">
+          <h1 className="text-4xl font-bold text-white text-center">{pageTitle}</h1>
+        </div>
+        
+        {/* Contenido principal */}
+        <div className="flex flex-col md:flex-row gap-8">
+        {/* Sidebar de filtros - Oculto si hideFilters es true */}
+        {!hideFilters && (
+          <aside className="w-full md:w-72 flex-shrink-0 mb-8 md:mb-0">
+            <div className="bg-gray-800/90 backdrop-blur-sm rounded-xl p-6 sticky top-8 text-white shadow-lg border border-gray-700/30">
+              <h2 className="text-xl font-bold mb-4 text-white">Filtrar vehículos</h2>
+              <VehicleFilters
+                key={lockedStateValue ? `locked-${lockedStateValue}` : JSON.stringify(filtersForVehicleFilters)}
+                initialFilters={filtersForVehicleFilters}
+                onApply={handleApplyFilters}
+                lockedStateValue={lockedStateValue}
+              />
+            </div>
+          </aside>
+        )}
         {/* Listado de vehículos */}
-        <main className="flex-1">
-          {pageTitle && <h1 className="text-2xl font-bold mb-4">{pageTitle}</h1>}
-          {/* Controles de vista y paginación */}
-          <div className="mb-4">
-            <ListViewControls
-              viewMode={viewMode}
-              onViewModeChange={handleViewModeChange}
-              itemsPerPage={itemsPerPage}
-              onItemsPerPageChange={handleItemsPerPageChange}
-              sortBy={sortBy}
-              onSortByChange={handleSortByChange}
-              currentPage={currentPage}
-              totalItems={totalItems}
-              startIndex={startIndex}
-              endIndex={endIndex}
-            />
-          </div>
+        <main className={hideFilters ? "w-full" : "flex-1"}>
+          <div>
+            {/* Controles de vista y paginación */}
+            <div className="mb-4">
+              <ListViewControls
+                viewMode={viewMode}
+                onViewModeChange={handleViewModeChange}
+                itemsPerPage={itemsPerPage}
+                onItemsPerPageChange={handleItemsPerPageChange}
+                sortBy={sortBy}
+                onSortByChange={handleSortByChange}
+                currentPage={currentPage}
+                totalItems={totalItems}
+                startIndex={startIndex}
+                endIndex={endIndex}
+              />
+            </div>
           {/* Fila de filtros aplicados y botón quitar filtros (solo si hay filtros activos) */}
           <div className="mb-6 flex flex-wrap gap-2 items-center min-h-[40px]">
             {(() => {
@@ -388,8 +415,8 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
                     <button
                       className={`flex items-center justify-center h-10 px-4 text-sm font-medium transition-colors border rounded-md gap-1 ${
                         currentPage <= 1 
-                          ? 'pointer-events-none opacity-50 bg-background text-foreground border-input' 
-                          : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
+                          ? 'pointer-events-none opacity-50 bg-gray-800 text-gray-500 border-gray-700' 
+                          : 'bg-gray-800 text-white border-gray-700 hover:bg-gray-700 hover:text-white'
                       }`}
                       onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
                       disabled={currentPage <= 1}
@@ -397,7 +424,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
                       <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="m15 18-6-6 6-6"/>
                       </svg>
-                      <span>Previous</span>
+                      <span>Anterior</span>
                     </button>
                   </PaginationItem>
                   {/* Números de página: sistema mejorado con inicio, fin y puntos suspensivos */}
@@ -415,8 +442,8 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
                           <button
                             className={`flex items-center justify-center h-10 px-4 text-sm font-medium transition-colors border rounded-md ${
                               currentPage === 1 
-                                ? 'bg-primary text-primary-foreground border-primary' 
-                                : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
+                                ? 'bg-primary text-white border-primary' 
+                                : 'bg-gray-800 text-white border-gray-700 hover:bg-gray-700'
                             }`}
                             onClick={() => handlePageChange(1)}
                           >
@@ -440,8 +467,8 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
                             <button
                               className={`flex items-center justify-center h-10 px-4 text-sm font-medium transition-colors border rounded-md ${
                                 currentPage === i 
-                                  ? 'bg-primary text-primary-foreground border-primary' 
-                                  : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
+                                  ? 'bg-primary text-white border-primary' 
+                                  : 'bg-gray-800 text-white border-gray-700 hover:bg-gray-700'
                               }`}
                               onClick={() => handlePageChange(i)}
                             >
@@ -465,8 +492,8 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
                           <button
                             className={`flex items-center justify-center h-10 px-4 text-sm font-medium transition-colors border rounded-md ${
                               currentPage === totalPages 
-                                ? 'bg-primary text-primary-foreground border-primary' 
-                                : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
+                                ? 'bg-primary text-white border-primary' 
+                                : 'bg-gray-800 text-white border-gray-700 hover:bg-gray-700'
                             }`}
                             onClick={() => handlePageChange(totalPages)}
                           >
@@ -481,13 +508,13 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
                     <button
                       className={`flex items-center justify-center h-10 px-4 text-sm font-medium transition-colors border rounded-md gap-1 ${
                         currentPage >= totalPages 
-                          ? 'pointer-events-none opacity-50 bg-background text-foreground border-input' 
-                          : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
+                          ? 'pointer-events-none opacity-50 bg-gray-800 text-gray-500 border-gray-700' 
+                          : 'bg-gray-800 text-white border-gray-700 hover:bg-gray-700 hover:text-white'
                       }`}
                       onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
                       disabled={currentPage >= totalPages}
                     >
-                      <span>Next</span>
+                      <span>Següent</span>
                       <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="m9 18 6-6-6-6"/>
                       </svg>
@@ -497,7 +524,9 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
               </Pagination>
             )}
           </div>
+          </div>
         </main>
+        </div>
       </div>
       <Footer />
     </div>
