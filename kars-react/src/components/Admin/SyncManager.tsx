@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { 
   RefreshCw, 
   Download, 
@@ -9,7 +9,9 @@ import {
   XCircle,
   AlertCircle,
   Activity,
-  Settings
+  Settings,
+  Upload,
+  FileText
 } from 'lucide-react'
 import { axiosAdmin } from '../../api/axiosClient'
 
@@ -63,6 +65,8 @@ export default function SyncManager() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState('')
   const [showConfig, setShowConfig] = useState(false)
+  const [importResult, setImportResult] = useState<any>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     loadData()
@@ -133,6 +137,59 @@ export default function SyncManager() {
       alert('Error al iniciar sincronización incremental')
     } finally {
       setActionLoading('')
+    }
+  }
+
+  const handleImportJSON = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || file.type !== 'application/json') {
+      alert('Por favor selecciona un archivo JSON válido')
+      return
+    }
+
+    console.log('📁 Archivo seleccionado:', file.name, 'Tamaño:', file.size)
+    setActionLoading('import')
+    setImportResult(null)
+
+    try {
+      const fileText = await file.text()
+      console.log('📄 Contenido del archivo leído, primeros 200 caracteres:', fileText.substring(0, 200))
+      
+      const vehiclesData = JSON.parse(fileText)
+      console.log('🚗 Vehículos encontrados en el archivo:', vehiclesData.length)
+
+      if (!Array.isArray(vehiclesData)) {
+        throw new Error('El JSON debe contener un array de vehículos')
+      }
+
+      console.log('📡 Enviando datos a la API...')
+      const response = await axiosAdmin.post('/vehicles/import-json', {
+        vehiclesData,
+        clearDatabase: false
+      })
+
+      console.log('📨 Respuesta de la API:', response.data)
+
+      if (response.data.success) {
+        setImportResult(response.data.data)
+        alert(`Importación completada: ${response.data.data.imported} vehículos importados, ${response.data.data.skipped} omitidos`)
+        await loadData() // Recargar los logs
+      } else {
+        throw new Error(response.data.error || 'Error desconocido')
+      }
+
+    } catch (error) {
+      console.error('Error importing JSON:', error)
+      alert(`Error al importar JSON: ${(error as Error).message}`)
+    } finally {
+      setActionLoading('')
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     }
   }
 
@@ -316,7 +373,7 @@ export default function SyncManager() {
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h2 className="text-lg font-medium text-gray-900 mb-4">Acciones</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
             onClick={handleManualSync}
             disabled={syncStatus?.isRunning || actionLoading === 'manual' || !config.motoraldiaApiUrl}
@@ -341,7 +398,7 @@ export default function SyncManager() {
           <button
             onClick={handleIncrementalSync}
             disabled={syncStatus?.isRunning || actionLoading === 'incremental' || !config.motoraldiaApiUrl}
-            className="flex items-center justify-center space-x-3 px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg transition-colors"
+            className="flex items-center justify-center space-x-3 px-6 py-4 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white rounded-lg transition-colors"
           >
             {actionLoading === 'incremental' ? (
               <>
@@ -358,7 +415,58 @@ export default function SyncManager() {
               </>
             )}
           </button>
+
+          <button
+            onClick={handleImportJSON}
+            disabled={syncStatus?.isRunning || actionLoading === 'import'}
+            className="flex items-center justify-center space-x-3 px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg transition-colors"
+          >
+            {actionLoading === 'import' ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <span>Importando...</span>
+              </>
+            ) : (
+              <>
+                <Upload className="h-5 w-5" />
+                <div className="text-left">
+                  <div className="font-medium">Importar desde JSON</div>
+                  <div className="text-sm opacity-90">Subir archivo JSON</div>
+                </div>
+              </>
+            )}
+          </button>
         </div>
+
+        {/* Input file oculto */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+
+        {/* Resultado de importación */}
+        {importResult && (
+          <div className="mt-4 p-4 bg-green-50 rounded-lg">
+            <h4 className="font-medium text-green-900 mb-2">Resultado de Importación JSON</h4>
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div>
+                <span className="text-green-600 font-medium">{importResult.imported}</span>
+                <span className="text-gray-600"> importados</span>
+              </div>
+              <div>
+                <span className="text-yellow-600 font-medium">{importResult.skipped}</span>
+                <span className="text-gray-600"> omitidos</span>
+              </div>
+              <div>
+                <span className="text-red-600 font-medium">{importResult.errors || 0}</span>
+                <span className="text-gray-600"> errores</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="mt-4 p-4 bg-blue-50 rounded-lg">
           <div className="flex items-start space-x-3">
@@ -366,11 +474,11 @@ export default function SyncManager() {
             <div className="text-sm text-gray-700">
               <p className="font-medium mb-1">Información importante:</p>
               <ul className="space-y-1 list-disc list-inside">
-                <li>Solo se sincronizan vehículos en <strong>idioma catalán</strong></li>
-                <li>Los vehículos se envían a la API configurada de Motoraldia</li>
-                <li>Configurar la URL de destino antes de sincronizar</li>
-                <li><strong>Completa:</strong> Sincroniza todos los vehículos disponibles</li>
-                <li><strong>Incremental:</strong> Solo cambios desde la última sincronización</li>
+                <li><strong>Sincronización Completa:</strong> Envía todos los vehículos en catalán a Motoraldia</li>
+                <li><strong>Sincronización Incremental:</strong> Solo cambios desde la última sincronización</li>
+                <li><strong>Importar JSON:</strong> Carga vehículos desde archivo JSON a la base de datos local</li>
+                <li>La sincronización requiere configurar la URL de destino</li>
+                <li>La importación JSON omite vehículos existentes (mismo slug)</li>
               </ul>
             </div>
           </div>

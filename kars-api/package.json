@@ -1,7 +1,7 @@
 {
-  "name": "motoraldia-api",
-  "version": "0.1.1",
-  "description": "API intermedia para Motoraldia con sincronización automática",
+  "name": "kars-api",
+  "version": "0.1.2",
+  "description": "API backend para Kars.ad con gestión de vehículos y sincronización",
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon src/index.ts",
@@ -10,13 +10,14 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "sync": "node dist/sync/syncService.js"
+    "sync": "node dist/sync/syncService.js",
+    "test:connection": "ts-node src/scripts/test-db-connection.ts"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0",
+    "@prisma/client": "^5.7.1",
     "axios": "^1.6.2",
     "bcrypt": "^5.1.1",
     "compression": "^1.7.4",

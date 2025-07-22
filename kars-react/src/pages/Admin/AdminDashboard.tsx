@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Car, 
   Database, 
@@ -30,6 +30,7 @@ export default function AdminDashboard() {
     inactive: 0,
     loading: true
   });
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Función para obtener estadísticas de vehículos
   const fetchVehicleStats = async () => {
@@ -114,22 +115,44 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleImportFromJson = async () => {
-    console.log('🟢 handleImportFromJson called - JSON Import');
+  const handleImportFromJson = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || file.type !== 'application/json') {
+      setImportStatus('error');
+      setImportMessage('Por favor selecciona un archivo JSON válido');
+      return;
+    }
+
+    console.log('🟢 handleFileChange called - JSON Import from file:', file.name);
     setImportStatus('running');
-    setImportMessage('Iniciando importación desde archivo JSON...');
-    
+    setImportMessage('Leyendo archivo JSON...');
+
     try {
-      const response = await axiosAdmin.post('/admin/import-vehicles-json', {
-        batchSize: 25, // Lotes más pequeños para no saturar
-        delayBetweenBatches: 2000 // 2 segundos entre lotes
+      const fileText = await file.text();
+      const vehiclesData = JSON.parse(fileText);
+
+      if (!Array.isArray(vehiclesData)) {
+        throw new Error('El JSON debe contener un array de vehículos');
+      }
+
+      setImportMessage(`Importando ${vehiclesData.length} vehículos...`);
+
+      const response = await axiosAdmin.post('/vehicles/import-json', {
+        vehiclesData,
+        clearDatabase: false
       });
-      const data = response.data;
-      setImportStatus('success');
-      setImportMessage(`Importación desde JSON iniciada exitosamente. ID: ${data.importId}`);
-      
-      // Polling para obtener el estado de la importación
-      pollImportStatus();
+
+      if (response.data.success) {
+        setImportStatus('success');
+        setImportMessage(`Importación completada: ${response.data.data.imported} importados, ${response.data.data.skipped} omitidos`);
+        fetchVehicleStats(); // Actualizar estadísticas
+      } else {
+        throw new Error(response.data.error || 'Error desconocido');
+      }
       
     } catch (error) {
       console.error('Error during JSON import:', error);
@@ -145,6 +168,11 @@ export default function AdminDashboard() {
         }
       } else {
         setImportMessage('Error desconocido en la importación');
+      }
+    } finally {
+      // Limpiar el input file
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
       }
     }
   };
@@ -636,6 +664,15 @@ export default function AdminDashboard() {
           </div>
         )}
       </div>
+
+      {/* Input file oculto para importar JSON */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        onChange={handleFileChange}
+        className="hidden"
+      />
     </AdminLayout>
   );
 }

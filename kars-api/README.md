@@ -1,20 +1,22 @@
-# Motoraldia API
+# Kars.ad API
 
-API intermedia para Motoraldia con sincronización automática de datos desde la API original.
+API backend para la gestión de vehículos de Kars.ad con capacidad de importación y sincronización hacia Motoraldia.
 
 ## Características
 
 - 🚀 **API REST optimizada** con MongoDB + Prisma
-- 🔄 **Sincronización automática** configurable con cron jobs
+- 📥 **Importación JSON** para carga masiva de vehículos
+- 🔄 **Sincronización hacia Motoraldia** de vehículos en catalán
 - 📊 **Panel de administración** para gestión y monitoreo
 - 🎯 **Facets pre-calculados** para filtros rápidos
 - 🔒 **Autenticación** para operaciones administrativas
-- 📦 **Webhooks** para sincronización en tiempo real
+- 🌐 **Soporte multiidioma** para descripciones de vehículos
+- 📦 **Endpoint JSON** para exportación de datos
 
 ## Arquitectura
 
 ```
-API Original (motoraldia.net) → Sync Service → MongoDB → Nueva API → Frontend
+Kars.ad Frontend → API → MongoDB → Sync Service → Motoraldia API
 ```
 
 ## Instalación
@@ -85,10 +87,10 @@ Listado de vehículos con filtros y paginación.
 
 **Parámetros de consulta:**
 - `page` - Página (default: 1)
-- `per_page` - Elementos por página (max: 100, default: 12)
+- `per_page` - Elementos por página (max: 500, default: 12)
 - `orderby` - Ordenar por: featured, price, date, title
 - `order` - Dirección: ASC, DESC
-- `anunci-actiu` - Filtrar activos (true/false)
+- `anunci-actiu` - Filtrar activos (true/false/all)
 - `tipus-vehicle` - Tipo de vehículo
 - `marca-cotxe` - Marca de coche
 - `marca-moto` - Marca de moto
@@ -111,6 +113,28 @@ Listado de vehículos con filtros y paginación.
 
 #### `GET /api/vehicles/:slug`
 Detalle de un vehículo específico.
+
+#### `GET /api/vehicles/json`
+Exportar vehículos en formato JSON.
+
+**Parámetros de consulta:**
+- `limit` - Número máximo de vehículos (max: 5000, default: 1000)
+- `format` - Formato de respuesta: full/minimal (default: full)
+- `raw` - Devolver solo array sin wrapper (true/false, default: false)
+
+#### `POST /api/vehicles`
+Crear nuevo vehículo (requiere autenticación).
+
+#### `POST /api/vehicles/import-json`
+Importar vehículos desde JSON.
+
+**Body:**
+```json
+{
+  "vehiclesData": [...],
+  "clearDatabase": false
+}
+```
 
 ### Administración
 
@@ -216,12 +240,13 @@ model SyncLog {
 ## Scripts
 
 ```bash
-npm run dev          # Desarrollo con nodemon
-npm run build        # Compilar TypeScript
-npm run start        # Producción
-npm run db:generate  # Generar cliente Prisma
-npm run db:push      # Aplicar schema a DB
-npm run sync         # Ejecutar sync manual
+npm run dev             # Desarrollo con nodemon
+npm run build           # Compilar TypeScript
+npm run start           # Producción
+npm run db:generate     # Generar cliente Prisma
+npm run db:push         # Aplicar schema a DB
+npm run sync            # Ejecutar sync manual
+npm run test:connection # Probar conexión a base de datos
 ```
 
 ## Migración desde API Original
@@ -246,6 +271,17 @@ npm run sync         # Ejecutar sync manual
 2. Configurar redirects si es necesario
 
 ## Troubleshooting
+
+### Error 500 en producción
+1. Verificar variable `DATABASE_URL` en producción
+2. Ejecutar `npm run db:generate` después de desplegar
+3. Verificar conectividad MongoDB desde servidor
+4. Ejecutar `npm run test:connection` para diagnosticar
+
+### Importación JSON falla
+1. Verificar que el JSON sea un array directo `[{...}]`
+2. Aumentar límite de body si es necesario (configurado en 10MB)
+3. Verificar formato de campos (camelCase)
 
 ### Sync no funciona
 1. Verificar credenciales en `.env`

@@ -5,6 +5,29 @@ Todos los cambios notables de este proyecto se documentarán en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-es/1.0.0/),
 y este proyecto adhiere al [Versionado Semántico](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2025-01-22
+
+### Added
+- 📦 **JSON Export Endpoint**: Nuevo endpoint `/api/vehicles/json` con soporte para exportación directa
+  - Parámetro `raw=true` para obtener array JSON directo sin wrapper
+  - Parámetros `limit` y `format` para controlar la salida
+- 🔍 **Database Connection Test**: Script `test:connection` para diagnosticar problemas de conexión
+- 📊 **Enhanced Error Logging**: Logging mejorado en `/api/vehicles/kars/stats` para debug en producción
+- 📥 **JSON Import Improvements**: 
+  - Límite de body parser aumentado a 10MB para archivos grandes
+  - Scripts auxiliares para conversión de formatos JSON
+  - Conversión automática de campos kebab-case a camelCase
+
+### Changed
+- 🏷️ **Project Rename**: Renombrado de "motoraldia-api" a "kars-api"
+- 📚 **Documentation Update**: README actualizado para reflejar el propósito real del proyecto
+- 🐛 **Error Handling**: Respuestas de error 500 ahora incluyen más detalles para diagnóstico
+
+### Fixed
+- 🚫 **PayloadTooLargeError**: Corregido error al importar archivos JSON grandes
+- 📄 **JSON Import Format**: Ahora acepta correctamente arrays JSON directos
+- 🔄 **Field Conversion**: Conversión automática de campos con guiones a camelCase en importación
+
 ## [0.1.1] - 2025-01-21
 
 ### Added

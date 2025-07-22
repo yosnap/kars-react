@@ -192,6 +192,78 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/vehicles/json - Servir JSON completo de vehículos para importación
+router.get('/json', async (req, res) => {
+  try {
+    console.log('📁 GET /vehicles/json - Sirviendo JSON de vehículos');
+    
+    const {
+      limit = '1000',
+      format = 'full',
+      raw = 'false'
+    } = req.query;
+    
+    const limitNum = Math.min(parseInt(limit as string), 5000); // Máximo 5000 vehículos
+    
+    // Obtener vehículos con todos los datos
+    const vehicles = await prisma.vehicle.findMany({
+      take: limitNum,
+      orderBy: { dataCreacio: 'desc' },
+      // Incluir todos los campos necesarios para importación
+    });
+    
+    console.log(`📊 Sirviendo ${vehicles.length} vehículos en formato JSON`);
+    
+    // Si raw=true, devolver solo el array para importación directa
+    if (raw === 'true') {
+      return res.json(vehicles);
+    }
+    
+    if (format === 'minimal') {
+      // Versión mínima con solo campos esenciales
+      const minimalVehicles = vehicles.map(v => ({
+        id: v.id,
+        slug: v.slug,
+        titolAnunci: v.titolAnunci,
+        preu: v.preu,
+        tipusVehicle: v.tipusVehicle,
+        marcaCotxe: v.marcaCotxe,
+        marcaMoto: v.marcaMoto,
+        modelsCotxe: v.modelsCotxe,
+        modelsMoto: v.modelsMoto,
+        any: v.any,
+        quilometratge: v.quilometratge,
+        anunciActiu: v.anunciActiu,
+        venut: v.venut,
+        dataCreacio: v.dataCreacio
+      }));
+      
+      return res.json({
+        success: true,
+        total: minimalVehicles.length,
+        format: 'minimal',
+        data: minimalVehicles
+      });
+    }
+    
+    // Formato completo por defecto
+    return res.json({
+      success: true,
+      total: vehicles.length,
+      format: 'full',
+      data: vehicles
+    });
+    
+  } catch (error) {
+    console.error('❌ Error sirviendo JSON de vehículos:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Error al obtener JSON de vehículos',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // GET /api/vehicles/:slug - Detalle de vehículo
 router.get('/:slug', async (req, res) => {
   try {
@@ -662,6 +734,17 @@ router.get('/import/stats', async (req, res) => {
 // GET /api/vehicles/kars/stats - Estadísticas específicas de Kars.ad
 router.get('/kars/stats', async (req, res) => {
   try {
+    console.log('📊 Getting Kars stats...');
+    
+    // Test database connection first
+    try {
+      const testCount = await prisma.vehicle.count();
+      console.log(`✅ Database connection OK, total vehicles: ${testCount}`);
+    } catch (dbError) {
+      console.error('❌ Database connection error:', dbError);
+      throw new Error(`Database connection failed: ${dbError instanceof Error ? dbError.message : 'Unknown'}`);
+    }
+    
     const [
       totalVehicles,
       karsVehicles,
@@ -695,6 +778,8 @@ router.get('/kars/stats', async (req, res) => {
       })
     ]);
 
+    console.log('✅ Stats retrieved successfully');
+    
     res.json({
       success: true,
       data: {
@@ -708,10 +793,16 @@ router.get('/kars/stats', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error getting Kars stats:', error);
+    
+    // Check if it's a Prisma/MongoDB connection error
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const isPrismaError = errorMessage.includes('prisma') || errorMessage.includes('mongodb');
+    
     res.status(500).json({
       success: false,
       error: 'Failed to get Kars stats',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: errorMessage,
+      type: isPrismaError ? 'database_connection' : 'unknown'
     });
   }
 });
@@ -791,72 +882,6 @@ router.post('/:id/sync-to-motoraldia', async (req, res) => {
     return res.status(500).json({
       success: false,
       error: 'Failed to sync vehicle to Motoraldia',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
-
-// GET /api/vehicles/json - Servir JSON completo de vehículos para importación
-router.get('/json', async (req, res) => {
-  try {
-    console.log('📁 GET /vehicles/json - Sirviendo JSON de vehículos');
-    
-    const {
-      limit = '1000',
-      format = 'full'
-    } = req.query;
-    
-    const limitNum = Math.min(parseInt(limit as string), 5000); // Máximo 5000 vehículos
-    
-    // Obtener vehículos con todos los datos
-    const vehicles = await prisma.vehicle.findMany({
-      take: limitNum,
-      orderBy: { dataCreacio: 'desc' },
-      // Incluir todos los campos necesarios para importación
-    });
-    
-    console.log(`📊 Sirviendo ${vehicles.length} vehículos en formato JSON`);
-    
-    if (format === 'minimal') {
-      // Versión mínima con solo campos esenciales
-      const minimalVehicles = vehicles.map(v => ({
-        id: v.id,
-        slug: v.slug,
-        titolAnunci: v.titolAnunci,
-        preu: v.preu,
-        tipusVehicle: v.tipusVehicle,
-        marcaCotxe: v.marcaCotxe,
-        marcaMoto: v.marcaMoto,
-        modelsCotxe: v.modelsCotxe,
-        modelsMoto: v.modelsMoto,
-        any: v.any,
-        quilometratge: v.quilometratge,
-        anunciActiu: v.anunciActiu,
-        venut: v.venut,
-        dataCreacio: v.dataCreacio
-      }));
-      
-      return res.json({
-        success: true,
-        total: minimalVehicles.length,
-        format: 'minimal',
-        data: minimalVehicles
-      });
-    }
-    
-    // Formato completo por defecto
-    return res.json({
-      success: true,
-      total: vehicles.length,
-      format: 'full',
-      data: vehicles
-    });
-    
-  } catch (error) {
-    console.error('❌ Error sirviendo JSON de vehículos:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Error al obtener JSON de vehículos',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
