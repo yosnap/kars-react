@@ -678,42 +678,47 @@ async function importBrandsFromAPI() {
     const carBrandsResponse = await axios.get(`${MOTORALDIA_API}/marques-cotxe`, { timeout: 30000 });
     const carBrands = carBrandsResponse.data?.data || [];
     
+    // Process car brands using raw MongoDB operations
+    const carBrandsToInsert = [];
     for (const brand of carBrands) {
       if (!brand.value || !brand.label) continue;
       
-      try {
-        // Check if brand exists
-        const existing = await prisma.brand.findFirst({
+      const existing = await prisma.brand.findFirst({
+        where: { 
+          slug: brand.value,
+          vehicleType: 'car'
+        }
+      });
+      
+      if (!existing) {
+        carBrandsToInsert.push({
+          name: brand.label,
+          slug: brand.value,
+          vehicle_type: 'car',
+          created_at: new Date(),
+          updated_at: new Date(),
+          last_sync_at: new Date()
+        } as any);
+      } else {
+        await prisma.brand.updateMany({
           where: { 
             slug: brand.value,
             vehicleType: 'car'
-          }
+          },
+          data: { name: brand.label }
         });
-        
-        if (existing) {
-          // Update using updateMany to avoid transactions
-          await prisma.brand.updateMany({
-            where: { 
-              slug: brand.value,
-              vehicleType: 'car'
-            },
-            data: { name: brand.label }
-          });
-          updated++;
-        } else {
-          // Create new brand
-          await prisma.brand.create({
-            data: {
-              name: brand.label,
-              slug: brand.value,
-              vehicleType: 'car'
-            }
-          });
-          created++;
-        }
-      } catch (error) {
-        console.error(`Error processing car brand ${brand.label}:`, error);
+        updated++;
       }
+    }
+    
+    // Use raw MongoDB insert for new brands
+    if (carBrandsToInsert.length > 0) {
+      const result = await prisma.$runCommandRaw({
+        insert: 'Brand',
+        documents: carBrandsToInsert
+      });
+      created += carBrandsToInsert.length;
+      console.log(`✅ Inserted ${carBrandsToInsert.length} car brands`);
     }
     
     // Import motorcycle brands
@@ -721,42 +726,47 @@ async function importBrandsFromAPI() {
     const motoBrandsResponse = await axios.get(`${MOTORALDIA_API}/marques-moto`, { timeout: 30000 });
     const motoBrands = motoBrandsResponse.data?.data || [];
     
+    // Process motorcycle brands using raw MongoDB operations
+    const motoBrandsToInsert = [];
     for (const brand of motoBrands) {
       if (!brand.value || !brand.label) continue;
       
-      try {
-        // Check if brand exists
-        const existing = await prisma.brand.findFirst({
+      const existing = await prisma.brand.findFirst({
+        where: { 
+          slug: brand.value,
+          vehicleType: 'motorcycle'
+        }
+      });
+      
+      if (!existing) {
+        motoBrandsToInsert.push({
+          name: brand.label,
+          slug: brand.value,
+          vehicle_type: 'motorcycle',
+          created_at: new Date(),
+          updated_at: new Date(),
+          last_sync_at: new Date()
+        } as any);
+      } else {
+        await prisma.brand.updateMany({
           where: { 
             slug: brand.value,
             vehicleType: 'motorcycle'
-          }
+          },
+          data: { name: brand.label }
         });
-        
-        if (existing) {
-          // Update using updateMany to avoid transactions
-          await prisma.brand.updateMany({
-            where: { 
-              slug: brand.value,
-              vehicleType: 'motorcycle'
-            },
-            data: { name: brand.label }
-          });
-          updated++;
-        } else {
-          // Create new brand
-          await prisma.brand.create({
-            data: {
-              name: brand.label,
-              slug: brand.value,
-              vehicleType: 'motorcycle'
-            }
-          });
-          created++;
-        }
-      } catch (error) {
-        console.error(`Error processing motorcycle brand ${brand.label}:`, error);
+        updated++;
       }
+    }
+    
+    // Use raw MongoDB insert for new brands
+    if (motoBrandsToInsert.length > 0) {
+      const result = await prisma.$runCommandRaw({
+        insert: 'Brand',
+        documents: motoBrandsToInsert
+      });
+      created += motoBrandsToInsert.length;
+      console.log(`✅ Inserted ${motoBrandsToInsert.length} motorcycle brands`);
     }
     
     return { created, updated };
@@ -790,6 +800,8 @@ async function importModelsForAllBrands() {
           const response = await axios.get(url, { timeout: 30000 });
           const models = response.data?.data || [];
           
+          // Collect models to insert
+          const modelsToInsert = [];
           for (const model of models) {
             if (!model.value || !model.label) continue;
             
@@ -798,20 +810,35 @@ async function importModelsForAllBrands() {
             });
             
             if (!existing) {
-              await prisma.model.create({
-                data: {
-                  name: model.label,
-                  slug: model.value,
-                  brandId: brand.id
-                }
-              });
-              created++;
+              modelsToInsert.push({
+                name: model.label,
+                slug: model.value,
+                brand_id: brand.id,
+                created_at: new Date(),
+                updated_at: new Date(),
+                last_sync_at: new Date()
+              } as any);
             } else {
               skipped++;
             }
           }
           
-          console.log(`  ✅ ${brand.name}: ${models.length} models processed`);
+          // Use raw MongoDB insert for new models
+          if (modelsToInsert.length > 0) {
+            try {
+              await prisma.$runCommandRaw({
+                insert: 'Model',
+                documents: modelsToInsert
+              });
+              created += modelsToInsert.length;
+              console.log(`  ✅ ${brand.name}: ${modelsToInsert.length} models inserted`);
+            } catch (insertError) {
+              console.error(`  ❌ Error inserting models for ${brand.name}:`, insertError);
+            }
+          } else {
+            console.log(`  ⏭️ ${brand.name}: No new models to insert`);
+          }
+          
         } catch (error) {
           console.error(`  ❌ Error syncing models for ${brand.name}:`, error);
         }
