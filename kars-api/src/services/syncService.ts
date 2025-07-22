@@ -647,6 +647,56 @@ export async function syncBrandsAndModels() {
   console.log('🏷️ Starting brands and models sync...');
   
   try {
+    // Clean up any inconsistent date data first
+    console.log('🧹 Cleaning up inconsistent date data...');
+    try {
+      await prisma.$runCommandRaw({
+        update: 'Brand',
+        updates: [
+          {
+            q: {
+              $or: [
+                { 'last_sync_at': { $type: 'string' } },
+                { 'created_at': { $type: 'string' } },
+                { 'updated_at': { $type: 'string' } }
+              ]
+            },
+            u: {
+              $set: {
+                'last_sync_at': new Date(),
+                'updated_at': new Date()
+              }
+            },
+            multi: true
+          }
+        ]
+      });
+      
+      await prisma.$runCommandRaw({
+        update: 'Model',
+        updates: [
+          {
+            q: {
+              $or: [
+                { 'last_sync_at': { $type: 'string' } },
+                { 'created_at': { $type: 'string' } },
+                { 'updated_at': { $type: 'string' } }
+              ]
+            },
+            u: {
+              $set: {
+                'last_sync_at': new Date(),
+                'updated_at': new Date()
+              }
+            },
+            multi: true
+          }
+        ]
+      });
+    } catch (cleanupError) {
+      console.warn('⚠️ Cleanup warning (continuing):', cleanupError);
+    }
+    
     // Import brands first
     const brandsResult = await importBrandsFromAPI();
     console.log(`✅ Brands sync completed: ${brandsResult.created} created, ${brandsResult.updated} updated`);
@@ -691,13 +741,14 @@ async function importBrandsFromAPI() {
       });
       
       if (!existing) {
+        const now = new Date();
         carBrandsToInsert.push({
           name: brand.label,
           slug: brand.value,
           vehicle_type: 'car',
-          created_at: new Date(),
-          updated_at: new Date(),
-          last_sync_at: new Date()
+          created_at: now,
+          updated_at: now,
+          last_sync_at: now
         });
       } else {
         await prisma.brand.updateMany({
@@ -713,7 +764,7 @@ async function importBrandsFromAPI() {
     
     // Use raw MongoDB insert for new brands
     if (carBrandsToInsert.length > 0) {
-      const result = await prisma.$runCommandRaw({
+      await prisma.$runCommandRaw({
         insert: 'Brand',
         documents: carBrandsToInsert
       });
@@ -739,13 +790,14 @@ async function importBrandsFromAPI() {
       });
       
       if (!existing) {
+        const now = new Date();
         motoBrandsToInsert.push({
           name: brand.label,
           slug: brand.value,
           vehicle_type: 'motorcycle',
-          created_at: new Date(),
-          updated_at: new Date(),
-          last_sync_at: new Date()
+          created_at: now,
+          updated_at: now,
+          last_sync_at: now
         });
       } else {
         await prisma.brand.updateMany({
@@ -761,7 +813,7 @@ async function importBrandsFromAPI() {
     
     // Use raw MongoDB insert for new brands
     if (motoBrandsToInsert.length > 0) {
-      const result = await prisma.$runCommandRaw({
+      await prisma.$runCommandRaw({
         insert: 'Brand',
         documents: motoBrandsToInsert
       });
@@ -810,13 +862,14 @@ async function importModelsForAllBrands() {
             });
             
             if (!existing) {
+              const now = new Date();
               modelsToInsert.push({
                 name: model.label,
                 slug: model.value,
                 brand_id: brand.id,
-                created_at: new Date(),
-                updated_at: new Date(),
-                last_sync_at: new Date()
+                created_at: now,
+                updated_at: now,
+                last_sync_at: now
               });
             } else {
               skipped++;
