@@ -681,25 +681,38 @@ async function importBrandsFromAPI() {
     for (const brand of carBrands) {
       if (!brand.value || !brand.label) continue;
       
-      const existing = await prisma.brand.findFirst({
-        where: { slug: brand.value, vehicleType: 'car' }
-      });
-      
-      if (existing) {
-        await prisma.brand.update({
-          where: { id: existing.id },
-          data: { name: brand.label }
-        });
-        updated++;
-      } else {
-        await prisma.brand.create({
-          data: {
-            name: brand.label,
+      try {
+        // Check if brand exists
+        const existing = await prisma.brand.findFirst({
+          where: { 
             slug: brand.value,
             vehicleType: 'car'
           }
         });
-        created++;
+        
+        if (existing) {
+          // Update using updateMany to avoid transactions
+          await prisma.brand.updateMany({
+            where: { 
+              slug: brand.value,
+              vehicleType: 'car'
+            },
+            data: { name: brand.label }
+          });
+          updated++;
+        } else {
+          // Create new brand
+          await prisma.brand.create({
+            data: {
+              name: brand.label,
+              slug: brand.value,
+              vehicleType: 'car'
+            }
+          });
+          created++;
+        }
+      } catch (error) {
+        console.error(`Error processing car brand ${brand.label}:`, error);
       }
     }
     
@@ -711,25 +724,38 @@ async function importBrandsFromAPI() {
     for (const brand of motoBrands) {
       if (!brand.value || !brand.label) continue;
       
-      const existing = await prisma.brand.findFirst({
-        where: { slug: brand.value, vehicleType: 'motorcycle' }
-      });
-      
-      if (existing) {
-        await prisma.brand.update({
-          where: { id: existing.id },
-          data: { name: brand.label }
-        });
-        updated++;
-      } else {
-        await prisma.brand.create({
-          data: {
-            name: brand.label,
+      try {
+        // Check if brand exists
+        const existing = await prisma.brand.findFirst({
+          where: { 
             slug: brand.value,
             vehicleType: 'motorcycle'
           }
         });
-        created++;
+        
+        if (existing) {
+          // Update using updateMany to avoid transactions
+          await prisma.brand.updateMany({
+            where: { 
+              slug: brand.value,
+              vehicleType: 'motorcycle'
+            },
+            data: { name: brand.label }
+          });
+          updated++;
+        } else {
+          // Create new brand
+          await prisma.brand.create({
+            data: {
+              name: brand.label,
+              slug: brand.value,
+              vehicleType: 'motorcycle'
+            }
+          });
+          created++;
+        }
+      } catch (error) {
+        console.error(`Error processing motorcycle brand ${brand.label}:`, error);
       }
     }
     
