@@ -644,8 +644,164 @@ export async function syncAllProfessionals() {
 
 // Funciones adicionales necesarias para los endpoints
 export async function syncBrandsAndModels() {
-  console.log('🏷️ Brands and models sync not implemented yet');
-  return { brandsCreated: 0, modelsCreated: 0 };
+  console.log('🏷️ Starting brands and models sync...');
+  
+  try {
+    // Import brands first
+    const brandsResult = await importBrandsFromAPI();
+    console.log(`✅ Brands sync completed: ${brandsResult.created} created, ${brandsResult.updated} updated`);
+    
+    // Then import models for all brands
+    const modelsResult = await importModelsForAllBrands();
+    console.log(`✅ Models sync completed: ${modelsResult.created} created, ${modelsResult.skipped} skipped`);
+    
+    return {
+      brandsCreated: brandsResult.created,
+      brandsUpdated: brandsResult.updated,
+      modelsCreated: modelsResult.created,
+      modelsSkipped: modelsResult.skipped
+    };
+  } catch (error) {
+    console.error('❌ Error in brands and models sync:', error);
+    throw error;
+  }
+}
+
+async function importBrandsFromAPI() {
+  const MOTORALDIA_API = 'https://api.motoraldia.com/wp-json/api-motor/v1';
+  let created = 0;
+  let updated = 0;
+  
+  try {
+    // Import car brands
+    console.log('🚗 Importing car brands...');
+    const carBrandsResponse = await axios.get(`${MOTORALDIA_API}/marques-cotxe`, { timeout: 30000 });
+    const carBrands = carBrandsResponse.data?.data || [];
+    
+    for (const brand of carBrands) {
+      if (!brand.value || !brand.label) continue;
+      
+      const existing = await prisma.brand.findFirst({
+        where: { slug: brand.value, vehicleType: 'car' }
+      });
+      
+      if (existing) {
+        await prisma.brand.update({
+          where: { id: existing.id },
+          data: { name: brand.label }
+        });
+        updated++;
+      } else {
+        await prisma.brand.create({
+          data: {
+            name: brand.label,
+            slug: brand.value,
+            vehicleType: 'car'
+          }
+        });
+        created++;
+      }
+    }
+    
+    // Import motorcycle brands
+    console.log('🏍️ Importing motorcycle brands...');
+    const motoBrandsResponse = await axios.get(`${MOTORALDIA_API}/marques-moto`, { timeout: 30000 });
+    const motoBrands = motoBrandsResponse.data?.data || [];
+    
+    for (const brand of motoBrands) {
+      if (!brand.value || !brand.label) continue;
+      
+      const existing = await prisma.brand.findFirst({
+        where: { slug: brand.value, vehicleType: 'motorcycle' }
+      });
+      
+      if (existing) {
+        await prisma.brand.update({
+          where: { id: existing.id },
+          data: { name: brand.label }
+        });
+        updated++;
+      } else {
+        await prisma.brand.create({
+          data: {
+            name: brand.label,
+            slug: brand.value,
+            vehicleType: 'motorcycle'
+          }
+        });
+        created++;
+      }
+    }
+    
+    return { created, updated };
+  } catch (error) {
+    console.error('❌ Error importing brands:', error);
+    throw error;
+  }
+}
+
+async function importModelsForAllBrands() {
+  const MOTORALDIA_API = 'https://api.motoraldia.com/wp-json/api-motor/v1';
+  let created = 0;
+  let skipped = 0;
+  
+  try {
+    // Get all brands
+    const brands = await prisma.brand.findMany();
+    console.log(`📋 Found ${brands.length} brands to sync models for`);
+    
+    // Process in batches of 5 to avoid overloading the API
+    const batchSize = 5;
+    for (let i = 0; i < brands.length; i += batchSize) {
+      const batch = brands.slice(i, i + batchSize);
+      
+      await Promise.all(batch.map(async (brand) => {
+        try {
+          const endpoint = brand.vehicleType === 'motorcycle' ? 'marques-moto' : 'marques-cotxe';
+          const url = `${MOTORALDIA_API}/${endpoint}?marca=${brand.slug}`;
+          
+          console.log(`🔄 Fetching models for ${brand.name} (${brand.vehicleType})...`);
+          const response = await axios.get(url, { timeout: 30000 });
+          const models = response.data?.data || [];
+          
+          for (const model of models) {
+            if (!model.value || !model.label) continue;
+            
+            const existing = await prisma.model.findFirst({
+              where: { brandId: brand.id, slug: model.value }
+            });
+            
+            if (!existing) {
+              await prisma.model.create({
+                data: {
+                  name: model.label,
+                  slug: model.value,
+                  brandId: brand.id
+                }
+              });
+              created++;
+            } else {
+              skipped++;
+            }
+          }
+          
+          console.log(`  ✅ ${brand.name}: ${models.length} models processed`);
+        } catch (error) {
+          console.error(`  ❌ Error syncing models for ${brand.name}:`, error);
+        }
+      }));
+      
+      // Delay between batches
+      if (i + batchSize < brands.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    return { created, skipped };
+  } catch (error) {
+    console.error('❌ Error importing models:', error);
+    throw error;
+  }
 }
 
 export async function syncVehicleStates() {
