@@ -679,7 +679,7 @@ async function importBrandsFromAPI() {
     const carBrands = carBrandsResponse.data?.data || [];
     
     // Process car brands using raw MongoDB operations
-    const carBrandsToInsert = [];
+    const carBrandsToInsert: any[] = [];
     for (const brand of carBrands) {
       if (!brand.value || !brand.label) continue;
       
@@ -698,7 +698,7 @@ async function importBrandsFromAPI() {
           created_at: new Date(),
           updated_at: new Date(),
           last_sync_at: new Date()
-        } as any);
+        });
       } else {
         await prisma.brand.updateMany({
           where: { 
@@ -727,7 +727,7 @@ async function importBrandsFromAPI() {
     const motoBrands = motoBrandsResponse.data?.data || [];
     
     // Process motorcycle brands using raw MongoDB operations
-    const motoBrandsToInsert = [];
+    const motoBrandsToInsert: any[] = [];
     for (const brand of motoBrands) {
       if (!brand.value || !brand.label) continue;
       
@@ -746,7 +746,7 @@ async function importBrandsFromAPI() {
           created_at: new Date(),
           updated_at: new Date(),
           last_sync_at: new Date()
-        } as any);
+        });
       } else {
         await prisma.brand.updateMany({
           where: { 
@@ -801,7 +801,7 @@ async function importModelsForAllBrands() {
           const models = response.data?.data || [];
           
           // Collect models to insert
-          const modelsToInsert = [];
+          const modelsToInsert: any[] = [];
           for (const model of models) {
             if (!model.value || !model.label) continue;
             
@@ -817,7 +817,7 @@ async function importModelsForAllBrands() {
                 created_at: new Date(),
                 updated_at: new Date(),
                 last_sync_at: new Date()
-              } as any);
+              });
             } else {
               skipped++;
             }
