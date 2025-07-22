@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Brands API</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .loading { background-color: #d1ecf1; border-color: #bee5eb; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Debug Brands API</h1>
+    
+    <div id="config" class="section">
+        <h3>Configuration</h3>
+        <p><strong>API Base URL:</strong> <span id="apiBaseUrl"></span></p>
+        <p><strong>Admin User:</strong> <span id="adminUser"></span></p>
+        <p><strong>Admin Pass:</strong> <span id="adminPass"></span></p>
+    </div>
+
+    <div class="section">
+        <h3>Test API Calls</h3>
+        <button onclick="testCarsEndpoint()">Test Cars Brands</button>
+        <button onclick="testMotorcyclesEndpoint()">Test Motorcycle Brands</button>
+        <button onclick="testWithoutAuth()">Test Without Auth</button>
+        <button onclick="testCORS()">Test CORS</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        // Configuration
+        const API_BASE_URL = 'http://localhost:3001/api';
+        const ADMIN_USER = 'admin';
+        const ADMIN_PASS = 'Motoraldia.2025!';
+
+        // Display config
+        document.getElementById('apiBaseUrl').textContent = API_BASE_URL;
+        document.getElementById('adminUser').textContent = ADMIN_USER;
+        document.getElementById('adminPass').textContent = '***' + ADMIN_PASS.slice(-4);
+
+        function getBasicAuthHeader(username, password) {
+            const credentials = btoa(`${username}:${password}`);
+            return `Basic ${credentials}`;
+        }
+
+        function createAxiosLikeClient() {
+            return {
+                get: async (url) => {
+                    const fullUrl = `${API_BASE_URL}${url}`;
+                    const headers = {
+                        'Authorization': getBasicAuthHeader(ADMIN_USER, ADMIN_PASS),
+                        'Content-Type': 'application/json'
+                    };
+                    
+                    try {
+                        const response = await fetch(fullUrl, {
+                            method: 'GET',
+                            headers: headers,
+                            mode: 'cors'
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+                        
+                        const data = await response.json();
+                        return { data };
+                    } catch (error) {
+                        throw error;
+                    }
+                }
+            };
+        }
+
+        const axiosAdmin = createAxiosLikeClient();
+
+        function addResult(title, status, content) {
+            const results = document.getElementById('results');
+            const section = document.createElement('div');
+            section.className = `section ${status}`;
+            section.innerHTML = `
+                <h4>${title}</h4>
+                <pre>${typeof content === 'object' ? JSON.stringify(content, null, 2) : content}</pre>
+            `;
+            results.appendChild(section);
+        }
+
+        async function testCarsEndpoint() {
+            try {
+                addResult('Cars Endpoint Test', 'loading', 'Testing...');
+                const response = await axiosAdmin.get('/brands/cars');
+                
+                if (response.data?.success && response.data?.data) {
+                    addResult('Cars Endpoint Test - SUCCESS', 'success', {
+                        total: response.data.total,
+                        first_few_brands: response.data.data.slice(0, 5),
+                        response_structure: Object.keys(response.data)
+                    });
+                } else {
+                    addResult('Cars Endpoint Test - UNEXPECTED STRUCTURE', 'error', response.data);
+                }
+            } catch (error) {
+                addResult('Cars Endpoint Test - ERROR', 'error', {
+                    message: error.message,
+                    name: error.name,
+                    stack: error.stack
+                });
+            }
+        }
+
+        async function testMotorcyclesEndpoint() {
+            try {
+                addResult('Motorcycles Endpoint Test', 'loading', 'Testing...');
+                const response = await axiosAdmin.get('/brands/motorcycles');
+                
+                if (response.data?.success && response.data?.data) {
+                    addResult('Motorcycles Endpoint Test - SUCCESS', 'success', {
+                        total: response.data.total,
+                        first_few_brands: response.data.data.slice(0, 5),
+                        response_structure: Object.keys(response.data)
+                    });
+                } else {
+                    addResult('Motorcycles Endpoint Test - UNEXPECTED STRUCTURE', 'error', response.data);
+                }
+            } catch (error) {
+                addResult('Motorcycles Endpoint Test - ERROR', 'error', {
+                    message: error.message,
+                    name: error.name,
+                    stack: error.stack
+                });
+            }
+        }
+
+        async function testWithoutAuth() {
+            try {
+                addResult('No Auth Test', 'loading', 'Testing without authentication...');
+                const response = await fetch(`${API_BASE_URL}/brands/cars`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                const data = await response.json();
+                addResult('No Auth Test - RESULT', response.ok ? 'success' : 'error', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    data: data
+                });
+            } catch (error) {
+                addResult('No Auth Test - ERROR', 'error', {
+                    message: error.message,
+                    name: error.name
+                });
+            }
+        }
+
+        async function testCORS() {
+            try {
+                addResult('CORS Test', 'loading', 'Testing CORS headers...');
+                
+                const response = await fetch(`${API_BASE_URL}/brands/cars`, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': window.location.origin,
+                        'Access-Control-Request-Method': 'GET',
+                        'Access-Control-Request-Headers': 'Authorization, Content-Type'
+                    }
+                });
+                
+                const corsHeaders = {};
+                for (const [key, value] of response.headers.entries()) {
+                    if (key.toLowerCase().startsWith('access-control')) {
+                        corsHeaders[key] = value;
+                    }
+                }
+                
+                addResult('CORS Test - RESULT', 'success', {
+                    status: response.status,
+                    cors_headers: corsHeaders,
+                    origin: window.location.origin
+                });
+            } catch (error) {
+                addResult('CORS Test - ERROR', 'error', {
+                    message: error.message,
+                    name: error.name
+                });
+            }
+        }
+
+        // Simulate the actual MultiStepVehicleForm behavior
+        async function simulateReactComponent() {
+            try {
+                addResult('React Component Simulation', 'loading', 'Simulating actual React component behavior...');
+                
+                const carResponse = await axiosAdmin.get('/brands/cars');
+                const motoResponse = await axiosAdmin.get('/brands/motorcycles');
+                
+                const carBrands = carResponse.data?.success && carResponse.data?.data ? carResponse.data.data : [];
+                const motorcycleBrands = motoResponse.data?.success && motoResponse.data?.data ? motoResponse.data.data : [];
+                
+                // Simulate vehicle type selection
+                const formData = { tipusVehicle: 'COTXE' };
+                
+                const getBrandsForVehicleType = () => {
+                    switch (formData.tipusVehicle) {
+                        case 'COTXE':
+                        case 'AUTOCARAVANA':
+                        case 'VEHICLE_COMERCIAL':
+                            return carBrands;
+                        case 'MOTO':
+                            return motorcycleBrands;
+                        default:
+                            return [];
+                    }
+                };
+                
+                const currentBrands = getBrandsForVehicleType();
+                
+                addResult('React Component Simulation - SUCCESS', 'success', {
+                    car_brands_count: carBrands.length,
+                    motorcycle_brands_count: motorcycleBrands.length,
+                    selected_vehicle_type: formData.tipusVehicle,
+                    brands_for_selected_type: currentBrands.length,
+                    first_few_brands: currentBrands.slice(0, 10)
+                });
+            } catch (error) {
+                addResult('React Component Simulation - ERROR', 'error', {
+                    message: error.message,
+                    name: error.name,
+                    stack: error.stack
+                });
+            }
+        }
+
+        // Auto-run the simulation
+        setTimeout(simulateReactComponent, 1000);
+    </script>
+</body>
+</html>

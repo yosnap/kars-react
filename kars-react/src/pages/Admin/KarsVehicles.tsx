@@ -14,6 +14,7 @@ import {
   DollarSign,
   MapPin
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/Admin/AdminLayout';
 import { axiosAdmin } from '../../api/axiosClient';
 
@@ -37,6 +38,7 @@ interface Vehicle {
 }
 
 const KarsVehicles = () => {
+  const navigate = useNavigate();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -116,6 +118,14 @@ const KarsVehicles = () => {
     }
   };
 
+  const handleCreateVehicle = () => {
+    navigate('/admin/vehicles/create');
+  };
+
+  const handleEditVehicle = (vehicleId: string) => {
+    navigate(`/admin/vehicles/edit/${vehicleId}`);
+  };
+
   useEffect(() => {
     loadVehicles();
   }, []);
@@ -167,7 +177,10 @@ const KarsVehicles = () => {
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               Actualitzar
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <button 
+              onClick={handleCreateVehicle}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
               <Plus className="w-4 h-4" />
               Nou Vehicle
             </button>
@@ -340,6 +353,13 @@ const KarsVehicles = () => {
                       >
                         <Eye className="w-4 h-4" />
                       </a>
+                      <button
+                        onClick={() => handleEditVehicle(vehicle.id)}
+                        className="p-1 text-amber-600 hover:text-amber-800 hover:bg-amber-100 rounded"
+                        title="Editar"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => toggleVehicleStatus(vehicle.id, vehicle['anunci-actiu'] === 'true')}
                         className={`p-1 rounded ${

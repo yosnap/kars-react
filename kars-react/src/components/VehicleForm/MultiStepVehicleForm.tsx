@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Car, Zap, Truck, Home } from 'lucide-react';
+import { axiosAdmin } from '../../api/axiosClient';
 
 // Types
 interface VehicleFormData {
@@ -48,7 +49,8 @@ interface VehicleFormData {
 }
 
 interface MultiStepVehicleFormProps {
-  vehicle?: VehicleFormData; // For editing existing vehicle
+  initialData?: VehicleFormData | null; // For editing existing vehicle
+  mode?: 'create' | 'edit';
   onSave: (vehicleData: VehicleFormData) => Promise<void>;
   onCancel: () => void;
 }
@@ -62,7 +64,8 @@ const STEPS = [
 ];
 
 export default function MultiStepVehicleForm({ 
-  vehicle, 
+  initialData, 
+  mode = 'create',
   onSave, 
   onCancel 
 }: MultiStepVehicleFormProps) {
@@ -76,7 +79,7 @@ export default function MultiStepVehicleForm({
     anunciActiu: true,
     anunciDestacat: 0,
     venut: false,
-    ...vehicle // Load existing vehicle data if editing
+    ...initialData // Load existing vehicle data if editing
   });
 
   // Auto-generate title when marca, model, or version changes
@@ -175,7 +178,7 @@ export default function MultiStepVehicleForm({
       {/* Header with Steps */}
       <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-          {vehicle ? 'Editar Vehicle' : 'Afegir Nou Vehicle'}
+          {mode === 'edit' ? 'Editar Vehicle' : 'Afegir Nou Vehicle'}
         </h2>
         
         {/* Step Navigation */}
@@ -366,6 +369,131 @@ function VehicleTypeStep({ formData, updateFormData }: any) {
 }
 
 function BasicInfoStep({ formData, updateFormData }: any) {
+  const [carBrands, setCarBrands] = useState<Array<{value: string, label: string}>>([]);
+  const [motorcycleBrands, setMotorcycleBrands] = useState<Array<{value: string, label: string}>>([]);
+  const [loadingBrands, setLoadingBrands] = useState(false);
+  const [models, setModels] = useState<Array<{value: string, label: string}>>([]);
+  const [loadingModels, setLoadingModels] = useState(false);
+  
+  // Debug axios configuration
+  console.log('🔧 axiosAdmin configuration:', {
+    baseURL: axiosAdmin.defaults?.baseURL,
+    headers: axiosAdmin.defaults?.headers
+  });
+
+  // Cargar marcas desde la API
+  useEffect(() => {
+    const loadBrands = async () => {
+      console.log('🔍 BasicInfoStep: Starting to load brands...');
+      setLoadingBrands(true);
+      try {
+        console.log('📡 Making API call to /brands/cars');
+        // Cargar marcas de coches (para coches, autocaravanas y comerciales)
+        const carResponse = await axiosAdmin.get('/brands/cars');
+        console.log('📡 Car brands response:', carResponse);
+        
+        if (carResponse.data?.success && carResponse.data?.data) {
+          console.log('✅ Car brands loaded successfully:', carResponse.data.data.length, 'brands');
+          setCarBrands(carResponse.data.data);
+        } else {
+          console.error('❌ Car brands response structure invalid:', carResponse.data);
+          setCarBrands([]);
+        }
+
+        console.log('📡 Making API call to /brands/motorcycles');
+        // Cargar marcas de motos
+        const motoResponse = await axiosAdmin.get('/brands/motorcycles');
+        console.log('📡 Motorcycle brands response:', motoResponse);
+        
+        if (motoResponse.data?.success && motoResponse.data?.data) {
+          console.log('✅ Motorcycle brands loaded successfully:', motoResponse.data.data.length, 'brands');
+          setMotorcycleBrands(motoResponse.data.data);
+        } else {
+          console.error('❌ Motorcycle brands response structure invalid:', motoResponse.data);
+          setMotorcycleBrands([]);
+        }
+      } catch (error) {
+        console.error('❌ Error cargando marcas:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          name: error.name,
+          response: error.response?.data,
+          status: error.response?.status
+        });
+        // Si hay error, usar arrays vacíos
+        setCarBrands([]);
+        setMotorcycleBrands([]);
+      } finally {
+        setLoadingBrands(false);
+        console.log('🏁 BasicInfoStep: Finished loading brands');
+      }
+    };
+
+    loadBrands();
+  }, []);
+
+  // Determinar qué marcas mostrar según el tipo de vehículo
+  const getBrandsForVehicleType = () => {
+    console.log('🎯 getBrandsForVehicleType called with tipusVehicle:', formData.tipusVehicle);
+    console.log('🎯 Available car brands:', carBrands.length);
+    console.log('🎯 Available motorcycle brands:', motorcycleBrands.length);
+    
+    switch (formData.tipusVehicle) {
+      case 'COTXE':
+      case 'AUTOCARAVANA':
+      case 'VEHICLE_COMERCIAL':
+        console.log('🚗 Returning car brands for vehicle type:', formData.tipusVehicle);
+        return carBrands;
+      case 'MOTO':
+        console.log('🏍️ Returning motorcycle brands for vehicle type:', formData.tipusVehicle);
+        return motorcycleBrands;
+      default:
+        console.log('❓ Unknown vehicle type, returning empty array');
+        return [];
+    }
+  };
+
+  const currentBrands = getBrandsForVehicleType();
+
+  // Función para cargar modelos cuando se selecciona una marca
+  const loadModelsForBrand = async (brandSlug: string) => {
+    if (!brandSlug) {
+      setModels([]);
+      return;
+    }
+
+    setLoadingModels(true);
+    try {
+      const response = await axiosAdmin.get(`/brands/${brandSlug}/models`);
+      if (response.data?.success && response.data?.data) {
+        setModels(response.data.data);
+      } else {
+        setModels([]);
+      }
+    } catch (error) {
+      console.error('Error cargando modelos:', error);
+      setModels([]);
+    } finally {
+      setLoadingModels(false);
+    }
+  };
+
+  // Efecto para cargar modelos cuando cambia la marca seleccionada
+  useEffect(() => {
+    const selectedBrand = 
+      formData.tipusVehicle === 'COTXE' ? formData.marcaCotxe :
+      formData.tipusVehicle === 'MOTO' ? formData.marcaMoto :
+      formData.tipusVehicle === 'AUTOCARAVANA' ? formData.marquesAutocaravana :
+      '';
+    
+    if (selectedBrand) {
+      loadModelsForBrand(selectedBrand);
+    } else {
+      setModels([]);
+    }
+  }, [formData.marcaCotxe, formData.marcaMoto, formData.marquesAutocaravana, formData.tipusVehicle]);
+  console.log('📋 Current brands for dropdown:', currentBrands.length, 'brands available');
+
   return (
     <div className="space-y-6">
       <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -378,55 +506,107 @@ function BasicInfoStep({ formData, updateFormData }: any) {
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Marca *
           </label>
-          <input
-            type="text"
-            value={
-              formData.tipusVehicle === 'COTXE' ? formData.marcaCotxe || '' :
-              formData.tipusVehicle === 'MOTO' ? formData.marcaMoto || '' :
-              formData.tipusVehicle === 'AUTOCARAVANA' ? formData.marquesAutocaravana || '' :
-              ''
-            }
-            onChange={(e) => {
-              const fieldName = 
-                formData.tipusVehicle === 'COTXE' ? 'marcaCotxe' :
-                formData.tipusVehicle === 'MOTO' ? 'marcaMoto' :
-                formData.tipusVehicle === 'AUTOCARAVANA' ? 'marquesAutocaravana' :
-                '';
-              if (fieldName) {
-                updateFormData({ [fieldName]: e.target.value });
+          {loadingBrands ? (
+            <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-500">
+              Carregant marcas...
+            </div>
+          ) : (
+            <select
+              value={
+                formData.tipusVehicle === 'COTXE' ? formData.marcaCotxe || '' :
+                formData.tipusVehicle === 'MOTO' ? formData.marcaMoto || '' :
+                formData.tipusVehicle === 'AUTOCARAVANA' ? formData.marquesAutocaravana || '' :
+                ''
               }
-            }}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            placeholder="Ex: BMW, Audi, Honda..."
-          />
+              onChange={(e) => {
+                const fieldName = 
+                  formData.tipusVehicle === 'COTXE' ? 'marcaCotxe' :
+                  formData.tipusVehicle === 'MOTO' ? 'marcaMoto' :
+                  formData.tipusVehicle === 'AUTOCARAVANA' ? 'marquesAutocaravana' :
+                  '';
+                if (fieldName) {
+                  updateFormData({ [fieldName]: e.target.value });
+                }
+              }}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+              <option value="">Selecciona una marca</option>
+              {currentBrands.map(brand => (
+                <option key={brand.value} value={brand.value}>
+                  {brand.label}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
-        {/* Model Field - Dynamic based on vehicle type */}
+        {/* Model Field - Dynamic based on vehicle type and selected brand */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Model *
           </label>
-          <input
-            type="text"
-            value={
-              formData.tipusVehicle === 'COTXE' ? formData.modelsCotxe || '' :
-              formData.tipusVehicle === 'MOTO' ? formData.modelsMoto || '' :
-              formData.tipusVehicle === 'AUTOCARAVANA' ? formData.modelsAutocaravana || '' :
-              ''
-            }
-            onChange={(e) => {
-              const fieldName = 
-                formData.tipusVehicle === 'COTXE' ? 'modelsCotxe' :
-                formData.tipusVehicle === 'MOTO' ? 'modelsMoto' :
-                formData.tipusVehicle === 'AUTOCARAVANA' ? 'modelsAutocaravana' :
-                '';
-              if (fieldName) {
-                updateFormData({ [fieldName]: e.target.value });
+          {loadingModels ? (
+            <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-500">
+              Carregant models...
+            </div>
+          ) : models.length > 0 ? (
+            <select
+              value={
+                formData.tipusVehicle === 'COTXE' ? formData.modelsCotxe || '' :
+                formData.tipusVehicle === 'MOTO' ? formData.modelsMoto || '' :
+                formData.tipusVehicle === 'AUTOCARAVANA' ? formData.modelsAutocaravana || '' :
+                ''
               }
-            }}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            placeholder="Ex: Serie 3, A4, CBR600..."
-          />
+              onChange={(e) => {
+                const fieldName = 
+                  formData.tipusVehicle === 'COTXE' ? 'modelsCotxe' :
+                  formData.tipusVehicle === 'MOTO' ? 'modelsMoto' :
+                  formData.tipusVehicle === 'AUTOCARAVANA' ? 'modelsAutocaravana' :
+                  '';
+                if (fieldName) {
+                  updateFormData({ [fieldName]: e.target.value });
+                }
+              }}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+              <option value="">Selecciona un model</option>
+              {models.map(model => (
+                <option key={model.value} value={model.value}>
+                  {model.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="text"
+              value={
+                formData.tipusVehicle === 'COTXE' ? formData.modelsCotxe || '' :
+                formData.tipusVehicle === 'MOTO' ? formData.modelsMoto || '' :
+                formData.tipusVehicle === 'AUTOCARAVANA' ? formData.modelsAutocaravana || '' :
+                ''
+              }
+              onChange={(e) => {
+                const fieldName = 
+                  formData.tipusVehicle === 'COTXE' ? 'modelsCotxe' :
+                  formData.tipusVehicle === 'MOTO' ? 'modelsMoto' :
+                  formData.tipusVehicle === 'AUTOCARAVANA' ? 'modelsAutocaravana' :
+                  '';
+                if (fieldName) {
+                  updateFormData({ [fieldName]: e.target.value });
+                }
+              }}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              placeholder="Escriu el model manualment..."
+            />
+          )}
+          {models.length === 0 && !loadingModels && (
+            <p className="text-xs text-gray-500 mt-1">
+              {formData.marcaCotxe || formData.marcaMoto || formData.marquesAutocaravana 
+                ? 'No hi ha models disponibles. Pots escriure el model manualment.'
+                : 'Selecciona primer una marca per veure els models disponibles.'
+              }
+            </p>
+          )}
         </div>
 
         {/* Version */}

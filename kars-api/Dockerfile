@@ -21,6 +21,9 @@ RUN npx prisma generate
 # Build TypeScript to JavaScript
 RUN npm run build
 
+# Debug: Show generated files
+RUN ls -la node_modules/.prisma/client/
+
 # Production stage
 FROM node:18-alpine
 

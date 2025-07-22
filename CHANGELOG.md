@@ -5,6 +5,34 @@ Todos los cambios notables de este proyecto se documentarán en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-es/1.0.0/),
 y este proyecto adhiere al [Versionado Semántico](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2025-07-22
+
+### Añadido
+- Sistema completo de gestión de marcas y modelos de vehículos
+- Endpoints para CRUD de marcas (`/api/brands`)
+- Sincronización automática de modelos desde API externa de Motoraldia
+- Scripts de sincronización masiva para coches y motos
+- Interfaz TypeScript `ExternalModel` para tipado correcto de datos externos
+- Soporte para coches, autocaravanas, vehículos comerciales y motocicletas
+
+### Mejorado
+- Formulario de vehículos ahora usa selects dinámicos para marcas y modelos
+- Carga de modelos en cascada al seleccionar marca
+- Manejo robusto de errores en sincronización con reintentos automáticos
+- Procesamiento en lotes para evitar sobrecarga de API externa
+- Logs detallados para monitoreo de sincronización
+
+### Corregido
+- Errores de compilación TypeScript en rutas de marcas
+- Tipado correcto para datos de modelos externos
+- Validación de formato de respuesta de API externa
+
+### Técnico
+- **Base de datos**: 113 marcas de coches con 1,909 modelos sincronizados
+- **Base de datos**: 66 marcas de motos con 1,168 modelos sincronizados
+- **API**: Rate limiting y timeout de 30s para llamadas externas
+- **Arquitectura**: Separación clara entre sincronización de coches y motos
+
 ## [0.1.2] - 2025-01-22
 
 ### Added
