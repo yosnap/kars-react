@@ -16,4 +16,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "src"),
     },
   },
+  // Ensure media files are served correctly
+  publicDir: 'public',
+  assetsInclude: ['**/*.webp', '**/*.jpg', '**/*.jpeg', '**/*.png', '**/*.gif'],
 });

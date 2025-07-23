@@ -195,10 +195,10 @@ async function importSingleVehicle(vehicle: MotoraldiaVehicle): Promise<void> {
     descripcioAnunciES: null, // Se llenará desde el formulario
     
     // Datos del vehículo
-    preu: vehicle.preu || '0',
+    preu: parseFloat(vehicle.preu) || 0,
     quilometratge: vehicle.quilometratge || '0',
     any: vehicle.any || null,
-    tipusVehicle: vehicle['tipus-vehicle'] || 'COTXE',
+    tipusVehicle: (vehicle['tipus-vehicle'] || 'COTXE').toLowerCase(),
     
     // Marcas y modelos
     marcaCotxe: vehicle['marques-cotxe'] || vehicle['marca-cotxe'] || null,
@@ -208,6 +208,7 @@ async function importSingleVehicle(vehicle: MotoraldiaVehicle): Promise<void> {
     versio: vehicle.versio || null,
     
     // Especificaciones técnicas
+    estatVehicle: vehicle['estat-vehicle'] ? vehicle['estat-vehicle'].toLowerCase() : null,
     tipusCombustible: vehicle['tipus-combustible'] || null,
     tipusCanvi: vehicle['tipus-canvi'] || null,
     
@@ -224,7 +225,7 @@ async function importSingleVehicle(vehicle: MotoraldiaVehicle): Promise<void> {
     galeriaVehicleUrls: vehicle['galeria-vehicle-urls'] || [],
     
     // Campos específicos de Kars.ad
-    userId: KARS_USER_ID, // Asignar al usuario de Kars.ad
+    // userId se omite porque requiere ObjectId válido
     needsSync: false, // No necesita sync porque viene de Motoraldia
     motoraldiaVehicleId: vehicle.id?.toString() || null, // ID original en Motoraldia
     lastSyncAt: new Date()
@@ -268,10 +269,10 @@ export async function getImportStats(): Promise<{
       lastImportVehicle
     ] = await Promise.all([
       prisma.vehicle.count(),
-      prisma.vehicle.count({ where: { userId: KARS_USER_ID } }),
+      prisma.vehicle.count({ where: { authorId: '113' } }),
       prisma.vehicle.count({ where: { needsSync: true } }),
       prisma.vehicle.findFirst({
-        where: { userId: KARS_USER_ID },
+        where: { authorId: '113' },
         orderBy: { lastSyncAt: 'desc' },
         select: { lastSyncAt: true }
       })

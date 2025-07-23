@@ -5,6 +5,94 @@ Todos los cambios notables de este proyecto se documentarán en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-es/1.0.0/),
 y este proyecto adhiere al [Versionado Semántico](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2025-07-23
+
+### 🎉 MAJOR SYSTEM OVERHAUL - Vehicle Management Complete Fix
+
+Esta versión representa una corrección integral del sistema de gestión de vehículos, resolviendo todos los problemas críticos que impedían la creación, edición y listado correctos de vehículos.
+
+### ✅ Corregido
+
+#### Sistema de Gestión de Imágenes
+- **Error de previsualización de imagen destacada**: Corregido preview que no aparecía después de subir imagen desde URL
+- **Sistema de carga de imágenes de galería**: Funcionalidad completa de upload y preview
+- **Funciones separadas de procesamiento**: `getFeaturedImageUrl()` y `getGalleryImageUrl()` para manejo diferenciado
+- **Manejo de errores de carga**: Retroalimentación al usuario cuando las imágenes fallan al cargar
+- **Servido de imágenes**: Fix para desarrollo y producción con configuración correcta de Vite
+
+#### Sistema de Formulario de Vehículos
+- **Error 500 en guardado**: Eliminado completamente el error durante envío de formulario
+- **Validación de campos**: Sistema completo de validación antes del envío a API
+- **Normalización de datos**: Precio como float, conversiones boolean correctas
+- **Filtrado de campos**: Eliminación automática de campos no soportados (`seguretat`, `confort`, `multimedia`)
+- **Manejo de userId**: Fix para compatibilidad con ObjectId de MongoDB
+
+#### Sistema de Marcas y Modelos
+- **Error 404 en búsqueda de modelos**: Validación de existencia de marca antes de llamadas API
+- **Filtrado de marcas por tipo**: Separación correcta entre marcas de coches y motos
+- **Migración de datos**: 23 marcas de motos corregidas de categorización incorrecta 'car' a 'motorcycle'
+- **Cambio de tipo de vehículo**: Limpieza automática de selecciones incompatibles
+
+#### Sistema de Base de Datos
+- **Migración de schema**: Campo `preu` migrado de String a Float en Prisma
+- **Migración de datos**: 149 vehículos existentes migrados al nuevo schema Float
+- **Endpoint GET /api/vehicles**: Fix completo del endpoint que fallaba por incompatibilidad de tipos
+- **Cliente Prisma**: Regeneración completa para coincidir con schema actualizado
+
+### 🔧 Mejoras Técnicas
+
+#### Frontend
+- **React Query**: Manejo de errores mejorado y lógica de reintento
+- **Estado de formulario**: Mejor gestión a través de los pasos del formulario multi-etapa  
+- **Integración API**: Manejo de errores mejorado y validación de datos
+- **Procesamiento de imágenes**: Validación de URL mejorada y funcionalidad de preview
+- **TypeScript**: Corrección de problemas de seguridad de tipos con datos de formulario
+
+#### Backend
+- **Filtrado de campos**: Sistema automático para prevenir campos desconocidos
+- **Logging de errores**: Sistema comprehensive de logging en toda la API
+- **Validación de endpoints**: Validación mejorada para creación de vehículos
+- **Optimización de queries**: Mejor performance en listado de vehículos
+- **Manejo de datos**: Normalización mejorada antes de operaciones de BD
+
+### 📊 Cambios de Base de Datos
+- **Colección Vehicle**: 149 vehículos migrados de String a Float para precios
+- **Colección Brand**: 23 marcas de motos corregidas en su clasificación vehicleTypes
+- **Schema Updates**: Schema Prisma actualizado con tipos de campo correctos
+
+### 🎯 Archivos Modificados
+
+#### Frontend
+- `src/components/VehicleForm/MultiStepVehicleForm.tsx` - Overhaul completo de manejo de imágenes
+- `src/hooks/api/useVehicles.ts` - Manejo de errores API mejorado y normalización de datos
+- `src/components/VehicleForm/VehicleForm.tsx` - Lógica de envío de formulario mejorada
+- `vite.config.ts` - Configuración de servido de assets estáticos añadida
+- `CLAUDE.md` - Documentación actualizada con cambios del frontend
+
+#### Backend
+- `src/routes/vehicles.ts` - Operaciones CRUD de vehículos mejoradas con filtrado de campos
+- `src/routes/brands.ts` - Filtrado de marcas corregido y corrección de marcas de motos añadida
+- `src/services/syncService.ts` - Actualizado para nuevo tipo Float de precio
+- `src/services/vehicleImporter.ts` - Manejo de tipo de precio corregido en operaciones de importación
+- `prisma/schema.prisma` - Modelo Vehicle actualizado con campo precio Float
+- `CLAUDE.md` - Documentación actualizada con cambios del backend
+
+### 🚀 Estado del Sistema Después de las Correcciones
+- ✅ **Creación de vehículos**: Completamente funcional sin errores
+- ✅ **Subida de imágenes**: Funcionando correctamente en desarrollo y producción
+- ✅ **Filtrado marca/modelo**: Correctamente separado por tipo de vehículo
+- ✅ **Listado de vehículos**: Performance corregida y errores 500 eliminados
+- ✅ **Consistencia de BD**: Todas las incompatibilidades de tipos resueltas
+- ✅ **Validación de formularios**: Manejo de errores comprehensive y feedback al usuario
+
+### 🧪 Scripts de Migración Utilizados
+- Script de migración directa MongoDB para campo precio (149 vehículos procesados)
+- Script de corrección de categorización de marcas de motos (23 marcas corregidas)
+- Regeneración de cliente Prisma para actualizaciones de schema
+
+### 📝 Notas
+Esta versión corrige todos los problemas críticos que impedían el funcionamiento correcto del sistema de gestión de vehículos. El sistema está ahora listo para uso en producción con capacidades completas de creación, edición y listado de vehículos.
+
 ## [0.1.3] - 2025-07-22
 
 ### Añadido

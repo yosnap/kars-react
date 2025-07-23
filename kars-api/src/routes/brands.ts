@@ -19,7 +19,10 @@ router.get('/cars', async (req, res) => {
     
     const brands = await prisma.brand.findMany({
       where: {
-        vehicleType: 'car'
+        AND: [
+          { vehicleTypes: { hasSome: ['car'] } },
+          { NOT: { vehicleTypes: { hasSome: ['motorcycle'] } } } // Excluir marcas que también sean de motos
+        ]
       },
       orderBy: {
         name: 'asc'
@@ -28,11 +31,16 @@ router.get('/cars', async (req, res) => {
         id: true,
         slug: true,
         name: true,
-        vehicleType: true
+        vehicleTypes: true
       }
     });
 
     console.log(`✅ Found ${brands.length} car brands`);
+    
+    // Debug logging to see what vehicleTypes each brand has
+    brands.forEach(brand => {
+      console.log(`🏷️ Brand: ${brand.name} (${brand.slug}) - vehicleTypes:`, brand.vehicleTypes);
+    });
 
     return res.json({
       success: true,
@@ -60,7 +68,10 @@ router.get('/motorcycles', async (req, res) => {
     
     const brands = await prisma.brand.findMany({
       where: {
-        vehicleType: 'motorcycle'
+        AND: [
+          { vehicleTypes: { hasSome: ['motorcycle'] } },
+          { NOT: { vehicleTypes: { hasSome: ['car'] } } } // Excluir marcas que también sean de coches
+        ]
       },
       orderBy: {
         name: 'asc'
@@ -69,11 +80,16 @@ router.get('/motorcycles', async (req, res) => {
         id: true,
         slug: true,
         name: true,
-        vehicleType: true
+        vehicleTypes: true
       }
     });
 
     console.log(`✅ Found ${brands.length} motorcycle brands`);
+    
+    // Debug logging to see what vehicleTypes each brand has
+    brands.forEach(brand => {
+      console.log(`🏍️ Brand: ${brand.name} (${brand.slug}) - vehicleTypes:`, brand.vehicleTypes);
+    });
 
     return res.json({
       success: true,
@@ -100,7 +116,7 @@ router.get('/', async (req, res) => {
     const { type } = req.query;
     console.log(`🔍 GET /brands - Obteniendo marcas${type ? ` de tipo ${type}` : ''}`);
     
-    const whereCondition = type ? { vehicleType: type as string } : {};
+    const whereCondition = type ? { vehicleTypes: { hasSome: [type as string] } } : {};
     
     const brands = await prisma.brand.findMany({
       where: whereCondition,
@@ -111,7 +127,7 @@ router.get('/', async (req, res) => {
         id: true,
         slug: true,
         name: true,
-        vehicleType: true
+        vehicleTypes: true
       }
     });
 
@@ -123,7 +139,7 @@ router.get('/', async (req, res) => {
       data: brands.map(brand => ({
         value: brand.slug,
         label: brand.name,
-        type: brand.vehicleType
+        type: brand.vehicleTypes
       }))
     });
 
@@ -152,7 +168,7 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // Validar vehicleType
+    // Validar vehicleTypes: [vehicleType]
     if (!['car', 'motorcycle'].includes(vehicleType)) {
       return res.status(400).json({
         success: false,
@@ -176,11 +192,11 @@ router.post('/', async (req, res) => {
       data: {
         name,
         slug,
-        vehicleType
+        vehicleTypes: [vehicleType]
       }
     });
 
-    console.log(`✅ Brand created: ${newBrand.name} (${newBrand.vehicleType})`);
+    console.log(`✅ Brand created: ${newBrand.name} (${newBrand.vehicleTypes})`);
 
     return res.status(201).json({
       success: true,
@@ -188,7 +204,7 @@ router.post('/', async (req, res) => {
       data: {
         value: newBrand.slug,
         label: newBrand.name,
-        type: newBrand.vehicleType
+        type: newBrand.vehicleTypes
       }
     });
 
@@ -249,7 +265,7 @@ router.put('/:id', async (req, res) => {
       data: {
         ...(name && { name }),
         ...(slug && { slug }),
-        ...(vehicleType && { vehicleType })
+        ...(vehicleType && { vehicleTypes: [vehicleType] })
       }
     });
 
@@ -261,7 +277,7 @@ router.put('/:id', async (req, res) => {
       data: {
         value: updatedBrand.slug,
         label: updatedBrand.name,
-        type: updatedBrand.vehicleType
+        type: updatedBrand.vehicleTypes
       }
     });
 
@@ -345,7 +361,7 @@ router.post('/import', async (req, res) => {
     if (clearExisting) {
       console.log(`🗑️ Eliminando marcas existentes de tipo ${vehicleType}`);
       await prisma.brand.deleteMany({
-        where: { vehicleType }
+        where: { vehicleTypes: { hasSome: [vehicleType] } }
       });
     }
 
@@ -376,7 +392,7 @@ router.post('/import', async (req, res) => {
           data: {
             name: label,
             slug: value,
-            vehicleType
+            vehicleTypes: [vehicleType]
           }
         });
 
@@ -398,7 +414,7 @@ router.post('/import', async (req, res) => {
         imported,
         skipped,
         total: brands.length,
-        vehicleType
+        vehicleTypes: [vehicleType]
       }
     });
 
@@ -452,7 +468,7 @@ router.get('/:brandSlug/models', async (req, res) => {
       brand: {
         slug: brand.slug,
         name: brand.name,
-        vehicleType: brand.vehicleType
+        vehicleTypes: brand.vehicleTypes
       },
       total: models.length,
       data: models.map(model => ({
@@ -493,9 +509,9 @@ router.post('/:brandSlug/sync-models', async (req, res) => {
 
     // Determinar el endpoint de la API según el tipo de vehículo
     let externalApiUrl;
-    if (brand.vehicleType === 'car') {
+    if (brand.vehicleTypes.includes('car')) {
       externalApiUrl = `https://api.motoraldia.com/wp-json/api-motor/v1/marques-cotxe?marca=${brandSlug}`;
-    } else if (brand.vehicleType === 'motorcycle') {
+    } else if (brand.vehicleTypes.includes('motorcycle')) {
       externalApiUrl = `https://api.motoraldia.com/wp-json/api-motor/v1/marques-moto?marca=${brandSlug}`;
     } else {
       return res.status(400).json({
@@ -612,6 +628,56 @@ router.post('/:brandSlug/sync-models', async (req, res) => {
     return res.status(500).json({
       success: false,
       error: 'Failed to sync models',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// TEMPORAL: Endpoint para corregir vehicleTypes de marcas conocidas de motos
+router.post('/fix-motorcycle-brands', async (req, res) => {
+  try {
+    console.log('🔧 Fixing motorcycle brand types...');
+    
+    // Lista de marcas conocidas que son de motos
+    const motorcycleBrands = [
+      'aprilia', 'yamaha', 'honda', 'kawasaki', 'suzuki', 'ducati', 'ktm', 
+      'husqvarna', 'husaberg', 'beta', 'gas-gas', 'sherco', 'bultaco',
+      'harley-davidson', 'indian', 'mv-agusta', 'benelli', 'kymco', 
+      'piaggio', 'vespa', 'cfmoto', 'hyosung', 'laverda'
+    ];
+    
+    let fixed = 0;
+    
+    for (const brandSlug of motorcycleBrands) {
+      const result = await prisma.brand.updateMany({
+        where: { 
+          slug: brandSlug,
+          vehicleTypes: { hasSome: ['car'] } // Solo las que están mal marcadas
+        },
+        data: {
+          vehicleTypes: ['motorcycle'] // Cambiar a motorcycle
+        }
+      });
+      
+      if (result.count > 0) {
+        console.log(`✅ Fixed brand: ${brandSlug}`);
+        fixed++;
+      }
+    }
+    
+    console.log(`🎉 Fixed ${fixed} motorcycle brands`);
+    
+    return res.json({
+      success: true,
+      message: `Fixed ${fixed} motorcycle brands`,
+      fixed
+    });
+    
+  } catch (error) {
+    console.error('❌ Error fixing motorcycle brands:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to fix motorcycle brands',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }

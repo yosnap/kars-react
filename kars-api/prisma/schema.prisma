@@ -125,9 +125,21 @@ model Vehicle {
   extresAutocaravana String[] @map("extres-autocaravana")
   extresHabitacle   String[] @map("extres-habitacle")
   
+  // Additional technical fields
+  emissionsCo2       String?  @map("emissions-co2")
+  consumUrba         String?  @map("consum-urba")
+  consumCarretera    String?  @map("consum-carretera")
+  consumMixt         String?  @map("consum-mixt")
+  categoriaEcologica String?  @map("categoria-ecologica")
+  
+  // Commercial fields
+  origen             String?  // origen del vehicle
+  iva                String?  // tipus d'IVA
+  finacament         String?  // tipus de finançament
+  
   // Estado y garantías
-  garantia           Boolean? @default(false)
-  vehicleAccidentat  Boolean? @default(false) @map("vehicle-accidentat")
+  garantia           String?  // Changed from Boolean to String for more options
+  vehicleAccidentat  String?  @map("vehicle-accidentat") // Changed from Boolean to String
   llibreManteniment  Boolean? @default(false) @map("llibre-manteniment")
   revisionsOficials  Boolean? @default(false) @map("revisions-oficials")
   impostosDeduibles  Boolean? @default(false) @map("impostos-deduibles")
@@ -135,7 +147,7 @@ model Vehicle {
   nombrePropietaris  String?  @map("nombre-propietaris")
   
   // Precio
-  preu              String
+  preu              Float
   
   // Imágenes
   imatgeDestacadaUrl String?  @map("imatge-destacada-url")
@@ -281,7 +293,7 @@ model Brand {
   id              String    @id @default(auto()) @map("_id") @db.ObjectId
   slug            String    @unique
   name            String
-  vehicleType     String    @map("vehicle_type") // 'cotxe' o 'moto'
+  vehicleTypes    String[]  @map("vehicle_types") // ['car', 'motorcycle'] - array para marcas mixtas
   
   // Relación con modelos
   models          Model[]
@@ -291,7 +303,7 @@ model Brand {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
   
-  @@index([vehicleType])
+  @@index([vehicleTypes])
 }
 
 model Model {

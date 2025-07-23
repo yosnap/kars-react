@@ -80,7 +80,7 @@ async function getConfig() {
   // Valores por defecto
   return {
     sync_interval_minutes: '30',
-    enable_auto_sync: 'true',
+    enable_auto_sync: 'false',
     max_vehicles_per_sync: '1000',
     blog_sync_interval_hours: '8',
     enable_blog_auto_sync: 'true',
@@ -489,7 +489,7 @@ export async function syncVehicle(vehicle: OriginalVehicle): Promise<'created' |
     slug: vehicle.slug || `vehicle-${Date.now()}`,
     titolAnunci: vehicle['titol-anunci'] || 'Sin título',
     descripcioAnunci: vehicle['descripcio-anunci'] || vehicle.descripcio || null,
-    preu: vehicle.preu || '0',
+    preu: parseFloat(vehicle.preu) || 0,
     quilometratge: vehicle.quilometratge || '0',
     any: vehicle['any'] || vehicle['any-fabricacio'] || null,
     tipusVehicle: vehicle['tipus-vehicle'] || 'COTXE',
@@ -519,8 +519,8 @@ export async function syncVehicle(vehicle: OriginalVehicle): Promise<'created' |
     carrosseriaMoto: vehicle['carroseria-moto'] || null,
     carrosseriaCaravana: vehicle['carroseria-caravana'] || null,
     // Campos de estado y garantías
-    garantia: vehicle.garantia === true || vehicle.garantia === 'true',
-    vehicleAccidentat: vehicle['vehicle-accidentat'] === true || vehicle['vehicle-accidentat'] === 'true',
+    garantia: vehicle.garantia === true || vehicle.garantia === 'true' ? 'si' : 'no',
+    vehicleAccidentat: vehicle['vehicle-accidentat'] === true || vehicle['vehicle-accidentat'] === 'true' ? 'si' : 'no',
     llibreManteniment: vehicle['llibre-manteniment'] === true || vehicle['llibre-manteniment'] === 'true',
     revisionsOficials: vehicle['revisions-oficials'] === true || vehicle['revisions-oficials'] === 'true',
     impostosDeduibles: vehicle['impostos-deduibles'] === true || vehicle['impostos-deduibles'] === 'true',
@@ -647,52 +647,20 @@ export async function syncBrandsAndModels() {
   console.log('🏷️ Starting brands and models sync...');
   
   try {
-    // Clean up any inconsistent date data first
-    console.log('🧹 Cleaning up inconsistent date data...');
+    // Clear all existing brands and models to avoid corruption issues
+    console.log('🧹 Clearing existing brands and models to avoid data corruption...');
     try {
       await prisma.$runCommandRaw({
-        update: 'Brand',
-        updates: [
-          {
-            q: {
-              $or: [
-                { 'last_sync_at': { $type: 'string' } },
-                { 'created_at': { $type: 'string' } },
-                { 'updated_at': { $type: 'string' } }
-              ]
-            },
-            u: {
-              $set: {
-                'last_sync_at': new Date(),
-                'updated_at': new Date()
-              }
-            },
-            multi: true
-          }
-        ]
+        delete: 'Model',
+        deletes: [{ q: {}, limit: 0 }]
       });
+      console.log('✅ Cleared all models');
       
       await prisma.$runCommandRaw({
-        update: 'Model',
-        updates: [
-          {
-            q: {
-              $or: [
-                { 'last_sync_at': { $type: 'string' } },
-                { 'created_at': { $type: 'string' } },
-                { 'updated_at': { $type: 'string' } }
-              ]
-            },
-            u: {
-              $set: {
-                'last_sync_at': new Date(),
-                'updated_at': new Date()
-              }
-            },
-            multi: true
-          }
-        ]
+        delete: 'Brand',
+        deletes: [{ q: {}, limit: 0 }]
       });
+      console.log('✅ Cleared all brands');
     } catch (cleanupError) {
       console.warn('⚠️ Cleanup warning (continuing):', cleanupError);
     }
@@ -736,7 +704,7 @@ async function importBrandsFromAPI() {
       const existing = await prisma.brand.findFirst({
         where: { 
           slug: brand.value,
-          vehicleType: 'car'
+          vehicleTypes: { hasSome: ['car'] }
         }
       });
       
@@ -754,7 +722,7 @@ async function importBrandsFromAPI() {
         await prisma.brand.updateMany({
           where: { 
             slug: brand.value,
-            vehicleType: 'car'
+            vehicleTypes: { hasSome: ['car'] }
           },
           data: { name: brand.label }
         });
@@ -785,7 +753,7 @@ async function importBrandsFromAPI() {
       const existing = await prisma.brand.findFirst({
         where: { 
           slug: brand.value,
-          vehicleType: 'motorcycle'
+          vehicleTypes: { hasSome: ['motorcycle'] }
         }
       });
       
@@ -803,7 +771,7 @@ async function importBrandsFromAPI() {
         await prisma.brand.updateMany({
           where: { 
             slug: brand.value,
-            vehicleType: 'motorcycle'
+            vehicleTypes: { hasSome: ['motorcycle'] }
           },
           data: { name: brand.label }
         });
@@ -835,7 +803,14 @@ async function importModelsForAllBrands() {
   
   try {
     // Get all brands
-    const brands = await prisma.brand.findMany();
+    const brands = await prisma.brand.findMany({
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        vehicleTypes: true
+      }
+    });
     console.log(`📋 Found ${brands.length} brands to sync models for`);
     
     // Process in batches of 5 to avoid overloading the API
@@ -845,10 +820,10 @@ async function importModelsForAllBrands() {
       
       await Promise.all(batch.map(async (brand) => {
         try {
-          const endpoint = brand.vehicleType === 'motorcycle' ? 'marques-moto' : 'marques-cotxe';
+          const endpoint = brand.vehicleTypes.includes('motorcycle') ? 'marques-moto' : 'marques-cotxe';
           const url = `${MOTORALDIA_API}/${endpoint}?marca=${brand.slug}`;
           
-          console.log(`🔄 Fetching models for ${brand.name} (${brand.vehicleType})...`);
+          console.log(`🔄 Fetching models for ${brand.name} (${brand.vehicleTypes})...`);
           const response = await axios.get(url, { timeout: 30000 });
           const models = response.data?.data || [];
           

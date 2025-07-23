@@ -18,6 +18,7 @@ router.get('/', async (req, res) => {
       'anunci-destacat': anunciDestacat,
       'venut': venut,
       'tipus-vehicle': tipusVehicle,
+      'estat-vehicle': estatVehicle,
       'marca-cotxe': marcaCotxe,
       'marca-moto': marcaMoto,
       model,
@@ -45,6 +46,10 @@ router.get('/', async (req, res) => {
     
     if (tipusVehicle) {
       where.tipusVehicle = tipusVehicle;
+    }
+    
+    if (estatVehicle) {
+      where.estatVehicle = estatVehicle;
     }
     
     if (marcaCotxe) {
@@ -103,13 +108,18 @@ router.get('/', async (req, res) => {
         orderByClause = { anunciDestacat: orderDirection };
         break;
       case 'price':
+      case 'preu':
         orderByClause = { preu: orderDirection };
         break;
       case 'date':
         orderByClause = { dataCreacio: orderDirection };
         break;
       case 'title':
+      case 'titol-anunci':
         orderByClause = { titolAnunci: orderDirection };
+        break;
+      case 'any':
+        orderByClause = { any: orderDirection };
         break;
       default:
         orderByClause = { dataCreacio: 'desc' };
@@ -187,6 +197,91 @@ router.get('/', async (req, res) => {
     console.error('❌ Error fetching vehicles:', error);
     return res.status(500).json({ 
       error: 'Failed to fetch vehicles',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+
+
+// GET /api/vehicles/id/:id - Obtener vehículo por ID
+router.get('/id/:id', async (req, res) => {
+  try {
+    console.log('🔍 GET /vehicles/id/:id called with id:', req.params.id);
+    const { id } = req.params;
+    
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id }
+    });
+    
+    if (!vehicle) {
+      console.log('❌ Vehicle not found');
+      return res.status(404).json({ 
+        error: 'Vehicle not found',
+        id 
+      });
+    }
+    
+    console.log('✅ Vehicle found, returning data');
+    const transformed = transformVehicleForFrontend(vehicle);
+    return res.json(transformed);
+    
+  } catch (error) {
+    console.error('❌ Error fetching vehicle by ID:', error);
+    return res.status(500).json({ 
+      error: 'Failed to fetch vehicle by ID',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// PUT /api/vehicles/:id - Actualizar vehículo
+router.put('/:id', async (req, res) => {
+  try {
+    console.log('📝 PUT /vehicles/:id called with id:', req.params.id);
+    const { id } = req.params;
+    const updateData = req.body;
+    
+    // Verificar que el vehículo existe
+    const existingVehicle = await prisma.vehicle.findUnique({
+      where: { id }
+    });
+    
+    if (!existingVehicle) {
+      return res.status(404).json({ 
+        error: 'Vehicle not found',
+        id 
+      });
+    }
+    
+    // Normalizar campos antes de actualizar
+    if (updateData.tipusVehicle) {
+      updateData.tipusVehicle = updateData.tipusVehicle.toLowerCase();
+    }
+    if (updateData.estatVehicle) {
+      updateData.estatVehicle = updateData.estatVehicle.toLowerCase();
+    }
+    
+    // Actualizar vehículo
+    const updatedVehicle = await prisma.vehicle.update({
+      where: { id },
+      data: {
+        ...updateData,
+        updatedAt: new Date()
+      }
+    });
+    
+    console.log('✅ Vehicle updated successfully');
+    const transformed = transformVehicleForFrontend(updatedVehicle);
+    return res.json({
+      success: true,
+      data: transformed
+    });
+    
+  } catch (error) {
+    console.error('❌ Error updating vehicle:', error);
+    return res.status(500).json({ 
+      error: 'Failed to update vehicle',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
@@ -538,14 +633,24 @@ function transformVehicleForFrontend(vehicle: any) {
 // POST /api/vehicles - Crear nuevo vehículo
 router.post('/', async (req, res) => {
   try {
-    console.log('🚗 Creating new vehicle...', req.body);
+    console.log('🚗 Creating new vehicle...');
+    console.log('📝 Raw vehicle data:', JSON.stringify(req.body, null, 2));
     
     const vehicleData = req.body;
     
     // Validación básica
-    if (!vehicleData.titolAnunci || !vehicleData.tipusVehicle || !vehicleData.preu) {
+    const missingFields: string[] = [];
+    if (!vehicleData.titolAnunci) missingFields.push('titolAnunci');
+    if (!vehicleData.tipusVehicle) missingFields.push('tipusVehicle');
+    if (!vehicleData.preu && vehicleData.preu !== 0) missingFields.push('preu');
+    
+    if (missingFields.length > 0) {
+      console.log('❌ Missing required fields:', missingFields);
+      console.log('❌ Received data:', vehicleData);
       return res.status(400).json({
-        error: 'Missing required fields: titolAnunci, tipusVehicle, preu'
+        error: `Missing required fields: ${missingFields.join(', ')}`,
+        missingFields,
+        receivedData: vehicleData
       });
     }
     
@@ -556,17 +661,64 @@ router.post('/', async (req, res) => {
     
     // Asegurar que needsSync esté configurado correctamente para Kars.ad
     vehicleData.needsSync = vehicleData.needsSync !== false; // Default true
-    vehicleData.userId = vehicleData.userId || '113'; // Default to Kars.ad user
+    // Omitir userId por ahora - MongoDB lo manejará como null
+    delete vehicleData.userId;
     
+    // Normalizar tipusVehicle a minúsculas
+    if (vehicleData.tipusVehicle) {
+      vehicleData.tipusVehicle = vehicleData.tipusVehicle.toLowerCase();
+    }
+    
+    // Lista de campos válidos según el schema de Prisma
+    const validFields = [
+      'id', 'originalId', 'authorId', 'status', 'slug', 'titolAnunci', 'descripcioAnunci',
+      'descripcioAnunciCA', 'descripcioAnunciEN', 'descripcioAnunciFR', 'descripcioAnunciES',
+      'anunciActiu', 'anunciDestacat', 'venut', 'diesCaducitat', 'tipusVehicle',
+      'marquesAutocaravana', 'modelsAutocaravana', 'marcaCotxe', 'marcaMoto', 'modelsCotxe', 'modelsMoto',
+      'estatVehicle', 'tipusPropulsor', 'tipusCombustible', 'tipusCanvi', 'carrosseriaCotxe',
+      'carrosseriaMoto', 'carrosseriaCaravana', 'versio', 'any', 'quilometratge', 'cilindrada',
+      'traccio', 'potenciaCv', 'numeroMotors', 'cvMotorDavant', 'kwMotorDavant', 'potenciaKw',
+      'emissionsVehicle', 'cvMotorDarrere', 'kwMotorDarrere', 'potenciaCombinada',
+      'autonomiaWltp', 'autonomiaUrbanaWltp', 'autonomiaExtraurbanaWltp', 'autonomiaElectrica',
+      'bateria', 'cablesRecarrega', 'connectors', 'velocitatRecarrega', 'frenadaRegenerativa',
+      'onePedal', 'tempsRecarregaTotal', 'tempsRecarregaFins80', 'colorVehicle', 'placesCotxe',
+      'placesMoto', 'aireAcondicionat', 'tipusTapisseria', 'portesCotxe', 'climatitzacio',
+      'colorTapisseria', 'numeroMaletersCotxe', 'capacitatMaletersCotxe', 'capacitatTotalL',
+      'vehicleFumador', 'rodaRecanvi', 'acceleracio060', 'acceleracio0100Cotxe', 'velocitatMaxima',
+      'tipusCanviMoto', 'preuMensual', 'preuDiari', 'preuAntic', 'videoVehicle', 'cvMotor3',
+      'kwMotor3', 'cvMotor4', 'kwMotor4', 'extresCotxe', 'extresMoto', 'extresAutocaravana',
+      'extresHabitacle', 'emissionsCo2', 'consumUrba', 'consumCarretera', 'consumMixt',
+      'categoriaEcologica', 'origen', 'iva', 'finacament', 'garantia', 'vehicleAccidentat',
+      'llibreManteniment', 'revisionsOficials', 'impostosDeduibles', 'vehicleACanvi', 'nombrePropietaris',
+      'preu', 'imatgeDestacadaUrl', 'galeriaVehicleUrls', 'dataCreacio', 'userId', 'professionalId',
+      'lastSyncAt', 'syncedToMotoraldiaAt', 'motoraldiaVehicleId', 'needsSync', 'syncError',
+      'createdAt', 'updatedAt'
+    ];
+
+    // Filtrar solo campos válidos
+    const filteredData: any = {};
+    for (const [key, value] of Object.entries(vehicleData)) {
+      if (validFields.includes(key)) {
+        filteredData[key] = value;
+      } else {
+        console.log(`⚠️ Filtering out unknown field: ${key}`);
+      }
+    }
+
     // Convertir datos numéricos y booleans
     const processedData = {
-      ...vehicleData,
+      ...filteredData,
+      preu: parseFloat(vehicleData.preu) || 0,
       anunciDestacat: parseInt(vehicleData.anunciDestacat) || 0,
       anunciActiu: Boolean(vehicleData.anunciActiu),
       venut: Boolean(vehicleData.venut),
       dataCreacio: new Date(vehicleData.dataCreacio || new Date()),
-      galeriaVehicleUrls: vehicleData.galeriaVehicleUrls || []
+      galeriaVehicleUrls: vehicleData.galeriaVehicleUrls || [],
+      // Asegurar campo de descripción en catalán
+      descripcioAnunci: vehicleData.descripcioAnunciCA || vehicleData.descripcioAnunci || ''
     };
+    
+    console.log('💾 Processed data for creation:', JSON.stringify(processedData, null, 2));
     
     const newVehicle = await prisma.vehicle.create({
       data: processedData
@@ -583,9 +735,14 @@ router.post('/', async (req, res) => {
     
   } catch (error) {
     console.error('❌ Error creating vehicle:', error);
+    // Si es un error de Prisma, dar más detalles
+    if (error instanceof Error && error.message.includes('prisma')) {
+      console.error('❌ Prisma error details:', JSON.stringify(error, null, 2));
+    }
     return res.status(500).json({
       error: 'Failed to create vehicle',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
+      stack: process.env.NODE_ENV === 'development' ? error : undefined
     });
   }
 });
