@@ -106,7 +106,7 @@ router.get('/exterior-colors', async (req, res) => {
 router.get('/brands/cars', async (req, res) => {
   try {
     const brands = await prisma.brand.findMany({
-      where: { vehicleType: 'car' },
+      where: { vehicleTypes: { hasSome: ['car'] } },
       include: {
         models: {
           orderBy: { name: 'asc' }
@@ -139,7 +139,7 @@ router.get('/brands/cars', async (req, res) => {
 router.get('/brands/motorcycles', async (req, res) => {
   try {
     const brands = await prisma.brand.findMany({
-      where: { vehicleType: 'motorcycle' },
+      where: { vehicleTypes: { hasSome: ['motorcycle'] } },
       include: {
         models: {
           orderBy: { name: 'asc' }
@@ -241,7 +241,7 @@ router.get('/tipus-propulsor', async (req, res) => {
 router.get('/marques-cotxe', async (req, res) => {
   try {
     const brands = await prisma.brand.findMany({
-      where: { vehicleType: 'cotxe' },
+      where: { vehicleTypes: { hasSome: ['cotxe'] } },
       include: { models: true },
       orderBy: { name: 'asc' }
     });
@@ -270,7 +270,7 @@ router.get('/marques-cotxe', async (req, res) => {
 router.get('/marques-moto', async (req, res) => {
   try {
     const brands = await prisma.brand.findMany({
-      where: { vehicleType: 'moto' },
+      where: { vehicleTypes: { hasSome: ['moto'] } },
       include: { models: true },
       orderBy: { name: 'asc' }
     });
