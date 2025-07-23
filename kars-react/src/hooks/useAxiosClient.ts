@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { createAxiosClient, axiosAdmin } from '../api/axiosClient';
-import { useAuth } from '../context/SimpleAuthContext';
+import { useAuth } from '../context/AuthContext';
 
 export function useAxiosClient() {
   const { user } = useAuth();

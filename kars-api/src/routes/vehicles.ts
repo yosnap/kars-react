@@ -179,8 +179,11 @@ router.get('/', async (req, res) => {
 
     console.log(`✅ Found ${total} vehicles, returning ${vehicles.length} items`);
 
-    // Calcular facets (simplificado por ahora)
-    const facets = {};
+    // Calcular facets si se solicitan
+    let facets = {};
+    if (req.query.facets === 'true') {
+      facets = await calculateFacets(where);
+    }
 
     const totalPages = Math.ceil(total / perPage);
 
@@ -480,6 +483,10 @@ async function calculateFacets(baseWhere: any) {
   try {
     const [
       tipusVehicleFacets,
+      venutFacets,
+      estatVehicleFacets,
+      anunciActiuFacets,
+      anunciDestacatFacets,
       marcaCotxeFacets,
       marcaMotoFacets,
       combustibleFacets,
@@ -488,6 +495,30 @@ async function calculateFacets(baseWhere: any) {
       // Tipos de vehículo
       prisma.vehicle.groupBy({
         by: ['tipusVehicle'],
+        where: baseWhere,
+        _count: true
+      }),
+      // Vendido
+      prisma.vehicle.groupBy({
+        by: ['venut'],
+        where: baseWhere,
+        _count: true
+      }),
+      // Estado del vehículo
+      prisma.vehicle.groupBy({
+        by: ['estatVehicle'],
+        where: { ...baseWhere, estatVehicle: { not: null } },
+        _count: true
+      }),
+      // Anuncio activo
+      prisma.vehicle.groupBy({
+        by: ['anunciActiu'],
+        where: baseWhere,
+        _count: true
+      }),
+      // Anuncio destacado
+      prisma.vehicle.groupBy({
+        by: ['anunciDestacat'],
         where: baseWhere,
         _count: true
       }),
@@ -520,6 +551,18 @@ async function calculateFacets(baseWhere: any) {
     return {
       'tipus-vehicle': Object.fromEntries(
         tipusVehicleFacets.map(f => [f.tipusVehicle, f._count])
+      ),
+      'venut': Object.fromEntries(
+        venutFacets.map(f => [f.venut.toString(), f._count])
+      ),
+      'estat-vehicle': Object.fromEntries(
+        estatVehicleFacets.map(f => [f.estatVehicle!, f._count])
+      ),
+      'anunci-actiu': Object.fromEntries(
+        anunciActiuFacets.map(f => [f.anunciActiu.toString(), f._count])
+      ),
+      'anunci-destacat': Object.fromEntries(
+        anunciDestacatFacets.map(f => [f.anunciDestacat.toString(), f._count])
       ),
       'marca-cotxe': Object.fromEntries(
         marcaCotxeFacets.map(f => [f.marcaCotxe!, f._count])

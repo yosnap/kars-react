@@ -1,22 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Car, 
   Plus, 
   Edit, 
-  Trash2, 
   Eye,
   Search,
   Filter,
   RefreshCw,
   CheckCircle,
   XCircle,
-  Calendar,
-  DollarSign,
-  MapPin
+  Upload,
+  FileText,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import AdminLayout from '../../components/Admin/AdminLayout';
 import { axiosAdmin } from '../../api/axiosClient';
+import * as Popover from '@radix-ui/react-popover';
 
 interface Vehicle {
   id: string;
@@ -27,7 +29,7 @@ interface Vehicle {
   'marca-moto'?: string;
   'models-cotxe'?: string;
   'models-moto'?: string;
-  preu: string;
+  preu: number | string;
   any: string;
   quilometratge: string;
   'anunci-actiu': string;
@@ -35,7 +37,78 @@ interface Vehicle {
   'anunci-destacat': string;
   'data-creacio': string;
   'imatge-destacada-url'?: string;
+  'estat-vehicle'?: string;
 }
+
+interface SelectOption {
+  value: string;
+  label: string;
+  count?: number;
+}
+
+interface SearchableSelectProps {
+  options: SelectOption[];
+  value: string;
+  onValueChange: (value: string) => void;
+  placeholder: string;
+}
+
+const SearchableSelect: React.FC<SearchableSelectProps> = ({
+  options,
+  value,
+  onValueChange,
+  placeholder
+}) => {
+  const [open, setOpen] = useState(false);
+  const selectedOption = options.find(option => option.value === value);
+
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger asChild>
+        <button
+          className="flex h-10 w-full items-center justify-between rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm ring-offset-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:ring-offset-gray-950 dark:placeholder:text-gray-400 dark:focus:ring-blue-400"
+          role="combobox"
+          aria-expanded={open}
+        >
+          <span className={selectedOption ? "text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400"}>
+            {selectedOption ? selectedOption.label : placeholder}
+          </span>
+          <ChevronDown className="h-4 w-4 opacity-50" />
+        </button>
+      </Popover.Trigger>
+      <Popover.Content className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+        <div className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg">
+          <div className="max-h-60 overflow-y-auto">
+            {options.map((option) => (
+              <button
+                key={option.value}
+                className="relative flex w-full cursor-pointer select-none items-center rounded-sm px-3 py-2 text-sm outline-none hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700"
+                onClick={() => {
+                  onValueChange(option.value);
+                  setOpen(false);
+                }}
+              >
+                <Check
+                  className={`mr-2 h-4 w-4 ${
+                    value === option.value ? "opacity-100" : "opacity-0"
+                  }`}
+                />
+                <span className="flex-1 text-left">
+                  {option.label}
+                  {option.count !== undefined && (
+                    <span className="text-gray-500 dark:text-gray-400 ml-2">
+                      ({option.count.toLocaleString()})
+                    </span>
+                  )}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </Popover.Content>
+    </Popover.Root>
+  );
+};
 
 const KarsVehicles = () => {
   const navigate = useNavigate();
@@ -43,11 +116,20 @@ const KarsVehicles = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [venutFilter, setVenutFilter] = useState('all');
+  const [estatVehicleFilter, setEstatVehicleFilter] = useState('all');
+  const [anunciActiuFilter, setAnunciActiuFilter] = useState('all');
+  const [anunciDestacatFilter, setAnunciDestacatFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('date');
+  const [sortOrder, setSortOrder] = useState('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalVehicles, setTotalVehicles] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [importStatus, setImportStatus] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
+  const [filterCounts, setFilterCounts] = useState<any>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadVehicles = async (page = 1) => {
     try {
@@ -55,23 +137,30 @@ const KarsVehicles = () => {
       const params: any = {
         page,
         per_page: 20,
-        orderby: 'date',
-        order: 'DESC'
+        orderby: sortBy === 'date' ? 'date' : sortBy === 'name' ? 'title' : sortBy === 'price' ? 'price' : 'date',
+        order: sortOrder.toUpperCase(),
+        facets: true  // Solicitar facets con los resultados
       };
 
       // Aplicar filtros
-      if (statusFilter !== 'all') {
-        if (statusFilter === 'active') {
-          params['anunci-actiu'] = 'true';
-        } else if (statusFilter === 'inactive') {
-          params['anunci-actiu'] = 'false';
-        } else if (statusFilter === 'sold') {
-          params.venut = 'true';
-        }
-      }
-
       if (typeFilter !== 'all') {
         params['tipus-vehicle'] = typeFilter;
+      }
+
+      if (venutFilter !== 'all') {
+        params.venut = venutFilter === 'true' ? 'true' : 'false';
+      }
+
+      if (estatVehicleFilter !== 'all') {
+        params['estat-vehicle'] = estatVehicleFilter;
+      }
+
+      if (anunciActiuFilter !== 'all') {
+        params['anunci-actiu'] = anunciActiuFilter === 'true' ? 'true' : 'false';
+      }
+
+      if (anunciDestacatFilter !== 'all') {
+        params['anunci-destacat'] = anunciDestacatFilter;
       }
 
       if (searchTerm) {
@@ -81,7 +170,13 @@ const KarsVehicles = () => {
       const response = await axiosAdmin.get('/vehicles', { params });
       setVehicles(response.data.items || []);
       setTotalPages(response.data.pages || 1);
+      setTotalVehicles(response.data.total || 0);
       setCurrentPage(page);
+      
+      // Actualizar conteos de filtros si están disponibles
+      if (response.data.facets) {
+        setFilterCounts(response.data.facets);
+      }
     } catch (err) {
       setError('Error al carregar els vehicles');
       console.error('Error loading vehicles:', err);
@@ -107,16 +202,6 @@ const KarsVehicles = () => {
     }
   };
 
-  const deleteVehicle = async (vehicleId: string) => {
-    if (!confirm('Estàs segur que vols eliminar aquest vehicle?')) return;
-    
-    try {
-      await axiosAdmin.delete(`/vehicles/${vehicleId}`);
-      await loadVehicles(currentPage);
-    } catch (err) {
-      console.error('Error deleting vehicle:', err);
-    }
-  };
 
   const handleCreateVehicle = () => {
     navigate('/admin/vehicles/create');
@@ -126,25 +211,130 @@ const KarsVehicles = () => {
     navigate(`/admin/vehicles/edit/${vehicleId}`);
   };
 
+  const handleImportJson = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || file.type !== 'application/json') {
+      toast.error('Si us plau selecciona un arxiu JSON vàlid');
+      return;
+    }
+
+    setImportStatus('running');
+    try {
+      const fileText = await file.text();
+      const vehiclesData = JSON.parse(fileText);
+
+      if (!Array.isArray(vehiclesData)) {
+        throw new Error('El JSON ha de contenir un array de vehicles');
+      }
+
+      const response = await axiosAdmin.post('/vehicles/import-json', {
+        vehiclesData,
+        clearDatabase: false
+      });
+
+      if (response.data.success) {
+        setImportStatus('success');
+        toast.success(`✅ Importació completada: ${response.data.data.imported} importats, ${response.data.data.skipped} omesos`);
+        await loadVehicles(currentPage); // Recargar vehículos
+      } else {
+        throw new Error(response.data.error || 'Error desconegut');
+      }
+    } catch (error) {
+      console.error('Error during JSON import:', error);
+      setImportStatus('error');
+      
+      if (error instanceof Error) {
+        toast.error(`❌ Error en la importació: ${error.message}`);
+      } else {
+        toast.error('❌ Error desconegut en la importació');
+      }
+    } finally {
+      // Limpiar el input file
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      // Reset status after 3 seconds
+      setTimeout(() => setImportStatus('idle'), 3000);
+    }
+  };
+
+  const handleDownloadJson = async () => {
+    try {
+      const response = await axiosAdmin.get('/vehicles/json?format=full&limit=5000');
+      const jsonData = response.data;
+      
+      // Crear y descargar archivo JSON
+      const blob = new Blob([JSON.stringify(jsonData, null, 2)], {
+        type: 'application/json'
+      });
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `kars-vehicles-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success(`✅ Descarregat JSON amb ${jsonData.total} vehicles`);
+    } catch (error) {
+      console.error('Error downloading JSON:', error);
+      toast.error('❌ Error descarregant el JSON');
+    }
+  };
+
+  // Función para cargar conteos de filtros
+  const loadFilterCounts = async () => {
+    try {
+      const response = await axiosAdmin.get('/vehicles', { 
+        params: { 
+          per_page: 1, 
+          facets: true 
+        } 
+      });
+      if (response.data.facets) {
+        setFilterCounts(response.data.facets);
+      }
+    } catch (error) {
+      console.error('Error loading filter counts:', error);
+    }
+  };
+
   useEffect(() => {
     loadVehicles();
+    loadFilterCounts();
   }, []);
 
-  const formatPrice = (price: string) => {
-    if (!price || price === '0') return 'A consultar';
+  // Recargar cuando cambien los filtros (filtrado automático)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadVehicles(1); // Resetear a página 1 cuando cambien filtros
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm, typeFilter, venutFilter, estatVehicleFilter, anunciActiuFilter, anunciDestacatFilter, sortBy, sortOrder]);
+
+  const formatPrice = (price: number | string) => {
+    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+    if (!numPrice || numPrice === 0) return 'A consultar';
     return new Intl.NumberFormat('es-ES', { 
       style: 'currency', 
       currency: 'EUR',
       minimumFractionDigits: 0
-    }).format(parseFloat(price));
+    }).format(numPrice);
   };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ca-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit'
+    }).replace(/\//g, '/');
   };
 
   const getBrandName = (vehicle: Vehicle) => {
@@ -153,6 +343,37 @@ const KarsVehicles = () => {
 
   const getModelName = (vehicle: Vehicle) => {
     return vehicle['models-cotxe'] || vehicle['models-moto'] || 'N/A';
+  };
+
+  // Helper para obtener conteo de un filtro
+  const getFilterCount = (filterKey: string, value: string) => {
+    if (!filterCounts[filterKey]) return 0;
+    
+    // Para campos booleanos, el backend puede devolver "true"/"false" como strings
+    // mientras que nuestros valores de filtro son strings
+    let count = filterCounts[filterKey][value];
+    
+    // Si no encontramos el valor directamente y es un valor booleano, intentar alternativas
+    if (count === undefined && (value === 'true' || value === 'false')) {
+      // Intentar con el valor booleano
+      const boolValue = value === 'true';
+      count = filterCounts[filterKey][boolValue.toString()];
+    }
+    
+    return count !== undefined ? count : 0;
+  };
+
+  // Helper para crear opciones para SearchableSelect
+  const createSelectOptions = (filterKey: string, staticOptions: { value: string; label: string }[]): SelectOption[] => {
+    return staticOptions.map(opt => {
+      if (opt.value === 'all') {
+        return opt; // No mostrar conteo para "Tots"
+      }
+      return {
+        ...opt,
+        count: getFilterCount(filterKey, opt.value)
+      };
+    });
   };
 
   return (
@@ -167,6 +388,11 @@ const KarsVehicles = () => {
             <p className="text-gray-600 dark:text-gray-400">
               Gestiona els vehicles de la plataforma
             </p>
+            <div className="flex items-center gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
+              <span>Total: <strong>{totalVehicles.toLocaleString()}</strong> vehicles</span>
+              <span>Pàgina: <strong>{currentPage}</strong> de <strong>{totalPages}</strong></span>
+              <span>Veient <strong>{vehicles.length}</strong> d'un total de <strong>{totalVehicles.toLocaleString()}</strong></span>
+            </div>
           </div>
           <div className="flex gap-3">
             <button
@@ -176,6 +402,29 @@ const KarsVehicles = () => {
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               Actualitzar
+            </button>
+            <button
+              onClick={handleDownloadJson}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              <FileText className="w-4 h-4" />
+              Descarregar JSON
+            </button>
+            <button
+              onClick={handleImportJson}
+              disabled={importStatus === 'running'}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                importStatus === 'running'
+                  ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                  : 'bg-green-600 text-white hover:bg-green-700'
+              }`}
+            >
+              {importStatus === 'running' ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Upload className="w-4 h-4" />
+              )}
+              {importStatus === 'running' ? 'Important...' : 'Importar JSON'}
             </button>
             <button 
               onClick={handleCreateVehicle}
@@ -189,60 +438,139 @@ const KarsVehicles = () => {
 
         {/* Filters */}
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Cercar vehicles..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && loadVehicles()}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-              />
+          <div className="flex flex-col gap-4">
+            {/* Title */}
+            <div className="flex items-center gap-2">
+              <Filter className="w-5 h-5 text-gray-500" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Filtros</h3>
             </div>
             
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setTimeout(() => loadVehicles(), 100);
-              }}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-            >
-              <option value="all">Tots els estats</option>
-              <option value="active">Actius</option>
-              <option value="inactive">Inactius</option>
-              <option value="sold">Venuts</option>
-            </select>
+            {/* Filter Rows */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Search Input */}
+              <div className="relative md:col-span-2">
+                <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Cercar vehicles per títol, marca o model..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              
+              {/* Sort By */}
+              <SearchableSelect
+                options={[
+                  { value: 'date', label: 'Ordenar per Data' },
+                  { value: 'name', label: 'Ordenar per Nom' },
+                  { value: 'price', label: 'Ordenar per Preu' }
+                ]}
+                value={sortBy}
+                onValueChange={setSortBy}
+                placeholder="Selecciona ordre"
+              />
 
-            <select
-              value={typeFilter}
-              onChange={(e) => {
-                setTypeFilter(e.target.value);
-                setTimeout(() => loadVehicles(), 100);
-              }}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-            >
-              <option value="all">Tots els tipus</option>
-              <option value="cotxe">Cotxes</option>
-              <option value="moto">Motos</option>
-              <option value="autocaravana-camper">Autocaravanes</option>
-              <option value="vehicle-comercial">Vehicles Comercials</option>
-            </select>
+              {/* Sort Order */}
+              <SearchableSelect
+                options={[
+                  { value: 'desc', label: 'Descendent' },
+                  { value: 'asc', label: 'Ascendent' }
+                ]}
+                value={sortOrder}
+                onValueChange={setSortOrder}
+                placeholder="Selecciona direcció"
+              />
+            </div>
 
-            <button
-              onClick={() => loadVehicles()}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Filter className="w-4 h-4" />
-              Filtrar
-            </button>
+            {/* Second Row of Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+              {/* Vehicle Type Filter */}
+              <SearchableSelect
+                options={createSelectOptions('tipus-vehicle', [
+                  { value: 'all', label: 'Tots els tipus' },
+                  { value: 'cotxe', label: 'Cotxes' },
+                  { value: 'moto', label: 'Motos' },
+                  { value: 'autocaravana-camper', label: 'Autocaravanes' },
+                  { value: 'vehicle-comercial', label: 'Vehicles Comercials' }
+                ])}
+                value={typeFilter}
+                onValueChange={setTypeFilter}
+                placeholder="Selecciona tipus de vehicle"
+              />
+
+              {/* Venut Filter */}
+              <SearchableSelect
+                options={createSelectOptions('venut', [
+                  { value: 'all', label: 'Venut - Tots' },
+                  { value: 'false', label: 'No venut' },
+                  { value: 'true', label: 'Venut' }
+                ])}
+                value={venutFilter}
+                onValueChange={setVenutFilter}
+                placeholder="Selecciona estat de venda"
+              />
+
+              {/* Estat Vehicle Filter */}
+              <SearchableSelect
+                options={createSelectOptions('estat-vehicle', [
+                  { value: 'all', label: 'Estat - Tots' },
+                  { value: 'nou', label: 'Nou' },
+                  { value: 'seminou', label: 'Seminou' },
+                  { value: 'ocasio', label: 'Ocasió' },
+                  { value: 'km0', label: 'Km0' }
+                ])}
+                value={estatVehicleFilter}
+                onValueChange={setEstatVehicleFilter}
+                placeholder="Selecciona estat del vehicle"
+              />
+
+              {/* Anunci Actiu Filter */}
+              <SearchableSelect
+                options={createSelectOptions('anunci-actiu', [
+                  { value: 'all', label: 'Actiu - Tots' },
+                  { value: 'true', label: 'Actiu' },
+                  { value: 'false', label: 'Inactiu' }
+                ])}
+                value={anunciActiuFilter}
+                onValueChange={setAnunciActiuFilter}
+                placeholder="Selecciona estat d'activitat"
+              />
+
+              {/* Anunci Destacat Filter */}
+              <SearchableSelect
+                options={createSelectOptions('anunci-destacat', [
+                  { value: 'all', label: 'Destacat - Tots' },
+                  { value: '0', label: 'No destacat' },
+                  { value: '1', label: 'Destacat' }
+                ])}
+                value={anunciDestacatFilter}
+                onValueChange={setAnunciDestacatFilter}
+                placeholder="Selecciona si és destacat"
+              />
+
+              {/* Clear Filters Button */}
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setTypeFilter('all');
+                  setVenutFilter('all');
+                  setEstatVehicleFilter('all');
+                  setAnunciActiuFilter('all');
+                  setAnunciDestacatFilter('all');
+                  setSortBy('date');
+                  setSortOrder('desc');
+                }}
+                className="px-4 py-2 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded-lg hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
+              >
+                Netejar tot
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Vehicle List */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 w-full overflow-x-auto">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
@@ -258,11 +586,14 @@ const KarsVehicles = () => {
             <>
               {/* Table Header */}
               <div className="grid grid-cols-12 gap-4 p-4 border-b border-gray-200 dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-300 text-sm">
-                <div className="col-span-4">Vehicle</div>
-                <div className="col-span-2">Tipus</div>
-                <div className="col-span-2">Preu</div>
-                <div className="col-span-2">Data</div>
+                <div className="col-span-3">Vehicle</div>
+                <div className="col-span-1">Preu</div>
+                <div className="col-span-1">Data Alta</div>
+                <div className="col-span-2">Marca i Model</div>
                 <div className="col-span-1">Estat</div>
+                <div className="col-span-1">Destacat</div>
+                <div className="col-span-1">Actiu</div>
+                <div className="col-span-1">Venut</div>
                 <div className="col-span-1">Accions</div>
               </div>
 
@@ -270,7 +601,7 @@ const KarsVehicles = () => {
               {vehicles.map((vehicle) => (
                 <div key={vehicle.id} className="grid grid-cols-12 gap-4 p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                   {/* Vehicle Info */}
-                  <div className="col-span-4 flex gap-3">
+                  <div className="col-span-3 flex gap-3">
                     <div className="w-16 h-12 bg-gray-200 rounded overflow-hidden flex-shrink-0">
                       {vehicle['imatge-destacada-url'] ? (
                         <img 
@@ -288,58 +619,67 @@ const KarsVehicles = () => {
                       <h3 className="font-medium text-gray-900 dark:text-white truncate">
                         {vehicle['titol-anunci']}
                       </h3>
-                      <p className="text-sm text-gray-500">
-                        {getBrandName(vehicle)} {getModelName(vehicle)}
-                      </p>
-                      <p className="text-xs text-gray-400">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 capitalize mt-1">
+                        {vehicle['tipus-vehicle']}
+                      </span>
+                      <p className="text-xs text-gray-400 mt-1">
                         {vehicle.any} • {vehicle.quilometratge} km
                       </p>
                     </div>
                   </div>
 
-                  {/* Type */}
-                  <div className="col-span-2 flex items-center">
-                    <span className="capitalize text-sm text-gray-600 dark:text-gray-400">
-                      {vehicle['tipus-vehicle']}
-                    </span>
-                  </div>
-
                   {/* Price */}
-                  <div className="col-span-2 flex items-center">
-                    <span className="font-semibold text-gray-900 dark:text-white">
+                  <div className="col-span-1 flex items-center">
+                    <span className="font-semibold text-gray-900 dark:text-white text-sm">
                       {formatPrice(vehicle.preu)}
                     </span>
                   </div>
 
                   {/* Date */}
-                  <div className="col-span-2 flex items-center">
+                  <div className="col-span-1 flex items-center">
                     <span className="text-sm text-gray-600 dark:text-gray-400">
                       {formatDate(vehicle['data-creacio'])}
                     </span>
                   </div>
 
-                  {/* Status */}
-                  <div className="col-span-1 flex items-center">
-                    <div className="flex flex-col gap-1">
-                      {vehicle.venut === 'true' ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-100 text-red-800">
-                          Venut
-                        </span>
-                      ) : vehicle['anunci-actiu'] === 'true' ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                          Actiu
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">
-                          Inactiu
-                        </span>
-                      )}
-                      {vehicle['anunci-destacat'] !== '0' && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">
-                          Destacat
-                        </span>
-                      )}
+                  {/* Marca i Model */}
+                  <div className="col-span-2 flex items-center">
+                    <div>
+                      <p className="font-semibold text-gray-900 dark:text-white">
+                        {getBrandName(vehicle)}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {getModelName(vehicle)}
+                      </p>
                     </div>
+                  </div>
+
+                  {/* Estat Vehicle */}
+                  <div className="col-span-1 flex items-center">
+                    <span className="text-sm text-gray-900 dark:text-white capitalize">
+                      {vehicle['estat-vehicle'] || 'N/A'}
+                    </span>
+                  </div>
+
+                  {/* Destacat */}
+                  <div className="col-span-1 flex items-center justify-center">
+                    <span className="text-sm text-gray-900 dark:text-white">
+                      {vehicle['anunci-destacat'] !== '0' ? 'Sí' : 'No'}
+                    </span>
+                  </div>
+
+                  {/* Actiu */}
+                  <div className="col-span-1 flex items-center justify-center">
+                    <span className="text-sm text-gray-900 dark:text-white">
+                      {vehicle['anunci-actiu'] === 'true' ? 'Sí' : 'No'}
+                    </span>
+                  </div>
+
+                  {/* Venut */}
+                  <div className="col-span-1 flex items-center justify-center">
+                    <span className="text-sm text-gray-900 dark:text-white">
+                      {vehicle.venut === 'true' ? 'Sí' : 'No'}
+                    </span>
                   </div>
 
                   {/* Actions */}
@@ -370,13 +710,6 @@ const KarsVehicles = () => {
                         title={vehicle['anunci-actiu'] === 'true' ? 'Desactivar' : 'Activar'}
                       >
                         {vehicle['anunci-actiu'] === 'true' ? <XCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
-                      </button>
-                      <button
-                        onClick={() => deleteVehicle(vehicle.id)}
-                        className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
-                        title="Eliminar"
-                      >
-                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -411,6 +744,15 @@ const KarsVehicles = () => {
           </div>
         )}
       </div>
+
+      {/* Hidden file input for JSON import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        onChange={handleFileImport}
+        className="hidden"
+      />
     </AdminLayout>
   );
 };

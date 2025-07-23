@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 import AdminLayout from '../../components/Admin/AdminLayout';
 import MultiStepVehicleForm from '../../components/VehicleForm/MultiStepVehicleForm';
 import { axiosAdmin } from '../../api/axiosClient';
@@ -39,14 +40,19 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
     try {
       if (mode === 'create') {
         await axiosAdmin.post('/vehicles', formData);
+        toast.success('🎉 Vehicle creat correctament!');
       } else {
         await axiosAdmin.put(`/vehicles/${id}`, formData);
+        toast.success('✅ Vehicle actualitzat correctament!');
       }
       
-      // Redirect back to vehicle list
-      navigate('/admin/kars-vehicles');
+      // Small delay to show the toast before navigation
+      setTimeout(() => {
+        navigate('/admin/kars-vehicles');
+      }, 1000);
     } catch (err) {
       console.error('Error saving vehicle:', err);
+      toast.error('❌ Error al guardar el vehicle. Si us plau, torna-ho a provar.');
       throw new Error('Error al guardar el vehicle');
     }
   };

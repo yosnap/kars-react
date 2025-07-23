@@ -13,6 +13,7 @@ import authRoutes from './routes/auth';
 import metadataRoutes from './routes/metadata';
 import professionalRoutes from './routes/professionals';
 import brandRoutes from './routes/brands';
+import uploadRoutes from './routes/upload';
 
 // Import sync service
 import { initializeCronSync } from './services/syncService';
@@ -53,6 +54,7 @@ app.use('/api/sync', syncRoutes);
 app.use('/api/professionals', professionalRoutes);
 app.use('/api/sellers', professionalRoutes); // Alias para compatibilidad
 app.use('/api/brands', brandRoutes);
+app.use('/api/upload', uploadRoutes);
 app.use('/api', metadataRoutes);
 
 // 404 handler
