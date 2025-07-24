@@ -20,7 +20,8 @@
     "export:vehicles": "ts-node src/scripts/exportVehicles.ts",
     "import:json": "ts-node src/scripts/importFromJson.ts",
     "import:json:clear": "ts-node src/scripts/importFromJson.ts --clear",
-    "fix:production": "ts-node src/scripts/fixProductionData.ts"
+    "fix:production": "node dist/scripts/fixProductionData.js",
+    "fix:production:dev": "ts-node src/scripts/fixProductionData.ts"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

@@ -2078,6 +2078,82 @@ router.get('/import-status', async (req, res) => {
   }
 });
 
+// POST /api/admin/fix-data-types - Corregir tipos de datos en producción
+router.post('/fix-data-types', async (req, res) => {
+  try {
+    console.log('🔧 Starting data type correction...');
+    
+    const { MongoClient } = require('mongodb');
+    const url = process.env.DATABASE_URL || 'mongodb://localhost:27017/karsad';
+    const client = new MongoClient(url);
+    
+    await client.connect();
+    const db = client.db();
+    
+    console.log('🔍 Analyzing current data types...');
+    
+    // Count current issues
+    const preuStrings = await db.collection('Vehicle').countDocuments({ preu: { $type: 'string' } });
+    const garantiaBools = await db.collection('Vehicle').countDocuments({ garantia: { $type: 'bool' } });
+    
+    console.log(`📊 Found ${preuStrings} prices as string, ${garantiaBools} garantias as boolean`);
+    
+    let preuFixed = 0;
+    let garantiaFixed = 0;
+    
+    if (preuStrings > 0) {
+      console.log('🔧 Fixing price fields...');
+      const result1 = await db.collection('Vehicle').updateMany(
+        { preu: { $type: 'string' } },
+        [{ $set: { preu: { $toDouble: { $ifNull: [{ $toDouble: '$preu' }, 0] } } } }]
+      );
+      preuFixed = result1.modifiedCount;
+    }
+    
+    if (garantiaBools > 0) {
+      console.log('🔧 Fixing garantia fields...');
+      const result2 = await db.collection('Vehicle').updateMany(
+        { garantia: { $type: 'bool' } },
+        [{ $set: { garantia: { $toString: '$garantia' } } }]
+      );
+      garantiaFixed = result2.modifiedCount;
+    }
+    
+    // Verify fixes
+    const remainingPreuStrings = await db.collection('Vehicle').countDocuments({ preu: { $type: 'string' } });
+    const remainingGarantiaBools = await db.collection('Vehicle').countDocuments({ garantia: { $type: 'bool' } });
+    
+    await client.close();
+    
+    const success = remainingPreuStrings === 0 && remainingGarantiaBools === 0;
+    
+    console.log(`✅ Data type correction completed. Fixed ${preuFixed} prices, ${garantiaFixed} garantias`);
+    
+    return res.json({
+      message: 'Data type correction completed',
+      success: success,
+      results: {
+        preuFixed: preuFixed,
+        garantiaFixed: garantiaFixed,
+        remainingIssues: {
+          preuStrings: remainingPreuStrings,
+          garantiaBools: remainingGarantiaBools
+        }
+      },
+      recommendation: success 
+        ? 'All data types corrected successfully. You can now restart the service.'
+        : 'Some issues remain. Please check the logs and try again.'
+    });
+    
+  } catch (error) {
+    console.error('❌ Error fixing data types:', error);
+    return res.status(500).json({ 
+      error: 'Failed to fix data types',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // Función auxiliar para formatear tamaño de archivo
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 Bytes';
