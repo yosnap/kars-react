@@ -14,7 +14,13 @@
     "test:connection": "ts-node src/scripts/test-db-connection.ts",
     "import:brands": "ts-node src/scripts/importBrandsProduction.ts",
     "import:brands:dev": "ts-node src/scripts/importBrands.ts",
-    "import:models": "curl -X POST http://localhost:3001/api/brands/import-models -H 'Authorization: Basic <credentials>'"
+    "import:models": "curl -X POST http://localhost:3001/api/brands/import-models -H 'Authorization: Basic <credentials>'",
+    "migrate:production": "ts-node src/scripts/migrateToProduction.ts",
+    "migrate:production:clear": "ts-node src/scripts/migrateToProduction.ts --clear",
+    "export:vehicles": "ts-node src/scripts/exportVehicles.ts",
+    "import:json": "ts-node src/scripts/importFromJson.ts",
+    "import:json:clear": "ts-node src/scripts/importFromJson.ts --clear",
+    "fix:production": "ts-node src/scripts/fixProductionData.ts"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
