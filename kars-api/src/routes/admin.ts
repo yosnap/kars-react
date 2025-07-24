@@ -2100,27 +2100,39 @@ router.post('/emergency-db-fix', async (req, res) => {
       results.steps.push('Starting data type correction...');
       
       try {
-        // Usar comandos raw para corregir tipos
-        const fixPreuResult = await prisma.$runCommandRaw({
-          update: 'Vehicle',
-          updates: [{
-            q: { preu: { $type: 'string' } },
-            u: [{ $set: { preu: { $toDouble: { $ifNull: [{ $toDouble: '$preu' }, 0] } } } }],
-            multi: true
-          }]
+        // Usar updateMany para corregir tipos sin replica set
+        const vehiclesWithStringPrices = await prisma.vehicle.findMany({
+          where: { preu: { not: { gte: 0 } } } // Encuentra precios no numéricos
         });
         
-        const fixGarantiaResult = await prisma.$runCommandRaw({
-          update: 'Vehicle',
-          updates: [{
-            q: { garantia: { $type: 'bool' } },
-            u: [{ $set: { garantia: { $toString: '$garantia' } } }],
-            multi: true
-          }]
+        let preuFixed = 0;
+        for (const vehicle of vehiclesWithStringPrices) {
+          const numericPrice = parseFloat(String(vehicle.preu)) || 0;
+          await prisma.vehicle.update({
+            where: { id: vehicle.id },
+            data: { preu: numericPrice }
+          });
+          preuFixed++;
+        }
+        
+        // Para garantía, simplemente asegurar que sea string
+        const vehiclesWithBoolGarantia = await prisma.vehicle.findMany({
+          where: { garantia: { not: null } }
         });
         
-        const preuFixed = fixPreuResult.nModified || 0;
-        const garantiaFixed = fixGarantiaResult.nModified || 0;
+        let garantiaFixed = 0;
+        for (const vehicle of vehiclesWithBoolGarantia) {
+          if (typeof vehicle.garantia !== 'string') {
+            await prisma.vehicle.update({
+              where: { id: vehicle.id },
+              data: { garantia: String(vehicle.garantia) }
+            });
+            garantiaFixed++;
+          }
+        }
+        
+        const fixPreuResult = { nModified: preuFixed };
+        const fixGarantiaResult = { nModified: garantiaFixed };
         
         results.dataTypesFix = {
           preuFixed,
@@ -2154,11 +2166,8 @@ router.post('/emergency-db-fix', async (req, res) => {
           const vehicles = jsonData.vehicles || jsonData;
           
           if (Array.isArray(vehicles) && vehicles.length > 0) {
-            // Limpiar vehículos existentes usando comando raw
-            const deleteResult = await prisma.$runCommandRaw({
-              delete: 'Vehicle',
-              deletes: [{ q: {}, limit: 0 }]
-            });
+            // Limpiar vehículos existentes usando deleteMany
+            const deleteResult = await prisma.vehicle.deleteMany({});
             results.steps.push(`🗑️ Deleted existing vehicles`);
             
             // Importar nuevos vehículos usando comando raw
@@ -2204,9 +2213,8 @@ router.post('/emergency-db-fix', async (req, res) => {
               // Insertar lote usando comando raw
               if (documentsToInsert.length > 0) {
                 try {
-                  await prisma.$runCommandRaw({
-                    insert: 'Vehicle',
-                    documents: documentsToInsert
+                  await prisma.vehicle.createMany({
+                    data: documentsToInsert
                   });
                   imported += documentsToInsert.length;
                   console.log(`💾 Imported ${imported}/${vehicles.length} vehicles...`);
