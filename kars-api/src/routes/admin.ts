@@ -2169,7 +2169,7 @@ router.post('/emergency-db-fix', async (req, res) => {
             const batchSize = 50;
             for (let i = 0; i < vehicles.length; i += batchSize) {
               const batch = vehicles.slice(i, i + batchSize);
-              const documentsToInsert = [];
+              const documentsToInsert: any[] = [];
               
               for (const vehicle of batch) {
                 try {
