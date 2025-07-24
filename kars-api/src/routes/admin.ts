@@ -2304,42 +2304,149 @@ router.post('/emergency-db-fix', async (req, res) => {
   }
 });
 
-// POST /api/admin/nuclear-brand-fix - Recrear tabla Brand completamente
-router.post('/nuclear-brand-fix', async (req, res) => {
+// POST /api/admin/nuclear-db-reset - Recrear base de datos completamente
+router.post('/nuclear-db-reset', async (req, res) => {
   try {
-    console.log('🧨 Nuclear Brand Fix: Recreating Brand table...');
+    console.log('💥 NUCLEAR DB RESET: Recreating entire database...');
     
-    // Borrar todas las marcas una por una (para evitar deleteMany)
-    let deletedCount = 0;
-    try {
-      const brands = await prisma.brand.findMany({ select: { id: true } });
-      console.log(`Found ${brands.length} brands to delete`);
-      
-      for (const brand of brands) {
-        try {
-          await prisma.brand.delete({ where: { id: brand.id } });
-          deletedCount++;
-        } catch (deleteError) {
-          console.log(`Could not delete brand ${brand.id}, continuing...`);
+    let results = {
+      droppedCollections: [] as string[],
+      errors: [] as string[]
+    };
+    
+    // Lista de colecciones a limpiar
+    const collectionsToClean = ['Brand', 'Vehicle', 'Model', 'CarExtra', 'MotorcycleExtra', 'MotorhomeExtra'];
+    
+    for (const collection of collectionsToClean) {
+      try {
+        console.log(`🗑️ Dropping collection ${collection}...`);
+        
+        // Usar Prisma para encontrar y borrar documentos individualmente
+        if (collection === 'Vehicle') {
+          const vehicles = await prisma.vehicle.findMany({ select: { id: true } });
+          for (const vehicle of vehicles) {
+            try {
+              await prisma.vehicle.delete({ where: { id: vehicle.id } });
+            } catch (e) { /* ignore */ }
+          }
+          results.droppedCollections.push(`Vehicle (${vehicles.length} docs)`);
         }
+        // Saltamos Brand porque está corrupta
+        else if (collection === 'Brand') {
+          console.log('⚠️ Skipping Brand (too corrupted)');
+          results.errors.push('Brand collection too corrupted to clean');
+        }
+        // Otros modelos
+        else {
+          console.log(`⚠️ Skipping ${collection} (not implemented)`);
+        }
+        
+      } catch (error) {
+        console.error(`Error cleaning ${collection}:`, error);
+        results.errors.push(`${collection}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
-    } catch (findError) {
-      console.log('Could not find brands due to corruption, continuing...');
     }
     
-    console.log(`🗑️ Deleted ${deletedCount} brands`);
-    
     return res.json({
-      message: 'Nuclear Brand fix completed',
+      message: 'Nuclear DB reset completed',
       success: true,
-      deletedCount,
-      recommendation: 'Now run the installer to recreate brands from scratch'
+      results,
+      recommendation: 'Database partially cleaned. You may need to drop the database manually in MongoDB for complete reset.'
     });
     
   } catch (error) {
-    console.error('❌ Error in nuclear-brand-fix:', error);
+    console.error('❌ Error in nuclear-db-reset:', error);
     return res.status(500).json({ 
-      error: 'Failed to perform nuclear brand fix',
+      error: 'Failed to perform nuclear DB reset',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// POST /api/admin/import-production-data - Importar datos desde JSON
+router.post('/import-production-data', async (req, res) => {
+  try {
+    console.log('📥 Starting production data import...');
+    
+    const fs = require('fs');
+    const jsonPath = 'production-import.json';
+    
+    if (!fs.existsSync(jsonPath)) {
+      return res.status(400).json({
+        success: false,
+        error: 'production-import.json file not found'
+      });
+    }
+    
+    const data = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+    
+    let results = {
+      brands: { imported: 0, errors: 0 },
+      vehicles: { imported: 0, errors: 0 },
+      steps: [] as string[]
+    };
+    
+    // Importar marcas
+    console.log(`📂 Importing ${data.brands.length} brands...`);
+    results.steps.push(`Starting import of ${data.brands.length} brands`);
+    
+    for (const brand of data.brands) {
+      try {
+        const { id, ...brandData } = brand;
+        await prisma.brand.create({
+          data: {
+            ...brandData,
+            lastSyncAt: new Date(brandData.lastSyncAt),
+            createdAt: new Date(brandData.createdAt),
+            updatedAt: new Date(brandData.updatedAt)
+          }
+        });
+        results.brands.imported++;
+      } catch (error) {
+        console.error(`Error importing brand ${brand.slug}:`, error);
+        results.brands.errors++;
+      }
+    }
+    
+    // Importar vehículos
+    console.log(`🚗 Importing ${data.vehicles.length} vehicles...`);
+    results.steps.push(`Starting import of ${data.vehicles.length} vehicles`);
+    
+    for (const vehicle of data.vehicles) {
+      try {
+        const { id, ...vehicleData } = vehicle;
+        await prisma.vehicle.create({
+          data: {
+            ...vehicleData,
+            'data-creacio': new Date(vehicleData['data-creacio']),
+            'data-modificacio': vehicleData['data-modificacio'] ? new Date(vehicleData['data-modificacio']) : null,
+            dataCreacio: new Date(vehicleData.dataCreacio),
+            dataModificacio: vehicleData.dataModificacio ? new Date(vehicleData.dataModificacio) : null,
+            createdAt: new Date(vehicleData.createdAt),
+            updatedAt: new Date(vehicleData.updatedAt),
+            lastSyncAt: vehicleData.lastSyncAt ? new Date(vehicleData.lastSyncAt) : null
+          }
+        });
+        results.vehicles.imported++;
+      } catch (error) {
+        console.error(`Error importing vehicle ${vehicle.slug}:`, error);
+        results.vehicles.errors++;
+      }
+    }
+    
+    results.steps.push(`✅ Import completed: ${results.brands.imported} brands, ${results.vehicles.imported} vehicles`);
+    
+    return res.json({
+      success: true,
+      message: 'Production data import completed',
+      results
+    });
+    
+  } catch (error) {
+    console.error('❌ Error importing production data:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to import production data',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
