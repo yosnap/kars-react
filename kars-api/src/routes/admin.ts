@@ -2085,7 +2085,7 @@ router.post('/fix-data-types', async (req, res) => {
     
     const { MongoClient } = require('mongodb');
     // Use production database URL exactly as provided
-    const url = process.env.PRODUCTION_DATABASE_URL || 'mongodb://kars:c@D*PZmWQZ49gMYD@motoraldia_kars-db:27017/karsad?tls=false';
+    const url = process.env.PRODUCTION_DATABASE_URL || 'mongodb://kars:c@D*PZmWQZ49gMYD@motoraldia_kars-db:27017/?tls=false';
     const client = new MongoClient(url);
     
     await client.connect();
