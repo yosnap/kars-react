@@ -2368,6 +2368,24 @@ router.post('/import-production-data', async (req, res) => {
   try {
     console.log('📥 Starting production data import...');
     
+    // PASO 0: Limpiar base de datos primero
+    console.log('🧹 Cleaning existing data...');
+    try {
+      // Borrar vehículos existentes
+      const existingVehicles = await prisma.vehicle.findMany({ select: { id: true } });
+      for (const vehicle of existingVehicles) {
+        try {
+          await prisma.vehicle.delete({ where: { id: vehicle.id } });
+        } catch (e) { /* ignore */ }
+      }
+      
+      // Saltamos brands corruptas - no podemos acceder
+      console.log('⚠️ Skipping brand cleanup due to corruption');
+      
+    } catch (cleanError) {
+      console.log('⚠️ Cleanup had issues, continuing with import...');
+    }
+    
     const fs = require('fs');
     const jsonPath = 'production-import.json';
     
@@ -2393,17 +2411,25 @@ router.post('/import-production-data', async (req, res) => {
     for (const brand of data.brands) {
       try {
         const { id, ...brandData } = brand;
-        await prisma.brand.create({
-          data: {
+        
+        // Usar upsert para evitar duplicados
+        await prisma.brand.upsert({
+          where: { slug: brandData.slug },
+          create: {
             ...brandData,
             lastSyncAt: new Date(brandData.lastSyncAt),
             createdAt: new Date(brandData.createdAt),
             updatedAt: new Date(brandData.updatedAt)
+          },
+          update: {
+            ...brandData,
+            lastSyncAt: new Date(brandData.lastSyncAt),
+            updatedAt: new Date()
           }
         });
         results.brands.imported++;
       } catch (error) {
-        console.error(`Error importing brand ${brand.slug}:`, error);
+        console.error(`Error importing brand ${brand.slug}:`, error.message);
         results.brands.errors++;
       }
     }
