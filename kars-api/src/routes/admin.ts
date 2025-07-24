@@ -2166,9 +2166,20 @@ router.post('/emergency-db-fix', async (req, res) => {
           const vehicles = jsonData.vehicles || jsonData;
           
           if (Array.isArray(vehicles) && vehicles.length > 0) {
-            // Limpiar vehículos existentes usando deleteMany
-            const deleteResult = await prisma.vehicle.deleteMany({});
-            results.steps.push(`🗑️ Deleted existing vehicles`);
+            // Limpiar vehículos existentes uno por uno (sin transacciones)
+            const existingVehicles = await prisma.vehicle.findMany({ select: { id: true } });
+            let deletedCount = 0;
+            
+            for (const vehicle of existingVehicles) {
+              try {
+                await prisma.vehicle.delete({ where: { id: vehicle.id } });
+                deletedCount++;
+              } catch (deleteError) {
+                console.log(`Error deleting vehicle ${vehicle.id}:`, deleteError);
+              }
+            }
+            
+            results.steps.push(`🗑️ Deleted ${deletedCount} existing vehicles`);
             
             // Importar nuevos vehículos usando comando raw
             let imported = 0;
@@ -2210,17 +2221,19 @@ router.post('/emergency-db-fix', async (req, res) => {
                 }
               }
               
-              // Insertar lote usando comando raw
-              if (documentsToInsert.length > 0) {
+              // Insertar vehículos uno por uno (sin transacciones)
+              for (const vehicleData of documentsToInsert) {
                 try {
-                  await prisma.vehicle.createMany({
-                    data: documentsToInsert
+                  await prisma.vehicle.create({
+                    data: vehicleData
                   });
-                  imported += documentsToInsert.length;
-                  console.log(`💾 Imported ${imported}/${vehicles.length} vehicles...`);
-                } catch (batchError) {
-                  console.error('Error inserting batch:', batchError);
-                  errors += documentsToInsert.length;
+                  imported++;
+                  if (imported % 10 === 0) {
+                    console.log(`💾 Imported ${imported}/${vehicles.length} vehicles...`);
+                  }
+                } catch (createError) {
+                  console.error('Error creating vehicle:', createError);
+                  errors++;
                 }
               }
               
