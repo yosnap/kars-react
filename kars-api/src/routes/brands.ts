@@ -15,14 +15,9 @@ interface ExternalModel {
 // GET /api/brands/cars - Obtener marcas para coches, autocaravanas y vehículos comerciales
 router.get('/cars', async (req, res) => {
   try {
-    console.log('🔍 GET /brands/cars - Obteniendo marcas de coches/autocaravanas/comerciales');
-    
     const brands = await prisma.brand.findMany({
       where: {
-        AND: [
-          { vehicleTypes: { hasSome: ['car'] } },
-          { NOT: { vehicleTypes: { hasSome: ['motorcycle'] } } } // Excluir marcas que también sean de motos
-        ]
+        vehicleTypes: { hasSome: ['car'] }
       },
       orderBy: {
         name: 'asc'
@@ -33,13 +28,6 @@ router.get('/cars', async (req, res) => {
         name: true,
         vehicleTypes: true
       }
-    });
-
-    console.log(`✅ Found ${brands.length} car brands`);
-    
-    // Debug logging to see what vehicleTypes each brand has
-    brands.forEach(brand => {
-      console.log(`🏷️ Brand: ${brand.name} (${brand.slug}) - vehicleTypes:`, brand.vehicleTypes);
     });
 
     return res.json({
@@ -64,14 +52,9 @@ router.get('/cars', async (req, res) => {
 // GET /api/brands/motorcycles - Obtener marcas de motos
 router.get('/motorcycles', async (req, res) => {
   try {
-    console.log('🔍 GET /brands/motorcycles - Obteniendo marcas de motos');
-    
     const brands = await prisma.brand.findMany({
       where: {
-        AND: [
-          { vehicleTypes: { hasSome: ['motorcycle'] } },
-          { NOT: { vehicleTypes: { hasSome: ['car'] } } } // Excluir marcas que también sean de coches
-        ]
+        vehicleTypes: { hasSome: ['motorcycle'] }
       },
       orderBy: {
         name: 'asc'
@@ -82,13 +65,6 @@ router.get('/motorcycles', async (req, res) => {
         name: true,
         vehicleTypes: true
       }
-    });
-
-    console.log(`✅ Found ${brands.length} motorcycle brands`);
-    
-    // Debug logging to see what vehicleTypes each brand has
-    brands.forEach(brand => {
-      console.log(`🏍️ Brand: ${brand.name} (${brand.slug}) - vehicleTypes:`, brand.vehicleTypes);
     });
 
     return res.json({
@@ -127,7 +103,10 @@ router.get('/', async (req, res) => {
         id: true,
         slug: true,
         name: true,
-        vehicleTypes: true
+        vehicleTypes: true,
+        _count: {
+          select: { models: true }
+        }
       }
     });
 
@@ -137,9 +116,13 @@ router.get('/', async (req, res) => {
       success: true,
       total: brands.length,
       data: brands.map(brand => ({
+        id: brand.id,
         value: brand.slug,
         label: brand.name,
-        type: brand.vehicleTypes
+        slug: brand.slug,
+        name: brand.name,
+        vehicleTypes: brand.vehicleTypes,
+        modelCount: brand._count.models
       }))
     });
 
@@ -153,276 +136,181 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/brands - Crear nueva marca (solo admin)
-router.post('/', async (req, res) => {
+// POST /api/brands/clear-all - Limpiar todas las marcas (solo para debugging)
+router.post('/clear-all', async (req, res) => {
   try {
-    console.log('🚀 POST /brands - Creando nueva marca');
+    console.log('🗑️ POST /brands/clear-all - Clearing all brands');
     
-    const { name, slug, vehicleType } = req.body;
-
-    // Validación básica
-    if (!name || !slug || !vehicleType) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing required fields: name, slug, vehicleType'
-      });
-    }
-
-    // Validar vehicleTypes: [vehicleType]
-    if (!['car', 'motorcycle'].includes(vehicleType)) {
-      return res.status(400).json({
-        success: false,
-        error: 'vehicleType must be either "car" or "motorcycle"'
-      });
-    }
-
-    // Verificar que no existe una marca con el mismo slug
-    const existingBrand = await prisma.brand.findUnique({
-      where: { slug }
-    });
-
-    if (existingBrand) {
-      return res.status(409).json({
-        success: false,
-        error: 'Brand with this slug already exists'
-      });
-    }
-
-    const newBrand = await prisma.brand.create({
-      data: {
-        name,
-        slug,
-        vehicleTypes: [vehicleType]
-      }
-    });
-
-    console.log(`✅ Brand created: ${newBrand.name} (${newBrand.vehicleTypes})`);
-
-    return res.status(201).json({
-      success: true,
-      message: 'Brand created successfully',
-      data: {
-        value: newBrand.slug,
-        label: newBrand.name,
-        type: newBrand.vehicleTypes
-      }
-    });
-
-  } catch (error) {
-    console.error('❌ Error creating brand:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to create brand',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
-
-// PUT /api/brands/:id - Actualizar marca (solo admin)
-router.put('/:id', async (req, res) => {
-  try {
-    console.log(`🔄 PUT /brands/${req.params.id} - Actualizando marca`);
+    const deletedCount = await prisma.brand.deleteMany({});
     
-    const { id } = req.params;
-    const { name, slug, vehicleType } = req.body;
-
-    // Verificar que la marca existe
-    const existingBrand = await prisma.brand.findUnique({
-      where: { id }
-    });
-
-    if (!existingBrand) {
-      return res.status(404).json({
-        success: false,
-        error: 'Brand not found'
-      });
-    }
-
-    // Validar vehicleType si se proporciona
-    if (vehicleType && !['car', 'motorcycle'].includes(vehicleType)) {
-      return res.status(400).json({
-        success: false,
-        error: 'vehicleType must be either "car" or "motorcycle"'
-      });
-    }
-
-    // Si se está cambiando el slug, verificar que no existe otro con el mismo slug
-    if (slug && slug !== existingBrand.slug) {
-      const brandWithSlug = await prisma.brand.findUnique({
-        where: { slug }
-      });
-
-      if (brandWithSlug) {
-        return res.status(409).json({
-          success: false,
-          error: 'Brand with this slug already exists'
-        });
-      }
-    }
-
-    const updatedBrand = await prisma.brand.update({
-      where: { id },
-      data: {
-        ...(name && { name }),
-        ...(slug && { slug }),
-        ...(vehicleType && { vehicleTypes: [vehicleType] })
-      }
-    });
-
-    console.log(`✅ Brand updated: ${updatedBrand.name}`);
-
+    console.log(`✅ Deleted ${deletedCount.count} brands`);
+    
     return res.json({
       success: true,
-      message: 'Brand updated successfully',
+      message: `Deleted ${deletedCount.count} brands`,
       data: {
-        value: updatedBrand.slug,
-        label: updatedBrand.name,
-        type: updatedBrand.vehicleTypes
+        deletedCount: deletedCount.count
       }
     });
-
+    
   } catch (error) {
-    console.error('❌ Error updating brand:', error);
+    console.error('❌ Error clearing brands:', error);
     return res.status(500).json({
       success: false,
-      error: 'Failed to update brand',
+      error: 'Failed to clear brands',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
-// DELETE /api/brands/:id - Eliminar marca (solo admin)
-router.delete('/:id', async (req, res) => {
+// POST /api/brands/import-from-json - Importar marcas desde datos embebidos
+router.post('/import-from-json', async (req, res) => {
   try {
-    console.log(`🗑️ DELETE /brands/${req.params.id} - Eliminando marca`);
+    console.log('📥 POST /brands/import-from-json - Importing brands from embedded data');
     
-    const { id } = req.params;
-
-    // Verificar que la marca existe
-    const existingBrand = await prisma.brand.findUnique({
-      where: { id }
-    });
-
-    if (!existingBrand) {
-      return res.status(404).json({
-        success: false,
-        error: 'Brand not found'
-      });
-    }
-
-    // TODO: Verificar si hay vehículos usando esta marca antes de eliminar
+    // Importar marcas desde datos embebidos (compatible con Docker/producción)
+    const { brandsData } = await import('../data/brands-data');
     
-    await prisma.brand.delete({
-      where: { id }
-    });
-
-    console.log(`✅ Brand deleted: ${existingBrand.name}`);
-
-    return res.json({
-      success: true,
-      message: 'Brand deleted successfully'
-    });
-
-  } catch (error) {
-    console.error('❌ Error deleting brand:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to delete brand',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
-
-// POST /api/brands/import - Importar marcas masivamente (solo admin)
-router.post('/import', async (req, res) => {
-  try {
-    console.log('📥 POST /brands/import - Importando marcas masivamente');
+    let importedCars = 0;
+    let importedMotorcycles = 0;
+    let skippedCars = 0;
+    let skippedMotorcycles = 0;
+    let updatedDuplicates = 0;
     
-    const { brands, vehicleType, clearExisting = false } = req.body;
-
-    if (!Array.isArray(brands)) {
-      return res.status(400).json({
-        success: false,
-        error: 'brands must be an array'
-      });
-    }
-
-    if (!vehicleType || !['car', 'motorcycle'].includes(vehicleType)) {
-      return res.status(400).json({
-        success: false,
-        error: 'vehicleType must be either "car" or "motorcycle"'
-      });
-    }
-
-    let imported = 0;
-    let skipped = 0;
-
-    // Si se solicita limpiar existentes
-    if (clearExisting) {
-      console.log(`🗑️ Eliminando marcas existentes de tipo ${vehicleType}`);
-      await prisma.brand.deleteMany({
-        where: { vehicleTypes: { hasSome: [vehicleType] } }
-      });
-    }
-
-    // Importar marcas
-    for (const brand of brands) {
+    console.log(`📊 Found ${brandsData.metadata.totalCarBrands} car brands and ${brandsData.metadata.totalMotorcycleBrands} motorcycle brands`);
+    console.log('🔍 First car brand sample:', JSON.stringify(brandsData.carBrands[0], null, 2));
+    console.log('🔍 First motorcycle brand sample:', JSON.stringify(brandsData.motorcycleBrands[0], null, 2));
+    
+    // Importar marcas de coches
+    console.log('🚗 Importing car brands...');
+    for (const brand of brandsData.carBrands) {
       try {
-        const { value, label } = brand;
+        // Validar que el brand tenga los campos necesarios
+        if (!brand || !brand.value || !brand.label) {
+          console.warn('⚠️ Invalid car brand data:', brand);
+          skippedCars++;
+          continue;
+        }
         
-        if (!value || !label) {
-          console.warn('⚠️ Marca inválida saltada:', brand);
-          skipped++;
-          continue;
-        }
-
-        // Verificar si ya existe
-        const existing = await prisma.brand.findUnique({
-          where: { slug: value }
+        console.log(`🔍 Processing car brand: ${brand.label} (${brand.value})`);
+        
+        const existingBrand = await prisma.brand.findUnique({
+          where: { slug: brand.value }
         });
-
-        if (existing) {
-          console.log(`⏭️ Marca ya existe: ${label}`);
-          skipped++;
-          continue;
-        }
-
-        // Crear nueva marca
-        await prisma.brand.create({
-          data: {
-            name: label,
-            slug: value,
-            vehicleTypes: [vehicleType]
+        
+        if (existingBrand) {
+          if (!existingBrand.vehicleTypes.includes('car')) {
+            await prisma.brand.update({
+              where: { id: existingBrand.id },
+              data: {
+                vehicleTypes: [...existingBrand.vehicleTypes, 'car']
+              }
+            });
+            updatedDuplicates++;
+            console.log(`✅ Updated existing brand: ${brand.label} (added car type)`);
+          } else {
+            skippedCars++;
+            console.log(`⏭️ Car brand already exists: ${brand.label}`);
           }
-        });
-
-        imported++;
-        console.log(`✅ Marca importada: ${label}`);
-
-      } catch (brandError) {
-        console.error(`❌ Error importando marca ${brand.label}:`, brandError);
-        skipped++;
+        } else {
+          await prisma.brand.create({
+            data: {
+              name: brand.label,
+              slug: brand.value,
+              vehicleTypes: ['car']
+            }
+          });
+          importedCars++;
+          console.log(`✅ Imported car brand: ${brand.label}`);
+        }
+      } catch (error) {
+        console.error(`❌ Error importing car brand ${brand?.label || 'unknown'}:`, error);
+        skippedCars++;
       }
     }
-
-    console.log(`📊 Importación completada: ${imported} importadas, ${skipped} saltadas`);
-
+    
+    // Importar marcas de motos
+    console.log('🏍️ Importing motorcycle brands...');
+    for (const brand of brandsData.motorcycleBrands) {
+      try {
+        // Validar que el brand tenga los campos necesarios
+        if (!brand || !brand.value || !brand.label) {
+          console.warn('⚠️ Invalid motorcycle brand data:', brand);
+          skippedMotorcycles++;
+          continue;
+        }
+        
+        console.log(`🔍 Processing motorcycle brand: ${brand.label} (${brand.value})`);
+        
+        const existingBrand = await prisma.brand.findUnique({
+          where: { slug: brand.value }
+        });
+        
+        if (existingBrand) {
+          if (!existingBrand.vehicleTypes.includes('motorcycle')) {
+            await prisma.brand.update({
+              where: { id: existingBrand.id },
+              data: {
+                vehicleTypes: [...existingBrand.vehicleTypes, 'motorcycle']
+              }
+            });
+            updatedDuplicates++;
+            console.log(`✅ Updated existing brand: ${brand.label} (added motorcycle type)`);
+          } else {
+            skippedMotorcycles++;
+            console.log(`⏭️ Motorcycle brand already exists: ${brand.label}`);
+          }
+        } else {
+          await prisma.brand.create({
+            data: {
+              name: brand.label,
+              slug: brand.value,
+              vehicleTypes: ['motorcycle']
+            }
+          });
+          importedMotorcycles++;
+          console.log(`✅ Imported motorcycle brand: ${brand.label}`);
+        }
+      } catch (error) {
+        console.error(`❌ Error importing motorcycle brand ${brand?.label || 'unknown'}:`, error);
+        skippedMotorcycles++;
+      }
+    }
+    
+    console.log(`📊 Import completed: ${importedCars} cars, ${importedMotorcycles} motorcycles, ${updatedDuplicates} updated, ${skippedCars + skippedMotorcycles} skipped`);
+    
+    // Obtener estadísticas actualizadas
+    const totalCarBrands = await prisma.brand.count({
+      where: { vehicleTypes: { hasSome: ['car'] } }
+    });
+    const totalMotorcycleBrands = await prisma.brand.count({
+      where: { vehicleTypes: { hasSome: ['motorcycle'] } }
+    });
+    const totalBrands = await prisma.brand.count();
+    
+    console.log('✅ Brands import completed successfully');
+    
     return res.json({
       success: true,
-      message: `Import completed: ${imported} imported, ${skipped} skipped`,
+      message: 'Brands imported successfully from JSON file',
       data: {
-        imported,
-        skipped,
-        total: brands.length,
-        vehicleTypes: [vehicleType]
+        totalCarBrands,
+        totalMotorcycleBrands,
+        totalBrands,
+        importedCars,
+        importedMotorcycles,
+        updatedDuplicates,
+        skippedCars,
+        skippedMotorcycles,
+        importedAt: new Date().toISOString()
       }
     });
-
+    
   } catch (error) {
-    console.error('❌ Error importing brands:', error);
+    console.error('❌ Error importing brands from JSON:', error);
     return res.status(500).json({
       success: false,
-      error: 'Failed to import brands',
+      error: 'Failed to import brands from JSON file',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
@@ -432,32 +320,28 @@ router.post('/import', async (req, res) => {
 router.get('/:brandSlug/models', async (req, res) => {
   try {
     const { brandSlug } = req.params;
-    console.log(`🔍 GET /brands/${brandSlug}/models - Obteniendo modelos de la marca`);
+    console.log(`🔍 GET /brands/${brandSlug}/models - Obteniendo modelos`);
     
-    // Buscar la marca en la base de datos
+    // Verificar que la marca existe
     const brand = await prisma.brand.findUnique({
       where: { slug: brandSlug }
     });
-
+    
     if (!brand) {
       return res.status(404).json({
         success: false,
-        error: 'Brand not found'
+        error: `Brand with slug '${brandSlug}' not found`
       });
     }
-
-    // Obtener modelos desde la base de datos
+    
     const models = await prisma.model.findMany({
-      where: {
-        brandId: brand.id
-      },
-      orderBy: {
-        name: 'asc'
-      },
+      where: { brandId: brand.id },
+      orderBy: { name: 'asc' },
       select: {
         id: true,
         slug: true,
-        name: true
+        name: true,
+        brandId: true
       }
     });
 
@@ -465,16 +349,8 @@ router.get('/:brandSlug/models', async (req, res) => {
 
     return res.json({
       success: true,
-      brand: {
-        slug: brand.slug,
-        name: brand.name,
-        vehicleTypes: brand.vehicleTypes
-      },
       total: models.length,
-      data: models.map(model => ({
-        value: model.slug,
-        label: model.name
-      }))
+      data: models
     });
 
   } catch (error) {
@@ -487,197 +363,436 @@ router.get('/:brandSlug/models', async (req, res) => {
   }
 });
 
-// POST /api/brands/:brandSlug/sync-models - Sincronizar modelos desde API externa
-router.post('/:brandSlug/sync-models', async (req, res) => {
+// POST /api/brands/import-models - Importar todos los modelos desde archivo JSON
+router.post('/import-models', async (req, res) => {
   try {
-    const { brandSlug } = req.params;
-    const { clearExisting = false } = req.body;
+    console.log('📥 POST /brands/import-models - Importing models from JSON file');
     
-    console.log(`🔄 POST /brands/${brandSlug}/sync-models - Sincronizando modelos desde API externa`);
+    // Cargar archivo de modelos
+    const fs = require('fs');
+    const path = require('path');
     
-    // Buscar la marca en la base de datos
-    const brand = await prisma.brand.findUnique({
-      where: { slug: brandSlug }
-    });
-
-    if (!brand) {
-      return res.status(404).json({
-        success: false,
-        error: 'Brand not found'
-      });
-    }
-
-    // Determinar el endpoint de la API según el tipo de vehículo
-    let externalApiUrl;
-    if (brand.vehicleTypes.includes('car')) {
-      externalApiUrl = `https://api.motoraldia.com/wp-json/api-motor/v1/marques-cotxe?marca=${brandSlug}`;
-    } else if (brand.vehicleTypes.includes('motorcycle')) {
-      externalApiUrl = `https://api.motoraldia.com/wp-json/api-motor/v1/marques-moto?marca=${brandSlug}`;
-    } else {
-      return res.status(400).json({
-        success: false,
-        error: 'Model sync is only available for car and motorcycle brands'
-      });
-    }
-    console.log(`📡 Calling external API: ${externalApiUrl}`);
+    let modelsData: any;
     
-    let externalModels: ExternalModel[] = [];
-    try {
-      const response = await axios.get(externalApiUrl, {
-        timeout: 30000, // 30 segundos timeout
-        headers: {
-          'User-Agent': 'Kars.ad Model Sync',
-          'Accept': 'application/json'
-        }
-      });
-      
-      if (response.data) {
-        // La API devuelve un objeto con estructura {status, total, data}
-        if (response.data.data && Array.isArray(response.data.data)) {
-          externalModels = response.data.data;
-        } else if (Array.isArray(response.data)) {
-          // Fallback por si la API devuelve directamente un array
-          externalModels = response.data;
-        } else {
-          console.warn(`⚠️ API returned unexpected format for brand ${brandSlug}:`, response.data);
+    // Intentar múltiples rutas para encontrar el archivo models.json
+    const possiblePaths = [
+      path.join(process.cwd(), 'data/models.json'),                    // Desde directorio de trabajo
+      path.join(__dirname, '../../../data/models.json'),              // Desde src/routes/
+      path.join(__dirname, '../../data/models.json'),                 // Desde dist/routes/
+      path.join(__dirname, '../../../../data/models.json')            // Alternativa
+    ];
+    
+    console.log('🔍 Looking for models file...');
+    console.log('📂 Current directory:', __dirname);
+    console.log('📂 Process cwd:', process.cwd());
+    
+    let fileFound = false;
+    for (const filePath of possiblePaths) {
+      console.log('🔍 Trying path:', filePath);
+      if (fs.existsSync(filePath)) {
+        console.log('✅ Found models file at:', filePath);
+        try {
+          const modelsFileContent = fs.readFileSync(filePath, 'utf-8');
+          modelsData = JSON.parse(modelsFileContent);
+          fileFound = true;
+          break;
+        } catch (parseError) {
+          console.error('❌ Error parsing JSON at', filePath, ':', parseError);
+          continue;
         }
       }
-    } catch (apiError) {
-      console.error(`❌ Error calling external API for brand ${brandSlug}:`, apiError);
-      return res.status(502).json({
-        success: false,
-        error: 'Failed to fetch models from external API',
-        details: apiError instanceof Error ? apiError.message : 'Unknown API error'
-      });
     }
-
-    let imported = 0;
-    let skipped = 0;
-
-    // Si se solicita limpiar existentes
-    if (clearExisting) {
-      console.log(`🗑️ Eliminando modelos existentes para marca ${brand.name}`);
-      await prisma.model.deleteMany({
-        where: { brandId: brand.id }
-      });
+    
+    if (!fileFound) {
+      throw new Error(`Models file not found. Tried paths: ${possiblePaths.join(', ')}`);
     }
-
-    // Importar modelos
-    for (const modelData of externalModels) {
+    
+    let importedCarModels = 0;
+    let importedMotorcycleModels = 0;
+    let skippedCarModels = 0;
+    let skippedMotorcycleModels = 0;
+    let brandNotFoundErrors = 0;
+    
+    console.log(`📊 Found ${modelsData.metadata.totalCarModels} car models and ${modelsData.metadata.totalMotorcycleModels} motorcycle models`);
+    
+    // Importar modelos de coches
+    console.log('🚗 Importing car models...');
+    for (const model of modelsData.carModels) {
       try {
-        // Extraer value y label del modelo
-        const value = modelData.value || modelData.slug;
-        const label = modelData.label || modelData.name;
+        if (!model || !model.value || !model.label || !model.brandSlug) {
+          skippedCarModels++;
+          continue;
+        }
         
-        if (!value || !label) {
-          console.warn('⚠️ Modelo inválido saltado:', modelData);
-          skipped++;
-          continue;
-        }
-
-        // Verificar si ya existe
-        const existing = await prisma.model.findFirst({
-          where: { 
-            brandId: brand.id,
-            slug: value
-          }
+        // Buscar la marca
+        const brand = await prisma.brand.findUnique({
+          where: { slug: model.brandSlug }
         });
-
-        if (existing) {
-          console.log(`⏭️ Modelo ya existe: ${label}`);
-          skipped++;
+        
+        if (!brand) {
+          console.warn(`⚠️ Brand not found: ${model.brandSlug} for model ${model.label}`);
+          brandNotFoundErrors++;
+          skippedCarModels++;
           continue;
         }
-
-        // Crear nuevo modelo
-        await prisma.model.create({
-          data: {
-            name: label,
-            slug: value,
+        
+        // Verificar si el modelo ya existe
+        const existingModel = await prisma.model.findFirst({
+          where: {
+            slug: model.value,
             brandId: brand.id
           }
         });
-
-        imported++;
-        console.log(`✅ Modelo importado: ${label}`);
-
-      } catch (modelError) {
-        console.error(`❌ Error importando modelo ${modelData.label}:`, modelError);
-        skipped++;
+        
+        if (existingModel) {
+          skippedCarModels++;
+        } else {
+          await prisma.model.create({
+            data: {
+              name: model.label,
+              slug: model.value,
+              brandId: brand.id
+            }
+          });
+          importedCarModels++;
+          if (importedCarModels % 100 === 0) {
+            console.log(`🚗 Imported ${importedCarModels} car models...`);
+          }
+        }
+      } catch (error) {
+        console.error(`❌ Error importing car model ${model?.label}:`, error);
+        skippedCarModels++;
       }
     }
-
-    console.log(`📊 Sincronización completada para ${brand.name}: ${imported} importados, ${skipped} saltados`);
-
+    
+    // Importar modelos de motos
+    console.log('🏍️ Importing motorcycle models...');
+    for (const model of modelsData.motorcycleModels) {
+      try {
+        if (!model || !model.value || !model.label || !model.brandSlug) {
+          skippedMotorcycleModels++;
+          continue;
+        }
+        
+        // Buscar la marca
+        const brand = await prisma.brand.findUnique({
+          where: { slug: model.brandSlug }
+        });
+        
+        if (!brand) {
+          console.warn(`⚠️ Brand not found: ${model.brandSlug} for model ${model.label}`);
+          brandNotFoundErrors++;
+          skippedMotorcycleModels++;
+          continue;
+        }
+        
+        // Verificar si el modelo ya existe
+        const existingModel = await prisma.model.findFirst({
+          where: {
+            slug: model.value,
+            brandId: brand.id
+          }
+        });
+        
+        if (existingModel) {
+          skippedMotorcycleModels++;
+        } else {
+          await prisma.model.create({
+            data: {
+              name: model.label,
+              slug: model.value,
+              brandId: brand.id
+            }
+          });
+          importedMotorcycleModels++;
+          if (importedMotorcycleModels % 100 === 0) {
+            console.log(`🏍️ Imported ${importedMotorcycleModels} motorcycle models...`);
+          }
+        }
+      } catch (error) {
+        console.error(`❌ Error importing motorcycle model ${model?.label}:`, error);
+        skippedMotorcycleModels++;
+      }
+    }
+    
+    // Obtener estadísticas finales
+    const totalModels = await prisma.model.count();
+    
+    console.log('✅ Models import completed successfully');
+    
     return res.json({
       success: true,
-      message: `Model sync completed for ${brand.name}: ${imported} imported, ${skipped} skipped`,
+      message: 'Models imported successfully',
       data: {
-        brand: {
-          slug: brand.slug,
-          name: brand.name
-        },
-        imported,
-        skipped,
-        total: externalModels.length
+        totalModels,
+        importedCarModels,
+        importedMotorcycleModels,
+        skippedCarModels,
+        skippedMotorcycleModels,
+        brandNotFoundErrors,
+        importedAt: new Date().toISOString()
       }
     });
-
+    
   } catch (error) {
-    console.error('❌ Error syncing models:', error);
+    console.error('❌ Error importing models:', error);
     return res.status(500).json({
       success: false,
-      error: 'Failed to sync models',
+      error: 'Failed to import models',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
-// TEMPORAL: Endpoint para corregir vehicleTypes de marcas conocidas de motos
-router.post('/fix-motorcycle-brands', async (req, res) => {
+// GET /api/brands/models-status - Verificar estado de modelos por marca
+router.get('/models-status', async (req, res) => {
   try {
-    console.log('🔧 Fixing motorcycle brand types...');
+    console.log('📊 GET /brands/models-status - Verificando estado de modelos');
     
-    // Lista de marcas conocidas que son de motos
-    const motorcycleBrands = [
-      'aprilia', 'yamaha', 'honda', 'kawasaki', 'suzuki', 'ducati', 'ktm', 
-      'husqvarna', 'husaberg', 'beta', 'gas-gas', 'sherco', 'bultaco',
-      'harley-davidson', 'indian', 'mv-agusta', 'benelli', 'kymco', 
-      'piaggio', 'vespa', 'cfmoto', 'hyosung', 'laverda'
-    ];
-    
-    let fixed = 0;
-    
-    for (const brandSlug of motorcycleBrands) {
-      const result = await prisma.brand.updateMany({
-        where: { 
-          slug: brandSlug,
-          vehicleTypes: { hasSome: ['car'] } // Solo las que están mal marcadas
-        },
-        data: {
-          vehicleTypes: ['motorcycle'] // Cambiar a motorcycle
+    const brands = await prisma.brand.findMany({
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        vehicleTypes: true,
+        _count: {
+          select: { models: true }
         }
-      });
-      
-      if (result.count > 0) {
-        console.log(`✅ Fixed brand: ${brandSlug}`);
-        fixed++;
-      }
-    }
+      },
+      orderBy: { name: 'asc' }
+    });
     
-    console.log(`🎉 Fixed ${fixed} motorcycle brands`);
+    const brandsWithModels = brands.filter(brand => brand._count.models > 0);
+    const brandsWithoutModels = brands.filter(brand => brand._count.models === 0);
+    
+    const carBrandsWithoutModels = brandsWithoutModels.filter(brand => 
+      brand.vehicleTypes.includes('car')
+    );
+    
+    const motorcycleBrandsWithoutModels = brandsWithoutModels.filter(brand => 
+      brand.vehicleTypes.includes('motorcycle')
+    );
+    
+    console.log(`📈 Total brands: ${brands.length}`);
+    console.log(`✅ Brands with models: ${brandsWithModels.length}`);
+    console.log(`❌ Brands without models: ${brandsWithoutModels.length}`);
+    console.log(`🚗 Car brands without models: ${carBrandsWithoutModels.length}`);
+    console.log(`🏍️ Motorcycle brands without models: ${motorcycleBrandsWithoutModels.length}`);
     
     return res.json({
       success: true,
-      message: `Fixed ${fixed} motorcycle brands`,
-      fixed
+      data: {
+        summary: {
+          totalBrands: brands.length,
+          brandsWithModels: brandsWithModels.length,
+          brandsWithoutModels: brandsWithoutModels.length,
+          carBrandsWithoutModels: carBrandsWithoutModels.length,
+          motorcycleBrandsWithoutModels: motorcycleBrandsWithoutModels.length
+        },
+        brandsWithModels: brandsWithModels.map(brand => ({
+          name: brand.name,
+          slug: brand.slug,
+          vehicleTypes: brand.vehicleTypes,
+          modelCount: brand._count.models
+        })),
+        brandsWithoutModels: brandsWithoutModels.map(brand => ({
+          name: brand.name,
+          slug: brand.slug,
+          vehicleTypes: brand.vehicleTypes,
+          modelCount: 0
+        })),
+        carBrandsWithoutModels: carBrandsWithoutModels.map(brand => ({
+          name: brand.name,
+          slug: brand.slug
+        })),
+        motorcycleBrandsWithoutModels: motorcycleBrandsWithoutModels.map(brand => ({
+          name: brand.name,
+          slug: brand.slug
+        }))
+      }
     });
     
   } catch (error) {
-    console.error('❌ Error fixing motorcycle brands:', error);
+    console.error('❌ Error checking models status:', error);
     return res.status(500).json({
       success: false,
-      error: 'Failed to fix motorcycle brands',
+      error: 'Failed to check models status',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// POST /api/brands/:brandSlug/sync-models - Sincronizar modelos de una marca desde API externa
+router.post('/:brandSlug/sync-models', async (req, res) => {
+  try {
+    const { brandSlug } = req.params;
+    const { clearExisting = false } = req.body;
+    
+    console.log(`🔄 POST /brands/${brandSlug}/sync-models - Sincronizando modelos`);
+    
+    // Verificar que la marca existe
+    const brand = await prisma.brand.findUnique({
+      where: { slug: brandSlug }
+    });
+    
+    if (!brand) {
+      return res.status(404).json({
+        success: false,
+        error: `Brand with slug '${brandSlug}' not found`
+      });
+    }
+
+    // Limpiar modelos existentes si se solicita
+    if (clearExisting) {
+      console.log(`🗑️ Clearing existing models for brand: ${brand.name}`);
+      await prisma.model.deleteMany({
+        where: { brandId: brand.id }
+      });
+    }
+
+    // Determinar qué endpoints consultar según los tipos de vehículo de la marca
+    const hasCars = brand.vehicleTypes.includes('car');
+    const hasMotorcycles = brand.vehicleTypes.includes('motorcycle');
+    
+    let allExternalModels: ExternalModel[] = [];
+    let totalFromApis = 0;
+    
+    // Consultar endpoint de coches si la marca tiene coches
+    if (hasCars) {
+      try {
+        const carApiUrl = `https://api.motoraldia.com/wp-json/api-motor/v1/marques-cotxe?marca=${brandSlug}`;
+        console.log(`🚗 Fetching car models from: ${carApiUrl}`);
+        
+        const carResponse = await axios.get(carApiUrl);
+        console.log('🔍 Car API response:', carResponse.data);
+        
+        if (carResponse.data && carResponse.data.status === 'success' && Array.isArray(carResponse.data.data)) {
+          allExternalModels = [...allExternalModels, ...carResponse.data.data];
+          totalFromApis += carResponse.data.total || carResponse.data.data.length;
+          console.log(`✅ Added ${carResponse.data.data.length} car models`);
+        }
+      } catch (error) {
+        console.log('⚠️ Error fetching car models:', error);
+      }
+    }
+    
+    // Consultar endpoint de motos si la marca tiene motos
+    if (hasMotorcycles) {
+      try {
+        const motoApiUrl = `https://api.motoraldia.com/wp-json/api-motor/v1/marques-moto?marca=${brandSlug}`;
+        console.log(`🏍️ Fetching motorcycle models from: ${motoApiUrl}`);
+        
+        const motoResponse = await axios.get(motoApiUrl);
+        console.log('🔍 Motorcycle API response:', motoResponse.data);
+        
+        if (motoResponse.data && motoResponse.data.status === 'success' && Array.isArray(motoResponse.data.data)) {
+          allExternalModels = [...allExternalModels, ...motoResponse.data.data];
+          totalFromApis += motoResponse.data.total || motoResponse.data.data.length;
+          console.log(`✅ Added ${motoResponse.data.data.length} motorcycle models`);
+        }
+      } catch (error) {
+        console.log('⚠️ Error fetching motorcycle models:', error);
+      }
+    }
+    
+    // Verificar que tengamos modelos para importar
+    if (allExternalModels.length === 0) {
+      console.log('❌ No models found in any API endpoint');
+      return res.json({
+        success: false,
+        message: `No models found for brand ${brand.name} in external APIs`,
+        data: {
+          brandName: brand.name,
+          brandSlug: brand.slug,
+          importedCount: 0,
+          skippedCount: 0,
+          totalFromApi: 0,
+          syncedAt: new Date().toISOString(),
+          checkedEndpoints: { cars: hasCars, motorcycles: hasMotorcycles }
+        }
+      });
+    }
+    
+    const externalModels = allExternalModels;
+    
+    console.log(`📥 Received ${externalModels.length} models from external API`);
+    
+    let importedCount = 0;
+    let skippedCount = 0;
+    
+    for (const modelData of externalModels) {
+      try {
+        // Normalizar datos del modelo
+        const modelName = modelData.label || modelData.name || modelData.value;
+        const modelSlug = modelData.value || modelData.slug || modelName?.toLowerCase().replace(/\s+/g, '-');
+        
+        if (!modelName || !modelSlug) {
+          console.warn('⚠️ Invalid model data:', modelData);
+          skippedCount++;
+          continue;
+        }
+        
+        // Verificar si el modelo ya existe
+        const existingModel = await prisma.model.findFirst({
+          where: {
+            slug: modelSlug,
+            brandId: brand.id
+          }
+        });
+        
+        if (existingModel && !clearExisting) {
+          skippedCount++;
+          continue;
+        }
+        
+        // Crear o actualizar modelo
+        if (existingModel && clearExisting) {
+          await prisma.model.update({
+            where: { id: existingModel.id },
+            data: {
+              name: modelName,
+              slug: modelSlug
+            }
+          });
+        } else {
+          await prisma.model.create({
+            data: {
+              name: modelName,
+              slug: modelSlug,
+              brandId: brand.id
+            }
+          });
+        }
+        
+        importedCount++;
+        
+      } catch (error) {
+        console.error(`❌ Error processing model:`, modelData, error);
+        skippedCount++;
+      }
+    }
+    
+    console.log(`✅ Sync completed: ${importedCount} imported, ${skippedCount} skipped`);
+    
+    return res.json({
+      success: true,
+      message: `Successfully synced ${importedCount} models for ${brand.name}`,
+      data: {
+        brandName: brand.name,
+        brandSlug: brand.slug,
+        importedCount,
+        skippedCount,
+        totalFromApi: totalFromApis,
+        totalProcessed: externalModels.length,
+        syncedAt: new Date().toISOString()
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error syncing models from external API:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to sync models from external API',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
