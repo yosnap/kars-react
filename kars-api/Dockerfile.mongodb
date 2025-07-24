@@ -1,0 +1,77 @@
+# MongoDB Dockerfile with Replica Set support for EasyPanel
+FROM mongo:7.0
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create directories
+RUN mkdir -p /docker-entrypoint-initdb.d /scripts
+
+# Create replica set initialization script
+COPY <<EOF /scripts/init-replica-set.sh
+#!/bin/bash
+set -e
+
+echo "Waiting for MongoDB to start..."
+until mongosh --eval "print('MongoDB is ready')" > /dev/null 2>&1; do
+  sleep 2
+done
+
+echo "Initializing replica set..."
+mongosh --eval "
+try {
+  rs.status();
+  print('Replica set already initialized');
+} catch (error) {
+  print('Initializing replica set...');
+  rs.initiate({
+    _id: 'rs0',
+    members: [
+      {
+        _id: 0,
+        host: 'localhost:27017',
+        priority: 1
+      }
+    ]
+  });
+  print('Replica set initialized successfully');
+}
+"
+
+echo "Replica set initialization completed"
+EOF
+
+# Make the script executable
+RUN chmod +x /scripts/init-replica-set.sh
+
+# Create startup script that runs MongoDB and initializes replica set
+COPY <<EOF /scripts/start-mongodb.sh
+#!/bin/bash
+set -e
+
+echo "Starting MongoDB with replica set configuration..."
+
+# Start MongoDB in background with replica set
+mongod --replSet rs0 --bind_ip_all --port 27017 &
+MONGOD_PID=\$!
+
+# Wait a bit for MongoDB to start
+sleep 10
+
+# Initialize replica set
+/scripts/init-replica-set.sh
+
+# Wait for MongoDB process
+wait \$MONGOD_PID
+EOF
+
+# Make startup script executable
+RUN chmod +x /scripts/start-mongodb.sh
+
+# Expose MongoDB port
+EXPOSE 27017
+
+# Use our custom startup script
+CMD ["/scripts/start-mongodb.sh"]

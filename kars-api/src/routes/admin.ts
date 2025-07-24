@@ -2080,63 +2080,141 @@ router.get('/import-status', async (req, res) => {
 
 // Endpoints eliminados por seguridad - solo usar emergency-db-fix
 
-// POST /api/admin/emergency-db-fix - Fix SOLO para este problema específico
+// POST /api/admin/emergency-db-fix - Fix SOLO para este problema específico de fechas
 router.post('/emergency-db-fix', async (req, res) => {
   try {
-    console.log('🚀 Initializing database from admin panel...');
+    console.log('🚀 Emergency fix for DateTime conversion errors...');
     
     let results = {
-      dataTypesFix: null as any,
+      datesFix: null as any,
       vehicleImport: null as any,
       steps: [] as string[]
     };
     
-    // Usar comandos raw de MongoDB a través de Prisma para evitar problemas de conexión
-    console.log('🔧 Using Prisma raw commands to avoid connection issues...');
+    console.log('🔧 Using direct MongoDB commands to fix date fields...');
     
     try {
-      // Paso 1: Corregir tipos de datos usando comandos raw
-      console.log('📊 Step 1: Fixing data types...');
-      results.steps.push('Starting data type correction...');
+      // Paso 1: Corregir específicamente las fechas que están como strings
+      console.log('📅 Step 1: Converting string dates to DateTime objects...');
+      results.steps.push('Starting date conversion...');
       
       try {
-        // Usar comandos raw para corregir tipos
-        const fixPreuResult = await prisma.$runCommandRaw({
-          update: 'Vehicle',
-          updates: [{
-            q: { preu: { $type: 'string' } },
-            u: [{ $set: { preu: { $toDouble: { $ifNull: [{ $toDouble: '$preu' }, 0] } } } }],
-            multi: true
-          }]
-        });
+        // Obtener todos los vehículos con fechas string para procesarlos manualmente
+        console.log('🔍 Finding vehicles with string dates...');
         
-        const fixGarantiaResult = await prisma.$runCommandRaw({
-          update: 'Vehicle',
-          updates: [{
-            q: { garantia: { $type: 'bool' } },
-            u: [{ $set: { garantia: { $toString: '$garantia' } } }],
-            multi: true
-          }]
-        });
+        const vehiclesWithStringDates = await prisma.$runCommandRaw({
+          find: 'Vehicle',
+          filter: {
+            $or: [
+              { 'data-creacio': { $type: 'string' } },
+              { 'data-modificacio': { $type: 'string' } },
+              { dataCreacio: { $type: 'string' } },
+              { dataModificacio: { $type: 'string' } }
+            ]
+          }
+        }) as any;
         
-        const preuFixed = fixPreuResult.nModified || 0;
-        const garantiaFixed = fixGarantiaResult.nModified || 0;
+        const vehicles = vehiclesWithStringDates?.cursor?.firstBatch || [];
+        console.log(`📊 Found ${vehicles.length} vehicles with string dates`);
+        results.steps.push(`Found ${vehicles.length} vehicles with string dates`);
         
-        results.dataTypesFix = {
-          preuFixed,
-          garantiaFixed,
-          success: true
+        // Procesar cada vehículo individualmente
+        let fixedCount = 0;
+        let errorCount = 0;
+        
+        if (vehicles.length > 0) {
+          for (const vehicle of vehicles) {
+            try {
+              const updates: any = {};
+              let hasUpdates = false;
+              
+              // Procesar data-creacio
+              if (vehicle['data-creacio'] && typeof vehicle['data-creacio'] === 'string') {
+                try {
+                  const dateStr = vehicle['data-creacio'].replace(/"/g, ''); // Remover comillas
+                  updates['data-creacio'] = new Date(dateStr);
+                  hasUpdates = true;
+                } catch (dateError) {
+                  console.log(`⚠️ Invalid date format for data-creacio: ${vehicle['data-creacio']}`);
+                  updates['data-creacio'] = new Date(); // Fecha por defecto
+                  hasUpdates = true;
+                }
+              }
+              
+              // Procesar data-modificacio
+              if (vehicle['data-modificacio'] && typeof vehicle['data-modificacio'] === 'string') {
+                try {
+                  const dateStr = vehicle['data-modificacio'].replace(/"/g, ''); // Remover comillas
+                  updates['data-modificacio'] = new Date(dateStr);
+                  hasUpdates = true;
+                } catch (dateError) {
+                  console.log(`⚠️ Invalid date format for data-modificacio: ${vehicle['data-modificacio']}`);
+                  updates['data-modificacio'] = null;
+                  hasUpdates = true;
+                }
+              }
+              
+              // Procesar dataCreacio (versión camelCase)
+              if (vehicle.dataCreacio && typeof vehicle.dataCreacio === 'string') {
+                try {
+                  const dateStr = vehicle.dataCreacio.replace(/"/g, '');
+                  updates.dataCreacio = new Date(dateStr);
+                  hasUpdates = true;
+                } catch (dateError) {
+                  console.log(`⚠️ Invalid date format for dataCreacio: ${vehicle.dataCreacio}`);
+                  updates.dataCreacio = new Date();
+                  hasUpdates = true;
+                }
+              }
+              
+              // Procesar dataModificacio (versión camelCase)
+              if (vehicle.dataModificacio && typeof vehicle.dataModificacio === 'string') {
+                try {
+                  const dateStr = vehicle.dataModificacio.replace(/"/g, '');
+                  updates.dataModificacio = new Date(dateStr);
+                  hasUpdates = true;
+                } catch (dateError) {
+                  console.log(`⚠️ Invalid date format for dataModificacio: ${vehicle.dataModificacio}`);
+                  updates.dataModificacio = null;
+                  hasUpdates = true;
+                }
+              }
+              
+              // Actualizar el vehículo si hay cambios
+              if (hasUpdates) {
+                await prisma.$runCommandRaw({
+                  update: 'Vehicle',
+                  updates: [{
+                    q: { _id: vehicle._id },
+                    u: { $set: updates }
+                  }]
+                });
+                fixedCount++;
+              }
+              
+            } catch (vehicleError) {
+              console.error(`Error processing vehicle ${vehicle._id}:`, vehicleError);
+              errorCount++;
+            }
+          }
+        }
+        
+        results.datesFix = {
+          vehiclesProcessed: vehicles.length,
+          vehiclesFixed: fixedCount,
+          errors: errorCount,
+          success: fixedCount > 0 || errorCount === 0
         };
         
-        results.steps.push(`✅ Fixed ${preuFixed} prices and ${garantiaFixed} guarantees`);
+        results.steps.push(`✅ Fixed dates in ${fixedCount} vehicles (${errorCount} errors)`);
         
       } catch (fixError) {
-        console.error('Error fixing data types:', fixError);
-        results.dataTypesFix = {
+        console.error('Error fixing dates:', fixError);
+        results.datesFix = {
           error: fixError instanceof Error ? fixError.message : 'Unknown error',
           success: false
         };
-        results.steps.push('❌ Error fixing data types');
+        results.steps.push('❌ Error fixing dates');
       }
       
       // Paso 2: Importar vehículos desde JSON si existe
@@ -2175,7 +2253,7 @@ router.post('/emergency-db-fix', async (req, res) => {
                 try {
                   const { _id, ...cleanVehicle } = vehicle;
                   
-                  // Asegurar tipos correctos
+                  // Asegurar tipos correctos, especialmente fechas
                   const processedVehicle = {
                     ...cleanVehicle,
                     preu: typeof cleanVehicle.preu === 'number' 
@@ -2184,13 +2262,26 @@ router.post('/emergency-db-fix', async (req, res) => {
                     garantia: cleanVehicle.garantia !== undefined 
                       ? String(cleanVehicle.garantia) 
                       : null,
+                    // Convertir fechas de string a Date objects
+                    'data-creacio': cleanVehicle['data-creacio'] 
+                      ? new Date(cleanVehicle['data-creacio']) 
+                      : new Date(),
                     dataCreacio: cleanVehicle.dataCreacio 
                       ? new Date(cleanVehicle.dataCreacio) 
                       : new Date(),
+                    'data-modificacio': cleanVehicle['data-modificacio'] 
+                      ? new Date(cleanVehicle['data-modificacio']) 
+                      : null,
+                    dataModificacio: cleanVehicle.dataModificacio 
+                      ? new Date(cleanVehicle.dataModificacio) 
+                      : null,
                     createdAt: cleanVehicle.createdAt 
                       ? new Date(cleanVehicle.createdAt) 
                       : new Date(),
-                    updatedAt: new Date()
+                    updatedAt: new Date(),
+                    lastSyncAt: cleanVehicle.lastSyncAt 
+                      ? new Date(cleanVehicle.lastSyncAt) 
+                      : null
                   };
                   
                   documentsToInsert.push(processedVehicle);
@@ -2256,16 +2347,16 @@ router.post('/emergency-db-fix', async (req, res) => {
     }
     
     // Resumen final
-    const success = results.dataTypesFix?.success && results.vehicleImport?.success;
-    results.steps.push(success ? '🎉 Database initialization completed!' : '⚠️ Initialization completed with some issues');
+    const success = results.datesFix?.success;
+    results.steps.push(success ? '🎉 Date conversion completed successfully!' : '⚠️ Date conversion completed with some issues');
     
     return res.json({
-      message: 'Database initialization completed',
+      message: 'Emergency date fix completed',
       success: success,
       results: results,
       recommendation: success 
-        ? 'Database is ready. You may need to restart the service for all changes to take effect.'
-        : 'Some steps failed. Check the results for details.'
+        ? 'Dates have been converted. Try querying vehicles now - the DateTime errors should be resolved.'
+        : 'Some date conversions failed. Check the results for details.'
     });
     
   } catch (error) {
