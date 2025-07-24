@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: kars-mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: kars
+      MONGO_INITDB_ROOT_PASSWORD: c@D*PZmWQZ49gMYD
+      MONGO_INITDB_DATABASE: karsad
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./init-replica.js:/docker-entrypoint-initdb.d/init-replica.js:ro
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    networks:
+      - kars-network
+
+  api:
+    build: .
+    container_name: kars-api
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: "mongodb://kars:c@D*PZmWQZ49gMYD@mongodb:27017/karsad?replicaSet=rs0&authSource=admin"
+      NODE_ENV: production
+    depends_on:
+      - mongodb
+    networks:
+      - kars-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  kars-network:
+    driver: bridge

@@ -302,7 +302,7 @@ model Brand {
   models          Model[]
   
   // Metadatos de sincronización
-  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  lastSyncAt      DateTime? @map("last_sync_at")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
   
