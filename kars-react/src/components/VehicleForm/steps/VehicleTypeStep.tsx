@@ -8,10 +8,10 @@ interface VehicleTypeStepProps {
 
 const VehicleTypeStep: React.FC<VehicleTypeStepProps> = ({ formData, updateFormData }) => {
   const vehicleTypes = [
-    { value: 'COTXE', label: 'Cotxe', icon: Car, description: 'Vehicles de turisme' },
-    { value: 'MOTO', label: 'Motocicleta', icon: Zap, description: 'Motos i ciclomotors' },
-    { value: 'AUTOCARAVANA', label: 'Autocaravana', icon: Home, description: 'Autocaravanes i campers' },
-    { value: 'VEHICLE_COMERCIAL', label: 'Vehicle Comercial', icon: Truck, description: 'Furgonetes i camions' }
+    { value: 'cotxe', label: 'Cotxe', icon: Car, description: 'Vehicles de turisme' },
+    { value: 'moto', label: 'Motocicleta', icon: Zap, description: 'Motos i ciclomotors' },
+    { value: 'autocaravana', label: 'Autocaravana', icon: Home, description: 'Autocaravanes i campers' },
+    { value: 'vehicle-comercial', label: 'Vehicle Comercial', icon: Truck, description: 'Furgonetes i camions' }
   ];
 
   return (

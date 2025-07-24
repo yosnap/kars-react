@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { axiosAdmin } from '../../../api/axiosClient';
 import ExtrasGrid from '../ExtrasGrid';
+import { Switch } from '../../ui/switch';
 
 interface EquipmentExtrasStepProps {
   formData: any;
@@ -74,18 +75,18 @@ const EquipmentExtrasStep: React.FC<EquipmentExtrasStepProps> = ({ formData, upd
     let rawExtras: string[];
     
     switch (formData.tipusVehicle) {
-      case 'MOTO':
+      case 'moto':
         extras = motorcycleExtras;
         currentField = 'extresMoto';
         rawExtras = formData.extresMoto || [];
         break;
-      case 'AUTOCARAVANA':
+      case 'autocaravana':
         // Para autocaravanas, usar tanto caravana como habitáculo
         extras = [...caravanExtras, ...habitacleExtras];
         currentField = 'extresAutocaravana';
         rawExtras = formData.extresAutocaravana || [];
         break;
-      case 'VEHICLE_COMERCIAL':
+      case 'vehicle-comercial':
         extras = carExtras; // Los comerciales usan extras de coches
         currentField = 'extresCotxe';
         rawExtras = formData.extresCotxe || [];
@@ -111,19 +112,16 @@ const EquipmentExtrasStep: React.FC<EquipmentExtrasStepProps> = ({ formData, upd
 
   const toggleExtra = (extra: Extra) => {
     const currentExtras = extrasConfig.currentExtras;
-    const normalizedNew = normalizeExtra(extra.slug);
     
-    // Buscar si existe un extra con el mismo valor normalizado
-    const existingIndex = currentExtras.findIndex(
-      (item: string) => normalizeExtra(item) === normalizedNew
-    );
+    // Ahora que usamos slugs, la comparación es directa
+    const existingIndex = currentExtras.findIndex((item: string) => item === extra.slug);
     
     let updatedExtras: string[];
     if (existingIndex >= 0) {
       // Si existe, lo quitamos
       updatedExtras = currentExtras.filter((_: string, index: number) => index !== existingIndex);
     } else {
-      // Si no existe, lo agregamos con el slug original
+      // Si no existe, lo agregamos con el slug
       updatedExtras = [...currentExtras, extra.slug];
     }
     
@@ -133,11 +131,11 @@ const EquipmentExtrasStep: React.FC<EquipmentExtrasStepProps> = ({ formData, upd
   // Obtener el título según el tipo de vehículo
   const getTitle = () => {
     switch (formData.tipusVehicle) {
-      case 'MOTO':
+      case 'moto':
         return 'Equipament i extras de la moto';
-      case 'AUTOCARAVANA':
+      case 'autocaravana':
         return 'Equipament i extras de l\'autocaravana';
-      case 'VEHICLE_COMERCIAL':
+      case 'vehicle-comercial':
         return 'Equipament i extras del vehicle comercial';
       default:
         return 'Equipament i extras del cotxe';
@@ -159,12 +157,83 @@ const EquipmentExtrasStep: React.FC<EquipmentExtrasStepProps> = ({ formData, upd
   }
 
   return (
-    <ExtrasGrid
-      extras={extrasConfig.extras}
-      selectedExtras={extrasConfig.currentExtras}
-      onToggleExtra={toggleExtra}
-      title={getTitle()}
-    />
+    <div className="space-y-8">
+      {/* Características básicas del vehículo */}
+      {(formData.tipusVehicle === 'cotxe' || formData.tipusVehicle === 'autocaravana' || formData.tipusVehicle === 'vehicle-comercial') && (
+        <div className="space-y-6">
+          <h4 className="text-lg font-medium text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+            🌡️ Características de Confort
+          </h4>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Aire Acondicionat */}
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Aire Acondicionat
+                </label>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Sistema d'aire acondicionat
+                </p>
+              </div>
+              <div className="scale-75">
+                <Switch
+                  checked={formData.aireAcondicionat === 'true' || formData.aireAcondicionat === true}
+                  onCheckedChange={(checked) => updateFormData({ aireAcondicionat: checked ? 'true' : 'false' })}
+                  className="data-[state=checked]:bg-blue-400 data-[state=unchecked]:bg-gray-300"
+                />
+              </div>
+            </div>
+
+            {/* Climatització */}
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Climatització
+                </label>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Sistema de climatització automàtic
+                </p>
+              </div>
+              <div className="scale-75">
+                <Switch
+                  checked={formData.climatitzacio === true}
+                  onCheckedChange={(checked) => updateFormData({ climatitzacio: checked })}
+                  className="data-[state=checked]:bg-blue-400 data-[state=unchecked]:bg-gray-300"
+                />
+              </div>
+            </div>
+
+            {/* Vehicle Fumador */}
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Vehicle Fumador
+                </label>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Utilitzat per fumadors
+                </p>
+              </div>
+              <div className="scale-75">
+                <Switch
+                  checked={formData.vehicleFumador === true}
+                  onCheckedChange={(checked) => updateFormData({ vehicleFumador: checked })}
+                  className="data-[state=checked]:bg-blue-400 data-[state=unchecked]:bg-gray-300"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Extras específicos del vehículo */}
+      <ExtrasGrid
+        extras={extrasConfig.extras}
+        selectedExtras={extrasConfig.currentExtras}
+        onToggleExtra={toggleExtra}
+        title={getTitle()}
+      />
+    </div>
   );
 };
 

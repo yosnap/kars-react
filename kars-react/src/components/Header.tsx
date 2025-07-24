@@ -178,7 +178,7 @@ export default function Header({ onSearch, onOpenAdvancedSearch }: HeaderProps) 
                 title="Català"
                 onClick={() => setCurrentLanguage('ca')}
               >
-                <img src="/flags/ca.svg" alt="Català" className="w-full h-full object-cover" />
+                <img src="/flags/es_ca.png" alt="Català" className="w-full h-full object-cover" />
               </button>
             )}
           </div>

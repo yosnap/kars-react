@@ -33,6 +33,38 @@ interface Professional {
   "registered_date"?: string;
 }
 
+// Function to get the current language (similar to PageBreadcrumbs)
+const getCurrentLanguage = () => {
+  // Default to Catalan, but can be extended to detect from URL or user preferences
+  return "ca";
+};
+
+// Function to get the description in the current language
+const getVehicleDescription = (vehicle: Vehicle) => {
+  const currentLang = getCurrentLanguage();
+  
+  // Map language codes to field names (using kebab-case as in the API)
+  const descriptionFields = {
+    'ca': 'descripcio-anunci-ca',
+    'es': 'descripcio-anunci-es', 
+    'en': 'descripcio-anunci-en',
+    'fr': 'descripcio-anunci-fr'
+  };
+  
+  const fieldName = descriptionFields[currentLang as keyof typeof descriptionFields];
+  let description = vehicle[fieldName] as string;
+  
+  // Fallback hierarchy: current language -> Catalan -> Spanish -> English -> legacy field
+  if (!description || description.trim() === '') {
+    description = vehicle['descripcio-anunci-ca'] as string ||
+                 vehicle['descripcio-anunci-es'] as string ||
+                 vehicle['descripcio-anunci-en'] as string ||
+                 vehicle['descripcio-anunci'] as string || '';
+  }
+  
+  return description;
+};
+
 const VehicleDetail = () => {
   const { slug } = useParams();
   const { user } = useAuth();
@@ -303,16 +335,20 @@ const VehicleDetail = () => {
               </h1>
             </div>
 
-            {Boolean(vehicle["descripcio-anunci"]) && (
-              <div className="bg-gray-900 rounded-lg p-6">
-                <div 
-                  className="text-white prose prose-invert max-w-none [&_p]:mb-4 [&_br]:block [&_br]:content-[''] [&_br]:mt-2"
-                  dangerouslySetInnerHTML={{ 
-                    __html: String(vehicle["descripcio-anunci"]) 
-                  }}
-                />
-              </div>
-            )}
+            {(() => {
+              const description = getVehicleDescription(vehicle);
+              return Boolean(description) && (
+                <div className="bg-gray-900 rounded-lg p-6">
+                  <h2 className="text-xl font-semibold text-gray-300 mb-4">Descripció</h2>
+                  <div 
+                    className="text-white prose prose-invert max-w-none [&_p]:mb-4 [&_br]:block [&_br]:content-[''] [&_br]:mt-2 [&_h1]:text-2xl [&_h2]:text-xl [&_h3]:text-lg [&_strong]:font-bold [&_em]:italic [&_ul]:list-disc [&_ol]:list-decimal [&_blockquote]:border-l-4 [&_blockquote]:border-gray-600 [&_blockquote]:pl-4 [&_blockquote]:italic"
+                    dangerouslySetInnerHTML={{ 
+                      __html: String(description) 
+                    }}
+                  />
+                </div>
+              );
+            })()}
 
             {/* Specifications */}
             {(vehicle["one-pedal"] || vehicle["frenada-regenerativa"]) && (

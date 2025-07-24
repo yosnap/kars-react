@@ -129,16 +129,16 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
     try {
       let endpoint = '';
       switch (vehicleType) {
-        case 'COTXE':
+        case 'cotxe':
           endpoint = '/body-types';
           break;
-        case 'MOTO':
+        case 'moto':
           endpoint = '/motorcycle-body-types';
           break;
-        case 'AUTOCARAVANA':
+        case 'autocaravana':
           endpoint = '/caravan-body-types';
           break;
-        case 'VEHICLE_COMERCIAL':
+        case 'vehicle-comercial':
           endpoint = '/commercial-body-types';
           break;
         default:
@@ -153,16 +153,16 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
         }));
         
         switch (vehicleType) {
-          case 'COTXE':
+          case 'cotxe':
             setBodyTypes(transformedData);
             break;
-          case 'MOTO':
+          case 'moto':
             setMotorcycleBodyTypes(transformedData);
             break;
-          case 'AUTOCARAVANA':
+          case 'autocaravana':
             setCaravanBodyTypes(transformedData);
             break;
-          case 'VEHICLE_COMERCIAL':
+          case 'vehicle-comercial':
             setCommercialBodyTypes(transformedData);
             break;
         }
@@ -189,11 +189,11 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
   // Determinar qué marcas mostrar según el tipo de vehículo
   const getBrandsForVehicleType = () => {
     switch (formData.tipusVehicle) {
-      case 'COTXE':
-      case 'AUTOCARAVANA':
-      case 'VEHICLE_COMERCIAL':
+      case 'cotxe':
+      case 'autocaravana':
+      case 'vehicle-comercial':
         return carBrands;
-      case 'MOTO':
+      case 'moto':
         return motorcycleBrands;
       default:
         return [];
@@ -242,9 +242,10 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
   // Efecto para cargar modelos cuando cambia la marca seleccionada
   useEffect(() => {
     const selectedBrand = 
-      formData.tipusVehicle === 'COTXE' ? formData.marcaCotxe :
-      formData.tipusVehicle === 'MOTO' ? formData.marcaMoto :
-      formData.tipusVehicle === 'AUTOCARAVANA' ? formData.marquesAutocaravana :
+      formData.tipusVehicle === 'cotxe' ? formData.marcaCotxe :
+      formData.tipusVehicle === 'moto' ? formData.marcaMoto :
+      formData.tipusVehicle === 'autocaravana' ? formData.marquesAutocaravana :
+      formData.tipusVehicle === 'vehicle-comercial' ? formData.marquesComercial :
       '';
     
     if (selectedBrand) {
@@ -252,17 +253,19 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
     } else {
       setModels([]);
     }
-  }, [formData.marcaCotxe, formData.marcaMoto, formData.marquesAutocaravana, formData.tipusVehicle, currentBrands]);
+  }, [formData.marcaCotxe, formData.marcaMoto, formData.marquesAutocaravana, formData.marquesComercial, formData.tipusVehicle, currentBrands]);
 
   // Helper to get the currently selected brand
   const getSelectedBrand = () => {
     switch (formData.tipusVehicle) {
-      case 'COTXE':
+      case 'cotxe':
         return formData.marcaCotxe || '';
-      case 'MOTO':
+      case 'moto':
         return formData.marcaMoto || '';
-      case 'AUTOCARAVANA':
+      case 'autocaravana':
         return formData.marquesAutocaravana || '';
+      case 'vehicle-comercial':
+        return formData.marquesComercial || '';
       default:
         return '';
     }
@@ -285,16 +288,18 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
           <SearchableSelect
             options={currentBrands.map(brand => ({ value: brand.value, label: brand.label }))}
             value={
-              formData.tipusVehicle === 'COTXE' ? formData.marcaCotxe || '' :
-              formData.tipusVehicle === 'MOTO' ? formData.marcaMoto || '' :
-              formData.tipusVehicle === 'AUTOCARAVANA' ? formData.marquesAutocaravana || '' :
+              formData.tipusVehicle === 'cotxe' ? formData.marcaCotxe || '' :
+              formData.tipusVehicle === 'moto' ? formData.marcaMoto || '' :
+              formData.tipusVehicle === 'autocaravana' ? formData.marquesAutocaravana || '' :
+              formData.tipusVehicle === 'vehicle-comercial' ? formData.marquesComercial || '' :
               ''
             }
             onValueChange={(value) => {
               const fieldName = 
-                formData.tipusVehicle === 'COTXE' ? 'marcaCotxe' :
-                formData.tipusVehicle === 'MOTO' ? 'marcaMoto' :
-                formData.tipusVehicle === 'AUTOCARAVANA' ? 'marquesAutocaravana' :
+                formData.tipusVehicle === 'cotxe' ? 'marcaCotxe' :
+                formData.tipusVehicle === 'moto' ? 'marcaMoto' :
+                formData.tipusVehicle === 'autocaravana' ? 'marquesAutocaravana' :
+                formData.tipusVehicle === 'vehicle-comercial' ? 'marquesComercial' :
                 '';
               if (fieldName) {
                 updateFormData({ [fieldName]: value });
@@ -316,16 +321,18 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
           <SearchableSelect
             options={models.map(model => ({ value: model.value, label: model.label }))}
             value={
-              formData.tipusVehicle === 'COTXE' ? formData.modelsCotxe || '' :
-              formData.tipusVehicle === 'MOTO' ? formData.modelsMoto || '' :
-              formData.tipusVehicle === 'AUTOCARAVANA' ? formData.modelsAutocaravana || '' :
+              formData.tipusVehicle === 'cotxe' ? formData.modelsCotxe || '' :
+              formData.tipusVehicle === 'moto' ? formData.modelsMoto || '' :
+              formData.tipusVehicle === 'autocaravana' ? formData.modelsAutocaravana || '' :
+              formData.tipusVehicle === 'vehicle-comercial' ? formData.modelsComercial || '' :
               ''
             }
             onValueChange={(value) => {
               const fieldName = 
-                formData.tipusVehicle === 'COTXE' ? 'modelsCotxe' :
-                formData.tipusVehicle === 'MOTO' ? 'modelsMoto' :
-                formData.tipusVehicle === 'AUTOCARAVANA' ? 'modelsAutocaravana' :
+                formData.tipusVehicle === 'cotxe' ? 'modelsCotxe' :
+                formData.tipusVehicle === 'moto' ? 'modelsMoto' :
+                formData.tipusVehicle === 'autocaravana' ? 'modelsAutocaravana' :
+                formData.tipusVehicle === 'vehicle-comercial' ? 'modelsComercial' :
                 '';
               if (fieldName) {
                 updateFormData({ [fieldName]: value });
@@ -412,7 +419,7 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
           Dades tècniques bàsiques
         </h4>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Fuel Type */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -424,7 +431,7 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
               onValueChange={(value) => updateFormData({ tipusCombustible: value })}
               placeholder="Selecciona combustible..."
               allowClear={true}
-              showSearch={true}
+              showSearch={false}
               loading={loadingTechnicalData}
               emptyMessage="No s'han trobat tipus de combustible"
             />
@@ -441,7 +448,7 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
               onValueChange={(value) => updateFormData({ tipusCanvi: value })}
               placeholder="Selecciona tipus de canvi..."
               allowClear={true}
-              showSearch={true}
+              showSearch={false}
               loading={loadingTechnicalData}
               emptyMessage="No s'han trobat tipus de canvi"
             />
@@ -458,7 +465,7 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
               onValueChange={(value) => updateFormData({ tipusPropulsor: value })}
               placeholder="Selecciona tipus de propulsor..."
               allowClear={true}
-              showSearch={true}
+              showSearch={false}
               loading={loadingTechnicalData}
               emptyMessage="No s'han trobat tipus de propulsor"
             />
@@ -481,33 +488,57 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
             />
           </div>
           
+          {/* Tracción - Solo para coches, autocaravanas y vehículos comerciales */}
+          {(formData.tipusVehicle === 'cotxe' || formData.tipusVehicle === 'autocaravana' || formData.tipusVehicle === 'vehicle-comercial') && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Tracció
+              </label>
+              <SearchableSelect
+                options={[
+                  { value: 'Davant', label: 'Tracció davant' },
+                  { value: 'Darrere', label: 'Tracció darrere' },
+                  { value: 'Integral', label: 'Tracció integral (4x4)' },
+                  { value: '4x4', label: '4x4' },
+                  { value: 'AWD', label: 'AWD (All Wheel Drive)' }
+                ]}
+                value={formData.traccio || ''}
+                onValueChange={(value) => updateFormData({ traccio: value })}
+                placeholder="Selecciona tracció..."
+                allowClear={true}
+                showSearch={false}
+                emptyMessage="No s'han trobat tipus de tracció"
+              />
+            </div>
+          )}
+          
           {/* Body Type - based on vehicle type */}
           {formData.tipusVehicle && (
-            <div className="md:col-span-2">
+            <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Tipus de Carrosseria
               </label>
               <SearchableSelect
                 options={
-                  formData.tipusVehicle === 'COTXE' ? bodyTypes :
-                  formData.tipusVehicle === 'MOTO' ? motorcycleBodyTypes :
-                  formData.tipusVehicle === 'AUTOCARAVANA' ? caravanBodyTypes :
-                  formData.tipusVehicle === 'VEHICLE_COMERCIAL' ? commercialBodyTypes :
+                  formData.tipusVehicle === 'cotxe' ? bodyTypes :
+                  formData.tipusVehicle === 'moto' ? motorcycleBodyTypes :
+                  formData.tipusVehicle === 'autocaravana' ? caravanBodyTypes :
+                  formData.tipusVehicle === 'vehicle-comercial' ? commercialBodyTypes :
                   []
                 }
                 value={
-                  formData.tipusVehicle === 'COTXE' ? (formData.carrosseriaCotxe || '') :
-                  formData.tipusVehicle === 'MOTO' ? (formData.carrosseriaMoto || '') :
-                  formData.tipusVehicle === 'AUTOCARAVANA' ? (formData.carrosseriaCaravana || '') :
-                  formData.tipusVehicle === 'VEHICLE_COMERCIAL' ? (formData.carrosseriaComercial || '') :
+                  formData.tipusVehicle === 'cotxe' ? (formData.carrosseriaCotxe || '') :
+                  formData.tipusVehicle === 'moto' ? (formData.tipusDeMoto || '') :
+                  formData.tipusVehicle === 'autocaravana' ? (formData.carrosseriaCaravana || '') :
+                  formData.tipusVehicle === 'vehicle-comercial' ? (formData.carrosseriaComercial || '') :
                   ''
                 }
                 onValueChange={(value) => {
                   const fieldName = 
-                    formData.tipusVehicle === 'COTXE' ? 'carrosseriaCotxe' :
-                    formData.tipusVehicle === 'MOTO' ? 'carrosseriaMoto' :
-                    formData.tipusVehicle === 'AUTOCARAVANA' ? 'carrosseriaCaravana' :
-                    formData.tipusVehicle === 'VEHICLE_COMERCIAL' ? 'carrosseriaComercial' :
+                    formData.tipusVehicle === 'cotxe' ? 'carrosseriaCotxe' :
+                    formData.tipusVehicle === 'moto' ? 'tipusDeMoto' :
+                    formData.tipusVehicle === 'autocaravana' ? 'carrosseriaCaravana' :
+                    formData.tipusVehicle === 'vehicle-comercial' ? 'carrosseriaComercial' :
                     null;
                   if (fieldName) {
                     updateFormData({ [fieldName]: value });

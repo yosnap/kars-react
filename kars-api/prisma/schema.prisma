@@ -153,6 +153,9 @@ model Vehicle {
   imatgeDestacadaUrl String?  @map("imatge-destacada-url")
   galeriaVehicleUrls String[] @map("galeria-vehicle-urls")
   
+  // Notas internas (para administradores)
+  notesInternes     String?  @map("notes-internes")
+  
   // Metadatos
   dataCreacio       DateTime @map("data-creacio")
   

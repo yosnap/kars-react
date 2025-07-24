@@ -14,6 +14,63 @@ interface ExtrasGridProps {
   title: string;
 }
 
+// Mapeo de slugs antiguos a nuevos para mantener compatibilidad
+const mapOldSlugToNew = (oldSlug: string): string => {
+  const slugMapping: Record<string, string> = {
+    // Airbags
+    'airbag-passatger': 'airbag-copilot',
+    'airbags-cortina': 'airbag-cortina',
+    'airbags-laterals': 'airbag-lateral',
+    
+    // Detección y sensores
+    'avis-angle-mort': 'detector-d-angle-mort',
+    'camara-visio-posterior': 'camera-de-visio-trasera',
+    'sensors-anti-colisio': 'sistema-de-frenada-d-emergencia',
+    'sensors-llums': 'llums-automatics',
+    'sensors-pluja': 'sensors-de-parquing-davant', // usar sensor diferente
+    
+    // Conectividad (usar extras diferentes para cada uno)
+    'connexio-internet': 'connexio-usb',
+    'connexio-mp3-ipod': 'android-auto', // usar Android Auto
+    'connexio-telefon': 'apple-carplay', // usar Apple CarPlay
+    
+    // Asistencia
+    'assist-per-canvi-carril': 'assistencia-de-manteniment-de-carril',
+    'avisador-sortida-carril': 'avisador-sortida-carril', // ya existe igual
+    
+    // Control (usar extras diferentes para cada uno)
+    'control-descens': 'descens-controlat',
+    'control-estabilitat': 'esp',
+    'control-traccio': 'sistema-antiarrossegament', // usar sistema antiarrastre
+    'cruise-control': 'control-de-creuer-adaptatiu',
+    
+    // Mecánica
+    'direccio-assistida': 'volant-ajustable-electricament',
+    'llandes-aliatge': 'jantes-d-aliatge',
+    
+    // Iluminación (usar extras diferentes para cada uno)
+    'llums-adaptatives': 'llums-adaptatius',
+    'llums-antiboira': 'llums-led-darrera', // usar luces LED traseras
+    'llums-de-dia': 'llums-de-dia-led',
+    'fars-led': 'llums-led-davant', // usar luces LED delanteras
+    
+    // Tecnología
+    'gps': 'sistema-de-navegacio-gps',
+    'ordinador-de-bord': 'pantalla-tactil',
+    
+    // Otros (usar extras diferentes para cada uno)
+    'pintura-metalitzada': 'tapisseria-de-cuir', // usar tapicería de cuero
+    'radio-cd': 'sistema-de-so-premium', // mantener sistema de sonido premium
+    'retrovisors-electrics': 'retols-electrics',
+    'sostre-obert': 'sostre-convertible',
+    'tanca-centralitzada': 'entrada-sense-clau',
+    'vidres-tintats': 'finestres-electriques-darrera', // usar ventanas traseras
+    'vidres-electrics': 'finestres-electriques-davant' // usar ventanas delanteras
+  };
+  
+  return slugMapping[oldSlug] || oldSlug;
+};
+
 // Función para categorizar extras
 const categorizeExtras = (extras: Extra[]) => {
   const categories = {
@@ -90,27 +147,28 @@ const categorizeExtras = (extras: Extra[]) => {
   return categories;
 };
 
-// Función auxiliar para normalizar comparación
-const normalizeExtra = (extra: string): string => {
-  return extra.toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[àáâãä]/g, 'a')
-    .replace(/[èéêë]/g, 'e')
-    .replace(/[ìíîï]/g, 'i')
-    .replace(/[òóôõö]/g, 'o')
-    .replace(/[ùúûü]/g, 'u')
-    .replace(/ç/g, 'c')
-    .replace(/ñ/g, 'n');
-};
 
 const ExtrasGrid: React.FC<ExtrasGridProps> = ({ extras, selectedExtras, onToggleExtra, title }) => {
   const categories = categorizeExtras(extras);
   
+  // Filtrar valores inválidos una sola vez para reutilizar
+  const validSelectedExtras = selectedExtras.filter(e => e && e !== 'on');
+  
   // Función para verificar si un extra está seleccionado
   const isExtraSelected = (extra: Extra): boolean => {
-    const normalizedSelected = selectedExtras.map(e => normalizeExtra(e));
-    return normalizedSelected.includes(normalizeExtra(extra.slug));
+    // Comparar directamente por slug
+    const isDirectMatch = validSelectedExtras.includes(extra.slug);
+    
+    // Si no hay coincidencia directa, buscar por mapeo inverso
+    // (buscar si algún slug antiguo mapea al slug actual)
+    const isReverseMatch = validSelectedExtras.some(oldSlug => 
+      mapOldSlugToNew(oldSlug) === extra.slug
+    );
+    
+    return isDirectMatch || isReverseMatch;
   };
+
+
 
   // Configuración de categorías con nombres en catalán
   const categoryConfig = [
@@ -132,9 +190,9 @@ const ExtrasGrid: React.FC<ExtrasGridProps> = ({ extras, selectedExtras, onToggl
         <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
           {title}
         </h3>
-        {selectedExtras.length > 0 && (
+        {validSelectedExtras.length > 0 && (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
-            {selectedExtras.length} seleccionats
+            {validSelectedExtras.length} seleccionats
           </span>
         )}
       </div>
@@ -164,14 +222,14 @@ const ExtrasGrid: React.FC<ExtrasGridProps> = ({ extras, selectedExtras, onToggl
       ))}
       
       {/* Resumen de extras seleccionados */}
-      {selectedExtras.length > 0 && (
+      {validSelectedExtras.length > 0 && (
         <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
           <h4 className="text-lg font-medium text-blue-900 dark:text-blue-100 mb-4">
             Resum d'extras seleccionats
           </h4>
           <div className="flex flex-wrap gap-2">
-            {selectedExtras.map((extraSlug, index) => {
-              const extraData = extras.find(e => normalizeExtra(e.slug) === normalizeExtra(extraSlug));
+            {validSelectedExtras.map((extraSlug, index) => {
+              const extraData = extras.find(e => e.slug === extraSlug);
               return (
                 <span 
                   key={index} 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { axiosAdmin } from '../../../api/axiosClient';
+import SearchableSelect from '../../ui/SearchableSelect';
 
 interface TechnicalSpecsStepProps {
   formData: any;
@@ -128,12 +129,12 @@ const TechnicalSpecsStep: React.FC<TechnicalSpecsStepProps> = ({ formData, updat
 
   // Opciones de emisiones (pocas opciones, usamos botones)
   const emissionOptions = [
-    { value: 'euro-6', label: 'Euro 6' },
-    { value: 'euro-5', label: 'Euro 5' },
-    { value: 'euro-4', label: 'Euro 4' },
-    { value: 'euro-3', label: 'Euro 3' },
-    { value: 'eco', label: 'ECO' },
-    { value: 'zero', label: 'ZERO' }
+    { value: 'euro1', label: 'Euro1' },
+    { value: 'euro2', label: 'Euro2' },
+    { value: 'euro3', label: 'Euro3' },
+    { value: 'euro4', label: 'Euro4' },
+    { value: 'euro5', label: 'Euro5' },
+    { value: 'euro6', label: 'Euro6' }
   ];
 
   // Componente para botones de selección numérica
@@ -152,7 +153,7 @@ const TechnicalSpecsStep: React.FC<TechnicalSpecsStepProps> = ({ formData, updat
           <button
             key={option.value}
             type="button"
-            onClick={() => onChange(option.value)}
+            onClick={() => onChange(value === option.value ? '' : option.value)}
             className={`px-4 py-2 rounded-lg border-2 transition-all font-medium ${
               value === option.value
                 ? 'border-blue-500 bg-blue-500 text-white'
@@ -180,7 +181,7 @@ const TechnicalSpecsStep: React.FC<TechnicalSpecsStepProps> = ({ formData, updat
           <button
             key={option.value}
             type="button"
-            onClick={() => onChange(option.value)}
+            onClick={() => onChange(value === option.value ? '' : option.value)}
             className={`px-3 py-2 rounded-lg border-2 transition-all font-medium text-sm ${
               value === option.value
                 ? 'border-green-500 bg-green-500 text-white'
@@ -208,7 +209,7 @@ const TechnicalSpecsStep: React.FC<TechnicalSpecsStepProps> = ({ formData, updat
           <button
             key={color.value}
             type="button"
-            onClick={() => onChange(color.value)}
+            onClick={() => onChange(value === color.value ? '' : color.value)}
             className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
               value === color.value
                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
@@ -377,7 +378,7 @@ const TechnicalSpecsStep: React.FC<TechnicalSpecsStepProps> = ({ formData, updat
         </div>
 
         {/* Car-specific fields */}
-        {formData.tipusVehicle === 'COTXE' && (
+        {formData.tipusVehicle === 'cotxe' && (
           <div className="space-y-6">
             <h4 className="text-lg font-medium text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
               Especificacions específiques per a cotxes
@@ -421,7 +422,7 @@ const TechnicalSpecsStep: React.FC<TechnicalSpecsStepProps> = ({ formData, updat
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => updateFormData({ tipusTapisseria: option.value })}
+                    onClick={() => updateFormData({ tipusTapisseria: formData.tipusTapisseria === option.value ? '' : option.value })}
                     className={`px-4 py-2 rounded-lg border-2 transition-all font-medium ${
                       formData.tipusTapisseria === option.value
                         ? 'border-purple-500 bg-purple-500 text-white'
@@ -444,7 +445,7 @@ const TechnicalSpecsStep: React.FC<TechnicalSpecsStepProps> = ({ formData, updat
                   <button
                     key={color.value}
                     type="button"
-                    onClick={() => updateFormData({ colorTapisseria: color.value })}
+                    onClick={() => updateFormData({ colorTapisseria: formData.colorTapisseria === color.value ? '' : color.value })}
                     className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
                       formData.colorTapisseria === color.value
                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
@@ -464,6 +465,305 @@ const TechnicalSpecsStep: React.FC<TechnicalSpecsStepProps> = ({ formData, updat
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Campos adicionales de coches */}
+            <div className="space-y-6 mt-8">
+              <h5 className="text-md font-medium text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2">
+                Equipament i característiques addicionals
+              </h5>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                {/* Número de Maleteros */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Nombre de Maleters
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="10"
+                    value={formData.numeroMaleters || ''}
+                    onChange={(e) => updateFormData({ numeroMaleters: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="2"
+                  />
+                </div>
+
+                {/* Roda de Recanvi */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Roda de Recanvi
+                  </label>
+                  <SearchableSelect
+                    options={[
+                      { value: 'roda_substitucio', label: 'Roda Substitució' },
+                      { value: 'r_kit_reparacio', label: 'Kit reparació' }
+                    ]}
+                    value={formData.rodaRecanvi || ''}
+                    onValueChange={(value) => updateFormData({ rodaRecanvi: value })}
+                    placeholder="Selecciona roda de recanvi..."
+                    allowClear={true}
+                    showSearch={false}
+                    emptyMessage="No s'han trobat opcions"
+                  />
+                </div>
+
+                {/* Capacitat Total */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Capacitat Total (L)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.capacitatTotal || ''}
+                    onChange={(e) => updateFormData({ capacitatTotal: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="450"
+                  />
+                </div>
+              </div>
+
+              {/* Campos de rendimiento */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                {/* Velocitat Màxima */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Velocitat Màxima (km/h)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.velocitatMaxima || ''}
+                    onChange={(e) => updateFormData({ velocitatMaxima: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="200"
+                  />
+                </div>
+
+                {/* Acceleració 0-100 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Acceleració 0-100 (km/h)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={formData.acceleracio0100 || ''}
+                    onChange={(e) => updateFormData({ acceleracio0100: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="8.5"
+                  />
+                </div>
+              </div>
+
+              {/* Campos específicos para vehículos eléctricos/híbridos */}
+              {(formData.tipusPropulsor === 'electric' || 
+                formData.tipusPropulsor === 'hibrid' || 
+                formData.tipusPropulsor === 'hibrid-endollable') && (
+                <div className="space-y-6 mt-8">
+                  <h5 className="text-md font-medium text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2">
+                    🔋 Especificacions de Vehicle Elèctric
+                  </h5>
+                  
+                  {/* Campos de autonomía */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Autonomia mitjana WLTP (km)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formData.autonomiaWltp || ''}
+                        onChange={(e) => updateFormData({ autonomiaWltp: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Autonomia urbana WLTP (km)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formData.autonomiaUrbanaWltp || ''}
+                        onChange={(e) => updateFormData({ autonomiaUrbanaWltp: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="600"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Autonomia extraurbana WLTP (km)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formData.autonomiaExtraurbanaWltp || ''}
+                        onChange={(e) => updateFormData({ autonomiaExtraurbanaWltp: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="450"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Autonomia 100% elèctrica WLTP (km)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formData.autonomiaElectrica || ''}
+                        onChange={(e) => updateFormData({ autonomiaElectrica: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="80"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Campos de batería y recarga */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Bateria
+                      </label>
+                      <SearchableSelect
+                        options={[
+                          { value: 'ions-liti', label: 'Ions de Liti (Li-on)' },
+                          { value: 'niquel-cadmi', label: 'Níquel / Cadmi (NiCd)' },
+                          { value: 'fosfat-ferro', label: 'Fosfat de ferro i liti (LifePO4)' },
+                          { value: 'polimer-ions-liti', label: 'Polímer ions de liti (Li-Po)' },
+                          { value: 'sodi-ion', label: 'Sodi-ion (Na-ion)' }
+                        ]}
+                        value={formData.bateria || ''}
+                        onValueChange={(value) => updateFormData({ bateria: value })}
+                        placeholder="Selecciona tipus de bateria..."
+                        allowClear={true}
+                        showSearch={false}
+                        emptyMessage="No s'han trobat opcions"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Velocitat Recarrega
+                      </label>
+                      <SearchableSelect
+                        options={[
+                          { value: 'v_lenta', label: 'Lenta' },
+                          { value: 'v_mitjana', label: 'Mitjana' },
+                          { value: 'v_rapida', label: 'Ràpida' },
+                          { value: 'v_super_rapida', label: 'Super ràpida' }
+                        ]}
+                        value={formData.velocitatRecarrega || ''}
+                        onValueChange={(value) => updateFormData({ velocitatRecarrega: value })}
+                        placeholder="Selecciona velocitat de recarrega..."
+                        allowClear={true}
+                        showSearch={false}
+                        emptyMessage="No s'han trobat opcions"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Cables Recarrega
+                      </label>
+                      <SearchableSelect
+                        options={[
+                          { value: 'mennekes', label: 'Mennekes' },
+                          { value: 'css-combo', label: 'CSS Combo' },
+                          { value: 'cables-schuko', label: 'Schuko' },
+                          { value: 'cables-supercharger', label: 'Súpercharger' },
+                          { value: 'cables-chademo', label: 'CHAdeMo' },
+                          { value: 'cables-sae-j1772-tipo1', label: 'SAE J1772 Tipo1' }
+                        ]}
+                        value={formData.cablesRecarrega || ''}
+                        onValueChange={(value) => updateFormData({ cablesRecarrega: value })}
+                        placeholder="Selecciona cables de recarrega..."
+                        allowClear={true}
+                        showSearch={false}
+                        emptyMessage="No s'han trobat opcions"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Connectors
+                      </label>
+                      <SearchableSelect
+                        options={[
+                          { value: 'connector-shuko', label: 'Connector Shuko' },
+                          { value: 'connector-mennekes', label: 'Connector Mennekes (Tipo 2)' },
+                          { value: 'connector-combinado-css', label: 'Connector combinado CSS (Combo 2)' },
+                          { value: 'connector-supercharger', label: 'Connector Supercharger' },
+                          { value: 'connector-chademo', label: 'Connector CHAdeMo' },
+                          { value: 'conector-sae-j1772', label: 'Connector SAE J1772 (Tipo 1)' }
+                        ]}
+                        value={formData.connectors || ''}
+                        onValueChange={(value) => updateFormData({ connectors: value })}
+                        placeholder="Selecciona connectors..."
+                        allowClear={true}
+                        showSearch={false}
+                        emptyMessage="No s'han trobat opcions"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Tiempos de recarga y capacidad bateria */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Capacitat Bateria (kWh)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={formData.capacitatBateria || ''}
+                        onChange={(e) => updateFormData({ capacitatBateria: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="75"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Temps Recarrega Total (h)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={formData.tempsRecarregaTotal || ''}
+                        onChange={(e) => updateFormData({ tempsRecarregaTotal: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="8.5"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Temps Recarrega fins 80% (min)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formData.tempsRecarregaFins80 || ''}
+                        onChange={(e) => updateFormData({ tempsRecarregaFins80: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="30"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

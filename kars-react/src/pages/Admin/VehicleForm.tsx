@@ -29,26 +29,27 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
     // Debug específico para tipusVehicle
     const rawTipusVehicle = apiData.tipusVehicle || apiData['tipus-vehicle'] || '';
     
-    // Normalizar el tipo de vehículo para asegurar que coincida con los valores esperados
+    // Normalizar el tipo de vehículo para asegurar que coincida con los valores esperados (minúsculas)
     const normalizeTipusVehicle = (value: string) => {
       if (!value) return '';
       
-      const normalized = value.toUpperCase().trim();
+      const normalized = value.toLowerCase().trim();
       
       // Mapear valores comunes a los esperados por el formulario
       const mapping: Record<string, string> = {
-        'COTXE': 'COTXE',
-        'CAR': 'COTXE',
-        'COCHE': 'COTXE',
-        'MOTO': 'MOTO',
-        'MOTORCYCLE': 'MOTO',
-        'MOTOCICLETA': 'MOTO',
-        'AUTOCARAVANA': 'AUTOCARAVANA',
-        'CAMPER': 'AUTOCARAVANA',
-        'VEHICLE_COMERCIAL': 'VEHICLE_COMERCIAL',
-        'COMERCIAL': 'VEHICLE_COMERCIAL',
-        'TRUCK': 'VEHICLE_COMERCIAL',
-        'FURGONETA': 'VEHICLE_COMERCIAL'
+        'cotxe': 'cotxe',
+        'car': 'cotxe',
+        'coche': 'cotxe',
+        'moto': 'moto',
+        'motorcycle': 'moto',
+        'motocicleta': 'moto',
+        'autocaravana': 'autocaravana',
+        'camper': 'autocaravana',
+        'vehicle-comercial': 'vehicle-comercial',
+        'vehicle_comercial': 'vehicle-comercial',
+        'comercial': 'vehicle-comercial',
+        'truck': 'vehicle-comercial',
+        'furgoneta': 'vehicle-comercial'
       };
       
       return mapping[normalized] || normalized;
@@ -61,12 +62,14 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
       tipusVehicle: tipusVehicleFromApi,
       
       // Step 2: Basic Info  
-      marcaCotxe: apiData.marcaCotxe || apiData['marca-cotxe'] || '',
-      marcaMoto: apiData.marcaMoto || apiData['marca-moto'] || '',
+      marcaCotxe: apiData.marcaCotxe || apiData['marques-cotxe'] || '',
+      marcaMoto: apiData.marcaMoto || apiData['marques-moto'] || '',
       marquesAutocaravana: apiData.marquesAutocaravana || apiData['marques-autocaravana'] || '',
+      marquesComercial: apiData.marquesComercial || apiData['marques-comercial'] || '',
       modelsCotxe: apiData.modelsCotxe || apiData['models-cotxe'] || '',
       modelsMoto: apiData.modelsMoto || apiData['models-moto'] || '',
       modelsAutocaravana: apiData.modelsAutocaravana || apiData['models-autocaravana'] || '',
+      modelsComercial: apiData.modelsComercial || apiData['models-comercial'] || '',
       versio: apiData.versio || '',
       any: apiData.any || apiData['any-fabricacio'] || '',
       preu: String(apiData.preu || ''),
@@ -110,8 +113,11 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
       vehicleAccidentat: apiData.vehicleAccidentat || apiData['vehicle-accidentat'] || '',
       origen: apiData.origen || '',
       
-      // Step 6: Descriptions (already in correct format)
-      descripcioAnunci: apiData.descripcioAnunci || apiData['descripcio-anunci'] || '',
+      // Step 6: Descriptions (multilingual support)
+      descripcioAnunciCA: apiData.descripcioAnunciCA || apiData['descripcio-anunci-ca'] || apiData.descripcioAnunci || apiData['descripcio-anunci'] || '',
+      descripcioAnunciEN: apiData.descripcioAnunciEN || apiData['descripcio-anunci-en'] || '',
+      descripcioAnunciFR: apiData.descripcioAnunciFR || apiData['descripcio-anunci-fr'] || '',
+      descripcioAnunciES: apiData.descripcioAnunciES || apiData['descripcio-anunci-es'] || '',
       
       // Step 7: Images and Status
       imatgeDestacadaUrl: apiData.imatgeDestacadaUrl || apiData['imatge-destacada-url'] || '',
@@ -122,9 +128,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
       venut: apiData.venut === true || apiData.venut === 'true',
       
       // Additional fields that might be missing
-      seguretat: [],
-      confort: [],
-      multimedia: []
+      // Note: seguretat, confort, multimedia removed - not in Prisma schema
     };
     
     return formData;
@@ -146,13 +150,79 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
     }
   };
 
+  // Función para transformar datos del formulario al formato que espera la API
+  const transformFormDataToApiData = (formData: any) => {
+    console.log('🔄 Transformando formData:', formData);
+    const transformedData = { ...formData };
+    
+    // Campos que son Boolean en el esquema de Prisma
+    const booleanFields = [
+      'climatitzacio', 
+      'vehicleFumador',
+      'llibreManteniment',
+      'revisionsOficials',
+      'vehicleACanvi',
+      'impostosDeduibles'
+    ];
+    
+    booleanFields.forEach(field => {
+      if (transformedData[field] === 'true') {
+        transformedData[field] = true;
+      } else if (transformedData[field] === 'false') {
+        transformedData[field] = false;
+      } else if (transformedData[field] === true || transformedData[field] === false) {
+        // Ya es boolean, no hacer nada
+      } else {
+        // Si es undefined, null o cualquier otro valor, convertir a false
+        transformedData[field] = false;
+      }
+    });
+    
+    // Campo especial: aireAcondicionat es String en el esquema
+    if (transformedData.aireAcondicionat === true) {
+      transformedData.aireAcondicionat = 'true';
+    } else if (transformedData.aireAcondicionat === false) {
+      transformedData.aireAcondicionat = 'false';
+    } else if (transformedData.aireAcondicionat !== 'true' && transformedData.aireAcondicionat !== 'false') {
+      // Si no es string válido, convertir a null
+      transformedData.aireAcondicionat = null;
+    }
+    
+    // Convertir campos numéricos
+    if (transformedData.preu) {
+      transformedData.preu = parseFloat(transformedData.preu) || 0;
+    }
+    
+    // Filtrar campos que no existen en el esquema de Prisma
+    const fieldsToRemove = ['seguretat', 'confort', 'multimedia', 'marquesComercial', 'modelsComercial'];
+    
+    fieldsToRemove.forEach(field => {
+      if (transformedData.hasOwnProperty(field)) {
+        console.log(`🗑️ Eliminando campo no válido: ${field}`, transformedData[field]);
+        delete transformedData[field];
+      }
+    });
+    
+    return transformedData;
+  };
+
   const handleSave = async (formData: any) => {
     try {
+      // Transformar datos antes de enviar
+      const apiData = transformFormDataToApiData(formData);
+      
+      // Debug logging
+      console.log('🔍 FormData original:', formData);
+      console.log('🔍 ApiData transformado:', apiData);
+      console.log('🔍 Modo:', mode, 'ID:', id);
+      
       if (mode === 'create') {
-        await axiosAdmin.post('/vehicles', formData);
+        const response = await axiosAdmin.post('/vehicles', apiData);
+        console.log('✅ Respuesta CREATE:', response.data);
         toast.success('🎉 Vehicle creat correctament!');
       } else {
-        await axiosAdmin.put(`/vehicles/${id}`, formData);
+        const response = await axiosAdmin.put(`/vehicles/${id}`, apiData);
+        console.log('✅ Respuesta UPDATE:', response.data);
         toast.success('✅ Vehicle actualitzat correctament!');
       }
       
@@ -160,8 +230,15 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
       setTimeout(() => {
         navigate('/admin/kars-vehicles');
       }, 1000);
-    } catch (err) {
-      toast.error('❌ Error al guardar el vehicle. Si us plau, torna-ho a provar.');
+    } catch (err: any) {
+      console.error('❌ Error saving vehicle:', err);
+      console.error('❌ Error response:', err.response?.data);
+      console.error('❌ Error status:', err.response?.status);
+      console.error('❌ Error message:', err.message);
+      
+      // More specific error message
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || 'Error desconegut';
+      toast.error(`❌ Error al guardar: ${errorMessage}`);
       throw new Error('Error al guardar el vehicle');
     }
   };

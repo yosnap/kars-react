@@ -13,15 +13,17 @@ import {
 
 interface VehicleFormData {
   // Step 1: Vehicle Type
-  tipusVehicle: 'COTXE' | 'MOTO' | 'AUTOCARAVANA' | 'VEHICLE_COMERCIAL' | '';
+  tipusVehicle: 'cotxe' | 'moto' | 'autocaravana' | 'vehicle-comercial' | '';
   
   // Step 2: Basic Info
   marcaCotxe?: string;
   marcaMoto?: string;
   marquesAutocaravana?: string;
+  marquesComercial?: string;
   modelsCotxe?: string;
   modelsMoto?: string;
   modelsAutocaravana?: string;
+  modelsComercial?: string;
   versio?: string;
   any?: string;
   preu: string;
@@ -56,9 +58,7 @@ interface VehicleFormData {
   extresMoto?: string[]; // Array of extras for motorcycles  
   extresAutocaravana?: string[]; // Array of extras for motorhomes
   extresHabitacle?: string[]; // Array of habitacle extras
-  seguretat?: string[]; // Deprecated - keeping for compatibility
-  confort?: string[]; // Deprecated - keeping for compatibility
-  multimedia?: string[]; // Deprecated - keeping for compatibility
+  // Note: seguretat, confort, multimedia fields removed - not in Prisma schema
   
   // Step 5: Commercial Information
   garantia?: string;
@@ -79,6 +79,9 @@ interface VehicleFormData {
   anunciActiu: boolean;
   anunciDestacat: number;
   venut: boolean;
+  
+  // Internal Notes (not part of the 7 steps, but additional field)
+  notesInternes?: string;
 }
 
 interface MultiStepVehicleFormProps {
@@ -119,9 +122,7 @@ export default function MultiStepVehicleForm({
     extresMoto: [],
     extresAutocaravana: [],
     extresHabitacle: [],
-    seguretat: [],
-    confort: [],
-    multimedia: [],
+    notesInternes: '',
     ...initialData // Load existing vehicle data if editing
   });
 
@@ -159,17 +160,21 @@ export default function MultiStepVehicleForm({
     let modeloSlug = '';
     
     switch (formData.tipusVehicle) {
-      case 'COTXE':
+      case 'cotxe':
         marcaSlug = formData.marcaCotxe || '';
         modeloSlug = formData.modelsCotxe || '';
         break;
-      case 'MOTO':
+      case 'moto':
         marcaSlug = formData.marcaMoto || '';
         modeloSlug = formData.modelsMoto || '';
         break;
-      case 'AUTOCARAVANA':
+      case 'autocaravana':
         marcaSlug = formData.marquesAutocaravana || '';
         modeloSlug = formData.modelsAutocaravana || '';
+        break;
+      case 'vehicle-comercial':
+        marcaSlug = formData.marquesComercial || '';
+        modeloSlug = formData.modelsComercial || '';
         break;
       default:
         marcaSlug = '';
@@ -178,7 +183,7 @@ export default function MultiStepVehicleForm({
     
     // Buscar el label de la marca
     if (marcaSlug && finalBrandsData) {
-      const brandsList = formData.tipusVehicle === 'MOTO' ? finalBrandsData.motorcycleBrands : finalBrandsData.carBrands;
+      const brandsList = formData.tipusVehicle === 'moto' ? finalBrandsData.motorcycleBrands : finalBrandsData.carBrands;
       const brandItem = brandsList?.find((b: any) => b.value === marcaSlug);
       marca = brandItem ? brandItem.label : marcaSlug;
     } else {
@@ -203,9 +208,11 @@ export default function MultiStepVehicleForm({
     formData.marcaCotxe, 
     formData.marcaMoto, 
     formData.marquesAutocaravana,
+    formData.marquesComercial,
     formData.modelsCotxe, 
     formData.modelsMoto, 
     formData.modelsAutocaravana,
+    formData.modelsComercial,
     formData.versio,
     brandsAndModelsData
   ]);
@@ -215,7 +222,20 @@ export default function MultiStepVehicleForm({
     if (newTitle !== formData.titolAnunci) {
       setFormData(prev => ({ ...prev, titolAnunci: newTitle }));
     }
-  }, [generateTitle, formData.titolAnunci]);
+  }, [
+    formData.tipusVehicle,
+    formData.marcaCotxe, 
+    formData.marcaMoto, 
+    formData.marquesAutocaravana,
+    formData.marquesComercial,
+    formData.modelsCotxe, 
+    formData.modelsMoto, 
+    formData.modelsAutocaravana,
+    formData.modelsComercial,
+    formData.versio,
+    brandsAndModelsData.brandsData,
+    brandsAndModelsData.modelsData
+  ]);
 
   // Auto-scroll to current step
   useEffect(() => {
@@ -232,7 +252,12 @@ export default function MultiStepVehicleForm({
   }, [currentStep]);
 
   const updateFormData = (updates: Partial<VehicleFormData>) => {
-    setFormData(prev => ({ ...prev, ...updates }));
+    console.log('🔄 updateFormData called with:', updates);
+    setFormData(prev => {
+      const newData = { ...prev, ...updates };
+      console.log('📝 New formData state:', newData);
+      return newData;
+    });
   };
 
   const nextStep = () => {
@@ -375,16 +400,16 @@ export default function MultiStepVehicleForm({
               {/* Vehicle Type Icon */}
               {formData.tipusVehicle && (
                 <div className="flex items-center justify-center w-20 h-20 bg-white dark:bg-gray-800 rounded-full shadow-lg border-2 border-blue-200 dark:border-blue-700">
-                  {formData.tipusVehicle === 'COTXE' && (
+                  {formData.tipusVehicle === 'cotxe' && (
                     <Car className="w-12 h-12 text-blue-600 dark:text-blue-400" />
                   )}
-                  {formData.tipusVehicle === 'MOTO' && (
+                  {formData.tipusVehicle === 'moto' && (
                     <Bike className="w-12 h-12 text-blue-600 dark:text-blue-400" />
                   )}
-                  {formData.tipusVehicle === 'AUTOCARAVANA' && (
+                  {formData.tipusVehicle === 'autocaravana' && (
                     <Home className="w-12 h-12 text-blue-600 dark:text-blue-400" />
                   )}
-                  {formData.tipusVehicle === 'VEHICLE_COMERCIAL' && (
+                  {formData.tipusVehicle === 'vehicle-comercial' && (
                     <Truck className="w-12 h-12 text-blue-600 dark:text-blue-400" />
                   )}
                 </div>
@@ -453,6 +478,7 @@ export default function MultiStepVehicleForm({
             />
           )}
         </div>
+
       </div>
 
       {/* Footer with Navigation */}

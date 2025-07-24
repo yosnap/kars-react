@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Upload, Image, Link, X } from 'lucide-react';
 import { axiosAdmin } from '../../../api/axiosClient';
 import { toast } from 'sonner';
+import SearchableSelect from '../../ui/SearchableSelect';
+import { Switch } from '../../ui/switch';
 
 interface ImagesAndStatusStepProps {
   formData: any;
@@ -11,14 +13,30 @@ interface ImagesAndStatusStepProps {
 // Helper function for featured image URL
 const getFeaturedImageUrl = (path: string | undefined): string => {
   if (!path) return '';
+  console.log('🔍 getFeaturedImageUrl input:', path);
+  
   // If it's already a full URL, return as is
   if (path.startsWith('http://') || path.startsWith('https://')) {
+    console.log('✅ Returning full URL:', path);
     return path;
   }
-  // For relative paths, ensure proper format
-  if (!path.startsWith('/')) {
-    return `/${path}`;
+  
+  // For relative paths that start with /media, serve from React dev server
+  if (path.startsWith('/media')) {
+    // In development, images are saved to public folder and served by Vite
+    // Use relative path to work regardless of the domain/port
+    console.log('🔗 Using relative path:', path);
+    return path;
   }
+  
+  // For other relative paths, ensure proper format
+  if (!path.startsWith('/')) {
+    const formattedPath = `/${path}`;
+    console.log('📝 Formatting path:', formattedPath);
+    return formattedPath;
+  }
+  
+  console.log('↩️ Returning path as-is:', path);
   return path;
 };
 
@@ -29,7 +47,15 @@ const getGalleryImageUrl = (path: string | undefined): string => {
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
-  // For relative paths, ensure proper format
+  
+  // For relative paths that start with /media, serve from React dev server
+  if (path.startsWith('/media')) {
+    // In development, images are saved to public folder and served by Vite
+    // Use relative path to work regardless of the domain/port
+    return path;
+  }
+  
+  // For other relative paths, ensure proper format
   if (!path.startsWith('/')) {
     return `/${path}`;
   }
@@ -135,6 +161,7 @@ const ImagesAndStatusStep: React.FC<ImagesAndStatusStepProps> = ({ formData, upd
     const url = urlInputs[type];
     if (!url) return;
 
+    console.log(`🔄 Subiendo imagen por URL - Tipo: ${type}, URL: ${url}`);
     setUploading(true);
     try {
       // Download image from URL and save to media folder
@@ -145,13 +172,18 @@ const ImagesAndStatusStep: React.FC<ImagesAndStatusStepProps> = ({ formData, upd
         quality: 80
       });
 
+      console.log(`✅ Respuesta upload ${type}:`, response.data);
+
       if (response.data.success) {
         const downloadedUrl = response.data.data.url;
+        console.log(`📸 URL descargada para ${type}: ${downloadedUrl}`);
         
         if (type === 'featured') {
+          console.log('🎯 Actualizando imagen destacada:', downloadedUrl);
           updateFormData({ imatgeDestacadaUrl: downloadedUrl });
         } else {
           const currentUrls = formData.galeriaVehicleUrls || [];
+          console.log('🖼️ Actualizando galería:', [...currentUrls, downloadedUrl]);
           updateFormData({ 
             galeriaVehicleUrls: [...currentUrls, downloadedUrl] 
           });
@@ -159,9 +191,14 @@ const ImagesAndStatusStep: React.FC<ImagesAndStatusStepProps> = ({ formData, upd
 
         setUrlInputs(prev => ({ ...prev, [type]: '' }));
         setShowUrlInput(prev => ({ ...prev, [type]: false }));
+        toast.success(`✅ Imagen ${type === 'featured' ? 'destacada' : 'de galería'} agregada correctamente`);
+      } else {
+        console.error(`❌ Error en respuesta ${type}:`, response.data);
+        toast.error('Error en la respuesta del servidor');
       }
     } catch (error: any) {
-      console.error('URL download error:', error);
+      console.error(`❌ URL download error (${type}):`, error);
+      console.error(`❌ Error response (${type}):`, error.response?.data);
       const errorMessage = error.response?.data?.error || 'Error descarregant la imatge des de la URL. Comprova que la URL sigui vàlida.';
       toast.error(errorMessage);
     } finally {
@@ -209,6 +246,7 @@ const ImagesAndStatusStep: React.FC<ImagesAndStatusStepProps> = ({ formData, upd
                 onError={(e) => {
                   console.error('❌ Error loading featured image:', formData.imatgeDestacadaUrl);
                   console.error('❌ Processed URL:', getFeaturedImageUrl(formData.imatgeDestacadaUrl));
+                  console.error('❌ Current formData:', formData);
                   toast.error('Error carregant la imatge destacada');
                   (e.target as HTMLImageElement).style.border = '2px solid red';
                 }}
@@ -379,48 +417,65 @@ const ImagesAndStatusStep: React.FC<ImagesAndStatusStepProps> = ({ formData, upd
         </h4>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="anunciActiu"
-                checked={formData.anunciActiu}
-                onChange={(e) => updateFormData({ anunciActiu: e.target.checked })}
-                className="rounded"
-              />
-              <label htmlFor="anunciActiu" className="text-sm text-gray-700 dark:text-gray-300">
-                Anunci actiu
-              </label>
+          <div className="space-y-6">
+            {/* Anunci Actiu */}
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Anunci Actiu
+                </label>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  L'anunci es mostrarà públicament
+                </p>
+              </div>
+              <div className="scale-75">
+                <Switch
+                  checked={formData.anunciActiu}
+                  onCheckedChange={(checked) => updateFormData({ anunciActiu: checked })}
+                  className="data-[state=checked]:bg-blue-400 data-[state=unchecked]:bg-gray-300"
+                />
+              </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="venut"
-                checked={formData.venut}
-                onChange={(e) => updateFormData({ venut: e.target.checked })}
-                className="rounded"
-              />
-              <label htmlFor="venut" className="text-sm text-gray-700 dark:text-gray-300">
-                Vehicle venut
-              </label>
+            {/* Vehicle Venut */}
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Vehicle Venut
+                </label>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Marcar com a venut
+                </p>
+              </div>
+              <div className="scale-75">
+                <Switch
+                  checked={formData.venut}
+                  onCheckedChange={(checked) => updateFormData({ venut: checked })}
+                  className="data-[state=checked]:bg-blue-400 data-[state=unchecked]:bg-gray-300"
+                />
+              </div>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Nivell destacat
-            </label>
-            <select
-              value={formData.anunciDestacat}
-              onChange={(e) => updateFormData({ anunciDestacat: parseInt(e.target.value) })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value={0}>No destacat</option>
-              <option value={1}>Destacat nivell 1</option>
-              <option value={2}>Destacat nivell 2</option>
-              <option value={3}>Destacat nivell 3</option>
-            </select>
+            {/* Anunci Destacat */}
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Anunci Destacat
+                </label>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  L'anunci apareixerà destacat
+                </p>
+              </div>
+              <div className="scale-75">
+                <Switch
+                  checked={formData.anunciDestacat === 1}
+                  onCheckedChange={(checked) => updateFormData({ anunciDestacat: checked ? 1 : 0 })}
+                  className="data-[state=checked]:bg-blue-400 data-[state=unchecked]:bg-gray-300"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>

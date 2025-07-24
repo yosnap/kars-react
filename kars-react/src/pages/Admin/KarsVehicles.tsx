@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   Car, 
   Plus, 
@@ -12,7 +12,8 @@ import {
   Upload,
   FileText,
   ChevronDown,
-  Check
+  Check,
+  Trash2
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -22,6 +23,17 @@ import SystemInstaller from '../../components/Admin/SystemInstaller';
 import { axiosAdmin } from '../../api/axiosClient';
 import * as Popover from '@radix-ui/react-popover';
 import SearchableSelect, { SelectOption } from '../../components/ui/SearchableSelect';
+import { Switch } from '../../components/ui/switch';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../components/ui/alert-dialog';
 
 interface Vehicle {
   id: string;
@@ -44,19 +56,23 @@ interface Vehicle {
 }
 
 
+/**
+ * NOTA: En desarrollo, React.StrictMode causa doble renderizado intencional
+ * para detectar efectos secundarios. Esto es normal y no afecta producción.
+ */
 const KarsVehicles = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   
   // Obtener pestaña activa desde URL, con fallback a 'vehicles'
-  const getActiveTabFromUrl = (): 'vehicles' | 'brands-models' | 'installer' => {
+  const activeTabFromUrl = useMemo((): 'vehicles' | 'brands-models' | 'installer' => {
     const tab = searchParams.get('tab');
     if (tab === 'brands-models') return 'brands-models';
     if (tab === 'installer') return 'installer';
     return 'vehicles';
-  };
+  }, [searchParams]);
   
-  const [activeTab, setActiveTab] = useState<'vehicles' | 'brands-models' | 'installer'>(getActiveTabFromUrl());
+  const [activeTab, setActiveTab] = useState<'vehicles' | 'brands-models' | 'installer'>('vehicles');
   
   // Función para cambiar de pestaña y actualizar URL
   const changeTab = (newTab: 'vehicles' | 'brands-models' | 'installer') => {
@@ -89,6 +105,9 @@ const KarsVehicles = () => {
   const [filterCounts, setFilterCounts] = useState<any>({});
   const [brandMap, setBrandMap] = useState<Record<string, string>>({});
   const [modelMap, setModelMap] = useState<Record<string, string>>({});
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [vehicleToDelete, setVehicleToDelete] = useState<{id: string, title: string} | null>(null);
+  const isInitialMount = useRef(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadVehicles = async (page = 1) => {
@@ -152,24 +171,67 @@ const KarsVehicles = () => {
   };
 
   const toggleVehicleStatus = async (vehicleId: string, currentStatus: boolean) => {
+    console.log('toggleVehicleStatus called:', { vehicleId, currentStatus });
     try {
-      await axiosAdmin.patch(`/vehicles/${vehicleId}`, {
-        'anunci-actiu': !currentStatus
+      const newValue = !currentStatus;
+      console.log('Sending put with value:', newValue);
+      await axiosAdmin.put(`/vehicles/${vehicleId}`, {
+        'anunciActiu': newValue
       });
       await loadVehicles(currentPage);
+      toast.success(newValue ? 'Vehicle activat' : 'Vehicle desactivat');
     } catch (err) {
       console.error('Error updating vehicle status:', err);
+      toast.error('Error actualitzant l\'estat del vehicle');
+    }
+  };
+
+  const toggleVehicleVenut = async (vehicleId: string, currentStatus: boolean) => {
+    console.log('toggleVehicleVenut called:', { vehicleId, currentStatus });
+    try {
+      const newValue = !currentStatus;
+      console.log('Sending put with value:', newValue);
+      await axiosAdmin.put(`/vehicles/${vehicleId}`, {
+        'venut': newValue
+      });
+      await loadVehicles(currentPage);
+      toast.success(newValue ? 'Vehicle marcat com venut' : 'Vehicle marcat com disponible');
+    } catch (err) {
+      console.error('Error updating vehicle sold status:', err);
+      toast.error('Error actualitzant l\'estat de venda');
+    }
+  };
+
+  const openDeleteModal = (vehicleId: string, vehicleTitle: string) => {
+    setVehicleToDelete({ id: vehicleId, title: vehicleTitle });
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDeleteVehicle = async () => {
+    if (!vehicleToDelete) return;
+    
+    try {
+      await axiosAdmin.delete(`/admin/vehicles/${vehicleToDelete.id}`);
+      await loadVehicles(currentPage);
+      toast.success(`Vehicle "${vehicleToDelete.title}" eliminat correctament`);
+      setDeleteModalOpen(false);
+      setVehicleToDelete(null);
+    } catch (err) {
+      console.error('Error deleting vehicle:', err);
+      toast.error('Error eliminant el vehicle');
     }
   };
 
   const toggleVehicleDestacado = async (vehicleId: string, currentDestacado: string) => {
+    console.log('toggleVehicleDestacado called:', { vehicleId, currentDestacado });
     try {
-      const newValue = currentDestacado === '1' ? '0' : '1';
-      await axiosAdmin.patch(`/vehicles/${vehicleId}`, {
-        'anunci-destacat': newValue
+      const newValue = currentDestacado === '1' ? 0 : 1;
+      console.log('Sending put with value:', newValue);
+      await axiosAdmin.put(`/vehicles/${vehicleId}`, {
+        'anunciDestacat': newValue
       });
       await loadVehicles(currentPage);
-      toast.success(`Vehicle ${newValue === '1' ? 'destacat' : 'no destacat'} correctament`);
+      toast.success(`Vehicle ${newValue === 1 ? 'destacat' : 'no destacat'} correctament`);
     } catch (err) {
       console.error('Error updating vehicle destacado status:', err);
       toast.error('Error actualitzant l\'estat destacat del vehicle');
@@ -320,11 +382,10 @@ const KarsVehicles = () => {
 
   // Sincronizar estado con URL cuando cambien los parámetros
   useEffect(() => {
-    const urlTab = getActiveTabFromUrl();
-    if (urlTab !== activeTab) {
-      setActiveTab(urlTab);
+    if (activeTabFromUrl !== activeTab) {
+      setActiveTab(activeTabFromUrl);
     }
-  }, [searchParams]);
+  }, [activeTabFromUrl]); // Solo depende de activeTabFromUrl para evitar loops
 
   useEffect(() => {
     loadVehicles();
@@ -334,6 +395,12 @@ const KarsVehicles = () => {
 
   // Recargar cuando cambien los filtros (filtrado automático)
   useEffect(() => {
+    // Evitar ejecutar en el primer render
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    
     const timer = setTimeout(() => {
       loadVehicles(1); // Resetear a página 1 cuando cambien filtros
     }, 300);
@@ -547,6 +614,8 @@ const KarsVehicles = () => {
                 value={sortBy}
                 onValueChange={setSortBy}
                 placeholder="Selecciona ordre"
+                allowClear={false}
+                showSearch={false}
               />
 
               {/* Sort Order */}
@@ -558,6 +627,8 @@ const KarsVehicles = () => {
                 value={sortOrder}
                 onValueChange={setSortOrder}
                 placeholder="Selecciona direcció"
+                allowClear={false}
+                showSearch={false}
               />
             </div>
 
@@ -575,6 +646,8 @@ const KarsVehicles = () => {
                 value={typeFilter}
                 onValueChange={setTypeFilter}
                 placeholder="Selecciona tipus de vehicle"
+                allowClear={false}
+                showSearch={false}
               />
 
               {/* Venut Filter */}
@@ -587,6 +660,8 @@ const KarsVehicles = () => {
                 value={venutFilter}
                 onValueChange={setVenutFilter}
                 placeholder="Selecciona estat de venda"
+                allowClear={false}
+                showSearch={false}
               />
 
               {/* Estat Vehicle Filter */}
@@ -601,6 +676,8 @@ const KarsVehicles = () => {
                 value={estatVehicleFilter}
                 onValueChange={setEstatVehicleFilter}
                 placeholder="Selecciona estat del vehicle"
+                allowClear={false}
+                showSearch={false}
               />
 
               {/* Anunci Actiu Filter */}
@@ -613,6 +690,8 @@ const KarsVehicles = () => {
                 value={anunciActiuFilter}
                 onValueChange={setAnunciActiuFilter}
                 placeholder="Selecciona estat d'activitat"
+                allowClear={false}
+                showSearch={false}
               />
 
               {/* Anunci Destacat Filter */}
@@ -625,6 +704,8 @@ const KarsVehicles = () => {
                 value={anunciDestacatFilter}
                 onValueChange={setAnunciDestacatFilter}
                 placeholder="Selecciona si és destacat"
+                allowClear={false}
+                showSearch={false}
               />
 
               {/* Clear Filters Button */}
@@ -741,27 +822,35 @@ const KarsVehicles = () => {
 
                   {/* Destacat */}
                   <div className="col-span-1 flex items-center justify-center">
-                    <input
-                      type="checkbox"
-                      checked={vehicle['anunci-destacat'] === '1'}
-                      onChange={() => toggleVehicleDestacado(vehicle.id, vehicle['anunci-destacat'])}
-                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
-                      title={vehicle['anunci-destacat'] === '1' ? 'Clic per desdestacar' : 'Clic per destacar'}
-                    />
+                    <div className="scale-75">
+                      <Switch
+                        checked={vehicle['anunci-destacat'] === '1'}
+                        onCheckedChange={() => toggleVehicleDestacado(vehicle.id, vehicle['anunci-destacat'])}
+                        className="data-[state=checked]:bg-blue-400 data-[state=unchecked]:bg-gray-300"
+                      />
+                    </div>
                   </div>
 
                   {/* Actiu */}
                   <div className="col-span-1 flex items-center justify-center">
-                    <span className="text-sm text-gray-900 dark:text-white">
-                      {vehicle['anunci-actiu'] === 'true' ? 'Sí' : 'No'}
-                    </span>
+                    <div className="scale-75">
+                      <Switch
+                        checked={vehicle['anunci-actiu'] === 'true'}
+                        onCheckedChange={() => toggleVehicleStatus(vehicle.id, vehicle['anunci-actiu'] === 'true')}
+                        className="data-[state=checked]:bg-blue-400 data-[state=unchecked]:bg-gray-300"
+                      />
+                    </div>
                   </div>
 
                   {/* Venut */}
                   <div className="col-span-1 flex items-center justify-center">
-                    <span className="text-sm text-gray-900 dark:text-white">
-                      {vehicle.venut === 'true' ? 'Sí' : 'No'}
-                    </span>
+                    <div className="scale-75">
+                      <Switch
+                        checked={vehicle.venut === 'true'}
+                        onCheckedChange={() => toggleVehicleVenut(vehicle.id, vehicle.venut === 'true')}
+                        className="data-[state=checked]:bg-blue-400 data-[state=unchecked]:bg-gray-300"
+                      />
+                    </div>
                   </div>
 
                   {/* Actions */}
@@ -783,15 +872,11 @@ const KarsVehicles = () => {
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => toggleVehicleStatus(vehicle.id, vehicle['anunci-actiu'] === 'true')}
-                        className={`p-1 rounded ${
-                          vehicle['anunci-actiu'] === 'true' 
-                            ? 'text-red-600 hover:text-red-800 hover:bg-red-100' 
-                            : 'text-green-600 hover:text-green-800 hover:bg-green-100'
-                        }`}
-                        title={vehicle['anunci-actiu'] === 'true' ? 'Desactivar' : 'Activar'}
+                        onClick={() => openDeleteModal(vehicle.id, vehicle['titol-anunci'])}
+                        className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
+                        title="Eliminar vehicle"
                       >
-                        {vehicle['anunci-actiu'] === 'true' ? <XCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -840,6 +925,34 @@ const KarsVehicles = () => {
         {/* Brands and Models Tab */}
         {activeTab === 'brands-models' && <BrandsModelsManager />}
       </div>
+      
+      {/* Delete Confirmation Modal */}
+      <AlertDialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar eliminació</AlertDialogTitle>
+            <AlertDialogDescription>
+              Estàs segur que vols eliminar el vehicle{' '}
+              <span className="font-semibold">"{vehicleToDelete?.title}"</span>?
+              <br />
+              <span className="text-red-600 font-medium">
+                Aquesta acció no es pot desfer.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteModalOpen(false)}>
+              Cancel·lar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteVehicle}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Eliminar vehicle
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 };

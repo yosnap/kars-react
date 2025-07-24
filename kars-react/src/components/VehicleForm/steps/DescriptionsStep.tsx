@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import WysiwygEditor from '../WysiwygEditor';
 
 interface DescriptionsStepProps {
   formData: any;
@@ -9,11 +10,32 @@ const DescriptionsStep: React.FC<DescriptionsStepProps> = ({ formData, updateFor
   const [activeTab, setActiveTab] = useState('ca');
   
   const languages = [
-    { code: 'ca', name: 'Català', flag: '🏴󠁣󠁯󠁣󠁡󠁿', required: true },
-    { code: 'es', name: 'Español', flag: '🇪🇸', required: false },
-    { code: 'en', name: 'English', flag: '🇬🇧', required: false },
-    { code: 'fr', name: 'Français', flag: '🇫🇷', required: false }
+    { code: 'ca', name: 'Català', flag: '/flags/es_ca.png', required: true },
+    { code: 'es', name: 'Español', flag: '/flags/es.svg', required: false },
+    { code: 'en', name: 'English', flag: '/flags/en.svg', required: false },
+    { code: 'fr', name: 'Français', flag: '/flags/fr.svg', required: false }
   ];
+
+  // Component to render flag (image or emoji)
+  const FlagDisplay: React.FC<{ flag: string; alt: string; className?: string }> = ({ flag, alt, className = "w-6 h-4" }) => {
+    if (flag.startsWith('/') || flag.startsWith('http')) {
+      return (
+        <img 
+          src={flag} 
+          alt={alt} 
+          className={`${className} object-cover rounded-sm border border-gray-200 dark:border-gray-600`}
+          onError={(e) => {
+            // Fallback to emoji if image fails to load
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const fallback = target.nextElementSibling as HTMLElement;
+            if (fallback) fallback.style.display = 'inline';
+          }}
+        />
+      );
+    }
+    return <span className="text-lg">{flag}</span>;
+  };
 
   const getFieldName = (code: string) => {
     const mapping: Record<string, string> = {
@@ -35,38 +57,9 @@ const DescriptionsStep: React.FC<DescriptionsStepProps> = ({ formData, updateFor
     return placeholders[code];
   };
 
-  const handleToolbarAction = (action: string, langCode: string) => {
-    const textarea = document.getElementById(`textarea-${langCode}`) as HTMLTextAreaElement;
+  const handleEditorChange = (langCode: string, content: string) => {
     const fieldName = getFieldName(langCode);
-    
-    if (textarea) {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const selectedText = textarea.value.substring(start, end);
-      let newText = '';
-      
-      switch (action) {
-        case 'bold':
-          newText = textarea.value.substring(0, start) + `**${selectedText}**` + textarea.value.substring(end);
-          break;
-        case 'italic':
-          newText = textarea.value.substring(0, start) + `*${selectedText}*` + textarea.value.substring(end);
-          break;
-        case 'list':
-          newText = textarea.value.substring(0, start) + `\n- ${selectedText}` + textarea.value.substring(end);
-          break;
-        default:
-          return;
-      }
-      
-      updateFormData({ [fieldName]: newText });
-      
-      // Restore focus and cursor position
-      setTimeout(() => {
-        textarea.focus();
-        textarea.setSelectionRange(start + 2, end + 2);
-      }, 0);
-    }
+    updateFormData({ [fieldName]: content });
   };
 
   return (
@@ -93,7 +86,7 @@ const DescriptionsStep: React.FC<DescriptionsStepProps> = ({ formData, updateFor
                     : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
                 }`}
               >
-                <span>{lang.flag}</span>
+                <FlagDisplay flag={lang.flag} alt={`${lang.name} flag`} />
                 <span>{lang.name}</span>
                 {lang.required && <span className="text-red-500">*</span>}
                 {hasContent && (
@@ -115,63 +108,58 @@ const DescriptionsStep: React.FC<DescriptionsStepProps> = ({ formData, updateFor
           return (
             <div key={lang.code} className="space-y-4">
               <div className="flex items-center gap-2 mb-4">
-                <span className="text-2xl">{lang.flag}</span>
+                <FlagDisplay flag={lang.flag} alt={`${lang.name} flag`} className="w-8 h-6" />
                 <h4 className="text-lg font-medium text-gray-900 dark:text-white">
                   {lang.name}
                   {lang.required && <span className="text-red-500 ml-1">*</span>}
                 </h4>
               </div>
               
-              {/* Rich Text Editor Area */}
+              {/* WYSIWYG Editor */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Text enriquit
                 </label>
-                <div className="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700">
-                  {/* Simple toolbar */}
-                  <div className="flex items-center gap-2 p-3 border-b border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800">
-                    <button
-                      type="button"
-                      onClick={() => handleToolbarAction('bold', lang.code)}
-                      className="px-2 py-1 text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-600"
-                    >
-                      <strong>B</strong>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleToolbarAction('italic', lang.code)}
-                      className="px-2 py-1 text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-600"
-                    >
-                      <em>I</em>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleToolbarAction('list', lang.code)}
-                      className="px-2 py-1 text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-600"
-                    >
-                      <span>Lista</span>
-                    </button>
-                  </div>
-                  
-                  {/* Text area */}
-                  <textarea
-                    id={`textarea-${lang.code}`}
-                    rows={8}
-                    value={formData[fieldName] || ''}
-                    onChange={(e) => updateFormData({ [fieldName]: e.target.value })}
-                    placeholder={getPlaceholder(lang.code)}
-                    className="w-full p-3 bg-transparent border-0 resize-none focus:ring-0 focus:outline-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-                  />
-                </div>
+                <WysiwygEditor
+                  content={formData[fieldName] || ''}
+                  onChange={(content) => handleEditorChange(lang.code, content)}
+                  placeholder={getPlaceholder(lang.code)}
+                  id={`editor-${lang.code}`}
+                />
                 
                 {/* Character count */}
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                  {(formData[fieldName] || '').length} caràcters
+                  {(formData[fieldName] || '').replace(/<[^>]*>/g, '').length} caràcters (sense etiquetes HTML)
                 </p>
               </div>
             </div>
           );
         })}
+      </div>
+
+      {/* Internal Notes Section */}
+      <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800 shadow-sm p-6 mt-8">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-amber-100 dark:bg-amber-800 rounded-full flex items-center justify-center">
+            <span className="text-amber-600 dark:text-amber-400 text-lg">📝</span>
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-amber-900 dark:text-amber-100">
+              Notes Internes
+            </h3>
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              Informació interna per al seguiment del vehicle (no es mostra públicament)
+            </p>
+          </div>
+        </div>
+        
+        <WysiwygEditor
+          content={formData.notesInternes || ''}
+          onChange={(content) => updateFormData({ notesInternes: content })}
+          placeholder="Escriu notes internes sobre el vehicle, seguiment de tasques, etc..."
+          id="notes-internes"
+          showDateButton={true}
+        />
       </div>
     </div>
   );
