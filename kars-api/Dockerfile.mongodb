@@ -9,6 +9,11 @@ RUN apt-get update && apt-get install -y \
 # Create directories
 RUN mkdir -p /docker-entrypoint-initdb.d /scripts
 
+# Environment variables for authentication (EasyPanel will provide these)
+ENV MONGO_INITDB_ROOT_USERNAME=kars
+ENV MONGO_INITDB_ROOT_PASSWORD=c@D*PZmWQZ49gMYD
+ENV MONGO_INITDB_DATABASE=karsad
+
 # Create replica set initialization script
 COPY <<EOF /scripts/init-replica-set.sh
 #!/bin/bash
@@ -19,8 +24,8 @@ until mongosh --eval "print('MongoDB is ready')" > /dev/null 2>&1; do
   sleep 2
 done
 
-echo "Initializing replica set..."
-mongosh --eval "
+echo "Initializing replica set with authentication..."
+mongosh -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "
 try {
   rs.status();
   print('Replica set already initialized');
@@ -51,10 +56,10 @@ COPY <<EOF /scripts/start-mongodb.sh
 #!/bin/bash
 set -e
 
-echo "Starting MongoDB with replica set configuration..."
+echo "Starting MongoDB with replica set configuration and authentication..."
 
-# Start MongoDB in background with replica set
-mongod --replSet rs0 --bind_ip_all --port 27017 &
+# Start MongoDB in background with replica set and authentication
+mongod --replSet rs0 --bind_ip_all --port 27017 --auth &
 MONGOD_PID=\$!
 
 # Wait a bit for MongoDB to start
