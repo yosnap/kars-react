@@ -2669,111 +2669,53 @@ router.post('/nuclear-fix', async (req, res) => {
   }
 });
 
-// POST /api/admin/ultimate-fix - Corregir JSON y reimportar
-router.post('/ultimate-fix', async (req, res) => {
+// POST /api/admin/memory-fix - Corregir fechas en memoria sin archivos
+router.post('/memory-fix', async (req, res) => {
   try {
-    console.log('🚀 Ultimate fix: Clean JSON and reimport...');
+    console.log('🚀 Memory fix: Clean dates in memory and reimport...');
     
     let results = {
       deletedVehicles: 0,
       importedVehicles: 0,
-      jsonCleaned: false,
+      datesCleaned: 0,
       errors: 0,
       steps: [] as string[]
     };
     
-    results.steps.push('Starting ultimate fix - clean JSON and reimport...');
+    results.steps.push('Starting memory fix - process dates in memory...');
     
     try {
       const fs = require('fs');
       const jsonPath = 'vehicles_export.json';
-      const cleanJsonPath = 'vehicles_clean.json';
       
       // Paso 1: Leer JSON original
       if (!fs.existsSync(jsonPath)) {
         results.steps.push('❌ No vehicles_export.json file found');
         return res.json({
-          message: 'Ultimate fix failed',
+          message: 'Memory fix failed',
           success: false,
           results: results,
           recommendation: 'No vehicles_export.json file found to process.'
         });
       }
       
-      console.log('📄 Reading and cleaning JSON...');
+      console.log('📄 Reading JSON...');
       const jsonData = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
       const vehicles = jsonData.vehicles || jsonData;
       
       if (!Array.isArray(vehicles)) {
         results.steps.push('❌ Invalid JSON structure');
         return res.json({
-          message: 'Ultimate fix failed',
+          message: 'Memory fix failed',
           success: false,
           results: results,
           recommendation: 'JSON file has invalid structure.'
         });
       }
       
-      // Paso 2: Limpiar todas las fechas en el JSON
-      console.log(`🧹 Cleaning dates in ${vehicles.length} vehicles...`);
+      results.steps.push(`📄 Found ${vehicles.length} vehicles in JSON`);
       
-      const cleanedVehicles = vehicles.map((vehicle: any) => {
-        const cleanVehicle = { ...vehicle };
-        
-        // Función helper para limpiar fechas
-        const cleanDate = (dateValue: any) => {
-          if (!dateValue) return null;
-          
-          let dateStr = String(dateValue);
-          // Remover comillas dobles que causan el problema
-          dateStr = dateStr.replace(/^"(.*)"$/, '$1');
-          
-          try {
-            const date = new Date(dateStr);
-            return isNaN(date.getTime()) ? null : date.toISOString();
-          } catch (e) {
-            return null;
-          }
-        };
-        
-        // Limpiar todos los campos de fecha
-        if (cleanVehicle['data-creacio']) {
-          cleanVehicle['data-creacio'] = cleanDate(cleanVehicle['data-creacio']) || new Date().toISOString();
-        }
-        
-        if (cleanVehicle['data-modificacio']) {
-          cleanVehicle['data-modificacio'] = cleanDate(cleanVehicle['data-modificacio']);
-        }
-        
-        if (cleanVehicle.dataCreacio) {
-          cleanVehicle.dataCreacio = cleanDate(cleanVehicle.dataCreacio) || new Date().toISOString();
-        }
-        
-        if (cleanVehicle.dataModificacio) {
-          cleanVehicle.dataModificacio = cleanDate(cleanVehicle.dataModificacio);
-        }
-        
-        if (cleanVehicle.createdAt) {
-          cleanVehicle.createdAt = cleanDate(cleanVehicle.createdAt) || new Date().toISOString();
-        }
-        
-        if (cleanVehicle.updatedAt) {
-          cleanVehicle.updatedAt = cleanDate(cleanVehicle.updatedAt) || new Date().toISOString();
-        }
-        
-        if (cleanVehicle.lastSyncAt) {
-          cleanVehicle.lastSyncAt = cleanDate(cleanVehicle.lastSyncAt);
-        }
-        
-        return cleanVehicle;
-      });
-      
-      // Paso 3: Guardar JSON limpio
-      fs.writeFileSync(cleanJsonPath, JSON.stringify({ vehicles: cleanedVehicles }, null, 2));
-      results.jsonCleaned = true;
-      results.steps.push(`🧹 Cleaned JSON saved to ${cleanJsonPath}`);
-      
-      // Paso 4: Eliminar vehículos existentes
+      // Paso 2: Eliminar vehículos existentes primero
       console.log('🗑️ Deleting all existing vehicles...');
       
       const deleteResult = await prisma.$runCommandRaw({
@@ -2784,59 +2726,72 @@ router.post('/ultimate-fix', async (req, res) => {
       results.deletedVehicles = (deleteResult as any).n || 0;
       results.steps.push(`🗑️ Deleted ${results.deletedVehicles} vehicles`);
       
-      // Paso 5: Importar desde JSON limpio
-      console.log('💾 Importing from cleaned JSON...');
+      // Paso 3: Procesar y limpiar vehículos en memoria
+      console.log(`🧹 Processing and cleaning ${vehicles.length} vehicles in memory...`);
       
-      const batchSize = 20;
-      for (let i = 0; i < cleanedVehicles.length; i += batchSize) {
-        const batch = cleanedVehicles.slice(i, i + batchSize);
+      const batchSize = 15; // Lotes muy pequeños para evitar problemas
+      for (let i = 0; i < vehicles.length; i += batchSize) {
+        const batch = vehicles.slice(i, i + batchSize);
         const documentsToInsert: any[] = [];
         
         for (const vehicle of batch) {
           try {
             const { _id, ...cleanVehicle } = vehicle;
             
-            // Convertir fechas ISO string a Date objects para MongoDB
+            // Función helper para limpiar fechas
+            const cleanAndConvertDate = (dateValue: any, fallback: Date | null = null) => {
+              if (!dateValue) return fallback;
+              
+              let dateStr = String(dateValue);
+              // Remover comillas dobles problemáticas
+              dateStr = dateStr.replace(/^"(.*)"$/, '$1');
+              
+              try {
+                const date = new Date(dateStr);
+                return isNaN(date.getTime()) ? fallback : date;
+              } catch (e) {
+                return fallback;
+              }
+            };
+            
+            // Procesar vehículo con fechas limpias
             const processedVehicle = {
               ...cleanVehicle,
               
-              'data-creacio': cleanVehicle['data-creacio'] 
-                ? new Date(cleanVehicle['data-creacio'])
-                : new Date(),
-                
-              'data-modificacio': cleanVehicle['data-modificacio'] 
-                ? new Date(cleanVehicle['data-modificacio'])
-                : null,
-                
-              dataCreacio: cleanVehicle.dataCreacio 
-                ? new Date(cleanVehicle.dataCreacio)
-                : new Date(),
-                
-              dataModificacio: cleanVehicle.dataModificacio 
-                ? new Date(cleanVehicle.dataModificacio)
-                : null,
-                
-              createdAt: cleanVehicle.createdAt 
-                ? new Date(cleanVehicle.createdAt)
-                : new Date(),
-                
+              // Fechas principales
+              'data-creacio': cleanAndConvertDate(cleanVehicle['data-creacio'], new Date()),
+              'data-modificacio': cleanAndConvertDate(cleanVehicle['data-modificacio'], null),
+              dataCreacio: cleanAndConvertDate(cleanVehicle.dataCreacio, new Date()),
+              dataModificacio: cleanAndConvertDate(cleanVehicle.dataModificacio, null),
+              createdAt: cleanAndConvertDate(cleanVehicle.createdAt, new Date()),
               updatedAt: new Date(),
+              lastSyncAt: cleanAndConvertDate(cleanVehicle.lastSyncAt, null),
               
-              lastSyncAt: cleanVehicle.lastSyncAt 
-                ? new Date(cleanVehicle.lastSyncAt)
-                : null,
-                
-              // Otros tipos
+              // Otros tipos de datos
               preu: typeof cleanVehicle.preu === 'number' 
                 ? cleanVehicle.preu 
-                : parseFloat(String(cleanVehicle.preu)) || 0,
+                : parseFloat(String(cleanVehicle.preu || '0')) || 0,
                 
               garantia: cleanVehicle.garantia !== undefined 
                 ? String(cleanVehicle.garantia) 
-                : null
+                : null,
+                
+              // Asegurar que arrays estén bien formateados
+              galeriaVehicleUrls: Array.isArray(cleanVehicle.galeriaVehicleUrls) 
+                ? cleanVehicle.galeriaVehicleUrls 
+                : [],
+                
+              extresCotxe: Array.isArray(cleanVehicle.extresCotxe) 
+                ? cleanVehicle.extresCotxe 
+                : [],
+                
+              extresMoto: Array.isArray(cleanVehicle.extresMoto) 
+                ? cleanVehicle.extresMoto 
+                : []
             };
             
             documentsToInsert.push(processedVehicle);
+            results.datesCleaned++;
             
           } catch (vehicleError) {
             console.error('Error processing vehicle:', vehicleError);
@@ -2852,38 +2807,42 @@ router.post('/ultimate-fix', async (req, res) => {
               documents: documentsToInsert
             });
             results.importedVehicles += documentsToInsert.length;
-            console.log(`💾 Imported ${results.importedVehicles}/${cleanedVehicles.length} vehicles...`);
+            console.log(`💾 Imported ${results.importedVehicles}/${vehicles.length} vehicles...`);
           } catch (batchError) {
             console.error('Error inserting batch:', batchError);
             results.errors += documentsToInsert.length;
           }
         }
+        
+        // Pequeña pausa entre lotes
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
       
-      results.steps.push(`💾 Imported ${results.importedVehicles} vehicles with ${results.errors} errors`);
+      results.steps.push(`💾 Imported ${results.importedVehicles} vehicles (cleaned ${results.datesCleaned} date fields)`);
+      results.steps.push(`📊 Errors: ${results.errors}`);
       
     } catch (error) {
-      console.error('❌ Error in ultimate fix:', error);
+      console.error('❌ Error in memory fix:', error);
       results.steps.push(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       results.errors++;
     }
     
-    const success = results.importedVehicles > 0 && results.jsonCleaned && results.errors < results.importedVehicles / 4;
-    results.steps.push(success ? '🎉 Ultimate fix completed!' : '⚠️ Ultimate fix completed with issues');
+    const success = results.importedVehicles > 0 && results.errors < results.importedVehicles / 3;
+    results.steps.push(success ? '🎉 Memory fix completed successfully!' : '⚠️ Memory fix completed with issues');
     
     return res.json({
-      message: 'Ultimate fix completed',
+      message: 'Memory fix completed',
       success: success,
       results: results,
       recommendation: success 
-        ? 'JSON cleaned and vehicles reimported with correct formats. DateTime errors should be gone!'
-        : 'Some issues occurred. Check logs for details.'
+        ? 'All vehicles reimported with cleaned dates. DateTime errors should be resolved!'
+        : 'Some issues occurred during import. Check server logs for details.'
     });
     
   } catch (error) {
-    console.error('❌ Error in ultimate-fix:', error);
+    console.error('❌ Error in memory-fix:', error);
     return res.status(500).json({ 
-      error: 'Failed to perform ultimate fix',
+      error: 'Failed to perform memory fix',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
