@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Car, Bike, Home, Truck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { 
   VehicleTypeStep, 
@@ -356,18 +356,40 @@ export default function MultiStepVehicleForm({
 
       {/* Form Content */}
       <div className="px-8 py-8">
-        {/* Auto-generated title preview */}
+        {/* Auto-generated title preview with vehicle type icon */}
         {formData.titolAnunci && (
           <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800 shadow-sm">
-            <div className="flex items-center space-x-3 mb-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100 uppercase tracking-wide">
-                Títol generat automàticament
-              </h3>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center space-x-3 mb-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100 uppercase tracking-wide">
+                    Títol generat automàticament
+                  </h3>
+                </div>
+                <p className="text-lg font-semibold text-blue-800 dark:text-blue-200">
+                  {formData.titolAnunci}
+                </p>
+              </div>
+              
+              {/* Vehicle Type Icon */}
+              {formData.tipusVehicle && (
+                <div className="flex items-center justify-center w-20 h-20 bg-white dark:bg-gray-800 rounded-full shadow-lg border-2 border-blue-200 dark:border-blue-700">
+                  {formData.tipusVehicle === 'COTXE' && (
+                    <Car className="w-12 h-12 text-blue-600 dark:text-blue-400" />
+                  )}
+                  {formData.tipusVehicle === 'MOTO' && (
+                    <Bike className="w-12 h-12 text-blue-600 dark:text-blue-400" />
+                  )}
+                  {formData.tipusVehicle === 'AUTOCARAVANA' && (
+                    <Home className="w-12 h-12 text-blue-600 dark:text-blue-400" />
+                  )}
+                  {formData.tipusVehicle === 'VEHICLE_COMERCIAL' && (
+                    <Truck className="w-12 h-12 text-blue-600 dark:text-blue-400" />
+                  )}
+                </div>
+              )}
             </div>
-            <p className="text-lg font-semibold text-blue-800 dark:text-blue-200">
-              {formData.titolAnunci}
-            </p>
           </div>
         )}
 

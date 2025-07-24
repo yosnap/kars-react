@@ -14,11 +14,14 @@ import {
   ChevronDown,
   Check
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../components/Admin/AdminLayout';
+import BrandsModelsManager from '../../components/Admin/BrandsModelsManager';
+import SystemInstaller from '../../components/Admin/SystemInstaller';
 import { axiosAdmin } from '../../api/axiosClient';
 import * as Popover from '@radix-ui/react-popover';
+import SearchableSelect, { SelectOption } from '../../components/ui/SearchableSelect';
 
 interface Vehicle {
   id: string;
@@ -40,78 +43,33 @@ interface Vehicle {
   'estat-vehicle'?: string;
 }
 
-interface SelectOption {
-  value: string;
-  label: string;
-  count?: number;
-}
-
-interface SearchableSelectProps {
-  options: SelectOption[];
-  value: string;
-  onValueChange: (value: string) => void;
-  placeholder: string;
-}
-
-const SearchableSelect: React.FC<SearchableSelectProps> = ({
-  options,
-  value,
-  onValueChange,
-  placeholder
-}) => {
-  const [open, setOpen] = useState(false);
-  const selectedOption = options.find(option => option.value === value);
-
-  return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger asChild>
-        <button
-          className="flex h-10 w-full items-center justify-between rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm ring-offset-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:ring-offset-gray-950 dark:placeholder:text-gray-400 dark:focus:ring-blue-400"
-          role="combobox"
-          aria-expanded={open}
-        >
-          <span className={selectedOption ? "text-gray-900 dark:text-white" : "text-gray-500 dark:text-gray-400"}>
-            {selectedOption ? selectedOption.label : placeholder}
-          </span>
-          <ChevronDown className="h-4 w-4 opacity-50" />
-        </button>
-      </Popover.Trigger>
-      <Popover.Content className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-        <div className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg">
-          <div className="max-h-60 overflow-y-auto">
-            {options.map((option) => (
-              <button
-                key={option.value}
-                className="relative flex w-full cursor-pointer select-none items-center rounded-sm px-3 py-2 text-sm outline-none hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700"
-                onClick={() => {
-                  onValueChange(option.value);
-                  setOpen(false);
-                }}
-              >
-                <Check
-                  className={`mr-2 h-4 w-4 ${
-                    value === option.value ? "opacity-100" : "opacity-0"
-                  }`}
-                />
-                <span className="flex-1 text-left">
-                  {option.label}
-                  {option.count !== undefined && (
-                    <span className="text-gray-500 dark:text-gray-400 ml-2">
-                      ({option.count.toLocaleString()})
-                    </span>
-                  )}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </Popover.Content>
-    </Popover.Root>
-  );
-};
 
 const KarsVehicles = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Obtener pestaña activa desde URL, con fallback a 'vehicles'
+  const getActiveTabFromUrl = (): 'vehicles' | 'brands-models' | 'installer' => {
+    const tab = searchParams.get('tab');
+    if (tab === 'brands-models') return 'brands-models';
+    if (tab === 'installer') return 'installer';
+    return 'vehicles';
+  };
+  
+  const [activeTab, setActiveTab] = useState<'vehicles' | 'brands-models' | 'installer'>(getActiveTabFromUrl());
+  
+  // Función para cambiar de pestaña y actualizar URL
+  const changeTab = (newTab: 'vehicles' | 'brands-models' | 'installer') => {
+    setActiveTab(newTab);
+    const newSearchParams = new URLSearchParams(searchParams);
+    if (newTab === 'vehicles') {
+      newSearchParams.delete('tab'); // No mostrar 'vehicles' en URL por ser default
+    } else {
+      newSearchParams.set('tab', newTab);
+    }
+    setSearchParams(newSearchParams);
+  };
+  
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -129,6 +87,8 @@ const KarsVehicles = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [importStatus, setImportStatus] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
   const [filterCounts, setFilterCounts] = useState<any>({});
+  const [brandMap, setBrandMap] = useState<Record<string, string>>({});
+  const [modelMap, setModelMap] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadVehicles = async (page = 1) => {
@@ -202,12 +162,27 @@ const KarsVehicles = () => {
     }
   };
 
+  const toggleVehicleDestacado = async (vehicleId: string, currentDestacado: string) => {
+    try {
+      const newValue = currentDestacado === '1' ? '0' : '1';
+      await axiosAdmin.patch(`/vehicles/${vehicleId}`, {
+        'anunci-destacat': newValue
+      });
+      await loadVehicles(currentPage);
+      toast.success(`Vehicle ${newValue === '1' ? 'destacat' : 'no destacat'} correctament`);
+    } catch (err) {
+      console.error('Error updating vehicle destacado status:', err);
+      toast.error('Error actualitzant l\'estat destacat del vehicle');
+    }
+  };
+
 
   const handleCreateVehicle = () => {
     navigate('/admin/vehicles/create');
   };
 
   const handleEditVehicle = (vehicleId: string) => {
+    console.log('Navigating to edit vehicle with ID:', vehicleId);
     navigate(`/admin/vehicles/edit/${vehicleId}`);
   };
 
@@ -305,9 +280,56 @@ const KarsVehicles = () => {
     }
   };
 
+  // Función para cargar mapas de marcas y modelos
+  const loadBrandAndModelMaps = async () => {
+    try {
+      // Cargar marcas de coches
+      const carBrandsResponse = await axiosAdmin.get('/brands/cars');
+      const carBrands = carBrandsResponse.data?.data || [];
+      
+      // Cargar marcas de motos
+      const motoBrandsResponse = await axiosAdmin.get('/brands/motorcycles');
+      const motoBrands = motoBrandsResponse.data?.data || [];
+      
+      // Crear mapeo de slugs a labels para marcas
+      const allBrands = [...carBrands, ...motoBrands];
+      const brandMapping: Record<string, string> = {};
+      allBrands.forEach((brand: any) => {
+        if (brand.value && brand.label) {
+          brandMapping[brand.value] = brand.label;
+          // También agregar variaciones con capitalización
+          brandMapping[brand.label] = brand.label; // Mapear label -> label
+          brandMapping[brand.label.toLowerCase()] = brand.label; // Mapear lowercase -> label
+        }
+      });
+      setBrandMap(brandMapping);
+      
+      // Cargar modelos de coches y motos (por ahora dejamos esto comentado hasta implementar la funcionalidad)
+      try {
+        // TODO: Implementar endpoint de modelos generales - por ahora usar mapping vacío
+        setModelMap({});
+      } catch (modelError) {
+        console.log('Models endpoints not available, using fallback');
+        setModelMap({});
+      }
+      
+    } catch (error) {
+      console.error('Error loading brand and model maps:', error);
+    }
+  };
+
+  // Sincronizar estado con URL cuando cambien los parámetros
+  useEffect(() => {
+    const urlTab = getActiveTabFromUrl();
+    if (urlTab !== activeTab) {
+      setActiveTab(urlTab);
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     loadVehicles();
     loadFilterCounts();
+    loadBrandAndModelMaps();
   }, []);
 
   // Recargar cuando cambien los filtros (filtrado automático)
@@ -338,11 +360,29 @@ const KarsVehicles = () => {
   };
 
   const getBrandName = (vehicle: Vehicle) => {
-    return vehicle['marca-cotxe'] || vehicle['marca-moto'] || 'N/A';
+    const brandSlug = vehicle['marca-cotxe'] || vehicle['marca-moto'];
+    if (!brandSlug) return 'N/A';
+    
+    // Intentar varias variaciones de mapeo
+    let brandName = brandMap[brandSlug] || 
+                   brandMap[brandSlug.toLowerCase()] || 
+                   brandMap[brandSlug.charAt(0).toUpperCase() + brandSlug.slice(1)];
+    
+    // Si no se encuentra, usar el slug capitalizado como fallback
+    return brandName || brandSlug.charAt(0).toUpperCase() + brandSlug.slice(1);
   };
 
   const getModelName = (vehicle: Vehicle) => {
-    return vehicle['models-cotxe'] || vehicle['models-moto'] || 'N/A';
+    const modelSlug = vehicle['models-cotxe'] || vehicle['models-moto'];
+    if (!modelSlug) return 'N/A';
+    
+    // Intentar varias variaciones de mapeo
+    let modelName = modelMap[modelSlug] || 
+                   modelMap[modelSlug.toLowerCase()] || 
+                   modelMap[modelSlug.charAt(0).toUpperCase() + modelSlug.slice(1)];
+    
+    // Si no se encuentra, usar el slug capitalizado como fallback
+    return modelName || modelSlug.charAt(0).toUpperCase() + modelSlug.slice(1);
   };
 
   // Helper para obtener conteo de un filtro
@@ -386,58 +426,96 @@ const KarsVehicles = () => {
               Vehicles Kars.ad
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Gestiona els vehicles de la plataforma
+              Gestiona els vehicles i les seves marcas i models
             </p>
-            <div className="flex items-center gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
-              <span>Total: <strong>{totalVehicles.toLocaleString()}</strong> vehicles</span>
-              <span>Pàgina: <strong>{currentPage}</strong> de <strong>{totalPages}</strong></span>
-              <span>Veient <strong>{vehicles.length}</strong> d'un total de <strong>{totalVehicles.toLocaleString()}</strong></span>
+            {activeTab === 'vehicles' && (
+              <div className="flex items-center gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
+                <span>Total: <strong>{totalVehicles.toLocaleString()}</strong> vehicles</span>
+                <span>Pàgina: <strong>{currentPage}</strong> de <strong>{totalPages}</strong></span>
+                <span>Veient <strong>{vehicles.length}</strong> d'un total de <strong>{totalVehicles.toLocaleString()}</strong></span>
+              </div>
+            )}
+          </div>
+          {activeTab === 'vehicles' && (
+            <div className="flex gap-3">
+              <button
+                onClick={refreshData}
+                disabled={isRefreshing}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Actualitzar
+              </button>
+              <button
+                onClick={handleDownloadJson}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                <FileText className="w-4 h-4" />
+                Descarregar JSON
+              </button>
+              <button
+                onClick={handleImportJson}
+                disabled={importStatus === 'running'}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                  importStatus === 'running'
+                    ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                    : 'bg-green-600 text-white hover:bg-green-700'
+                }`}
+              >
+                {importStatus === 'running' ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Upload className="w-4 h-4" />
+                )}
+                {importStatus === 'running' ? 'Important...' : 'Importar JSON'}
+              </button>
+              <button 
+                onClick={handleCreateVehicle}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Nou Vehicle
+              </button>
             </div>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={refreshData}
-              disabled={isRefreshing}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Actualitzar
-            </button>
-            <button
-              onClick={handleDownloadJson}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-            >
-              <FileText className="w-4 h-4" />
-              Descarregar JSON
-            </button>
-            <button
-              onClick={handleImportJson}
-              disabled={importStatus === 'running'}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                importStatus === 'running'
-                  ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                  : 'bg-green-600 text-white hover:bg-green-700'
-              }`}
-            >
-              {importStatus === 'running' ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : (
-                <Upload className="w-4 h-4" />
-              )}
-              {importStatus === 'running' ? 'Important...' : 'Importar JSON'}
-            </button>
-            <button 
-              onClick={handleCreateVehicle}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Nou Vehicle
-            </button>
-          </div>
+          )}
         </div>
 
-        {/* Filters */}
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        {/* Tabs */}
+        <div className="border-b border-gray-200 dark:border-gray-700">
+          <nav className="flex space-x-8">
+            <button
+              onClick={() => changeTab('vehicles')}
+              className={`py-2 px-4 border-b-2 font-medium text-sm ${
+                activeTab === 'vehicles'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Car className="w-4 h-4" />
+                Vehicles ({totalVehicles.toLocaleString()})
+              </div>
+            </button>
+            <button
+              onClick={() => changeTab('brands-models')}
+              className={`py-2 px-4 border-b-2 font-medium text-sm ${
+                activeTab === 'brands-models'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                Marcas/Modelos
+              </div>
+            </button>
+          </nav>
+        </div>
+        {/* Content based on active tab */}
+        {activeTab === 'vehicles' && (
+          <>
+            {/* Filters */}
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="flex flex-col gap-4">
             {/* Title */}
             <div className="flex items-center gap-2">
@@ -663,9 +741,13 @@ const KarsVehicles = () => {
 
                   {/* Destacat */}
                   <div className="col-span-1 flex items-center justify-center">
-                    <span className="text-sm text-gray-900 dark:text-white">
-                      {vehicle['anunci-destacat'] !== '0' ? 'Sí' : 'No'}
-                    </span>
+                    <input
+                      type="checkbox"
+                      checked={vehicle['anunci-destacat'] === '1'}
+                      onChange={() => toggleVehicleDestacado(vehicle.id, vehicle['anunci-destacat'])}
+                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
+                      title={vehicle['anunci-destacat'] === '1' ? 'Clic per desdestacar' : 'Clic per destacar'}
+                    />
                   </div>
 
                   {/* Actiu */}
@@ -743,16 +825,21 @@ const KarsVehicles = () => {
             </button>
           </div>
         )}
-      </div>
 
-      {/* Hidden file input for JSON import */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".json"
-        onChange={handleFileImport}
-        className="hidden"
-      />
+            {/* Hidden file input for JSON import */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleFileImport}
+              className="hidden"
+            />
+          </>
+        )}
+
+        {/* Brands and Models Tab */}
+        {activeTab === 'brands-models' && <BrandsModelsManager />}
+      </div>
     </AdminLayout>
   );
 };

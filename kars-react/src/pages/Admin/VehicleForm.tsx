@@ -23,11 +23,121 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
     }
   }, [mode, id]);
 
+  // Función para transformar datos del API al formato que espera el formulario
+  const transformApiDataToFormData = (apiData: any) => {
+    
+    // Debug específico para tipusVehicle
+    const rawTipusVehicle = apiData.tipusVehicle || apiData['tipus-vehicle'] || '';
+    
+    // Normalizar el tipo de vehículo para asegurar que coincida con los valores esperados
+    const normalizeTipusVehicle = (value: string) => {
+      if (!value) return '';
+      
+      const normalized = value.toUpperCase().trim();
+      
+      // Mapear valores comunes a los esperados por el formulario
+      const mapping: Record<string, string> = {
+        'COTXE': 'COTXE',
+        'CAR': 'COTXE',
+        'COCHE': 'COTXE',
+        'MOTO': 'MOTO',
+        'MOTORCYCLE': 'MOTO',
+        'MOTOCICLETA': 'MOTO',
+        'AUTOCARAVANA': 'AUTOCARAVANA',
+        'CAMPER': 'AUTOCARAVANA',
+        'VEHICLE_COMERCIAL': 'VEHICLE_COMERCIAL',
+        'COMERCIAL': 'VEHICLE_COMERCIAL',
+        'TRUCK': 'VEHICLE_COMERCIAL',
+        'FURGONETA': 'VEHICLE_COMERCIAL'
+      };
+      
+      return mapping[normalized] || normalized;
+    };
+    
+    const tipusVehicleFromApi = normalizeTipusVehicle(rawTipusVehicle);
+    
+    const formData = {
+      // Step 1: Vehicle Type
+      tipusVehicle: tipusVehicleFromApi,
+      
+      // Step 2: Basic Info  
+      marcaCotxe: apiData.marcaCotxe || apiData['marca-cotxe'] || '',
+      marcaMoto: apiData.marcaMoto || apiData['marca-moto'] || '',
+      marquesAutocaravana: apiData.marquesAutocaravana || apiData['marques-autocaravana'] || '',
+      modelsCotxe: apiData.modelsCotxe || apiData['models-cotxe'] || '',
+      modelsMoto: apiData.modelsMoto || apiData['models-moto'] || '',
+      modelsAutocaravana: apiData.modelsAutocaravana || apiData['models-autocaravana'] || '',
+      versio: apiData.versio || '',
+      any: apiData.any || apiData['any-fabricacio'] || '',
+      preu: String(apiData.preu || ''),
+      quilometratge: String(apiData.quilometratge || ''),
+      
+      // Auto-generated title
+      titolAnunci: apiData.titolAnunci || apiData['titol-anunci'] || '',
+      
+      // Step 3: Technical Specs
+      tipusCombustible: apiData.tipusCombustible || apiData['tipus-combustible'] || '',
+      tipusCanvi: apiData.tipusCanvi || apiData['tipus-canvi'] || '',
+      tipusPropulsor: apiData.tipusPropulsor || apiData['tipus-propulsor'] || '',
+      potenciaCv: String(apiData.potenciaCv || apiData['potencia-cv'] || ''),
+      potenciaKw: String(apiData.potenciaKw || apiData['potencia-kw'] || ''),
+      cilindrada: String(apiData.cilindrada || ''),
+      colorVehicle: apiData.colorVehicle || apiData['color-vehicle'] || '',
+      portesCotxe: String(apiData.portesCotxe || apiData['portes-cotxe'] || ''),
+      placesCotxe: String(apiData.placesCotxe || apiData['places-cotxe'] || ''),
+      estatVehicle: apiData.estatVehicle || apiData['estat-vehicle'] || '',
+      
+      // Additional technical fields
+      emissionsVehicle: apiData.emissionsVehicle || apiData['emissions-vehicle'] || '',
+      consumUrba: apiData.consumUrba || apiData['consum-urba'] || '',
+      consumCarretera: apiData.consumCarretera || apiData['consum-carretera'] || '',
+      consumMixt: apiData.consumMixt || apiData['consum-mixt'] || '',
+      emissionsCo2: apiData.emissionsCo2 || apiData['emissions-co2'] || '',
+      tipusTapisseria: apiData.tipusTapisseria || apiData['tipus-tapisseria'] || '',
+      
+      // Step 4: Equipment and Extras - Mapear todos los tipos según el vehículo
+      extresCotxe: Array.isArray(apiData.extresCotxe) ? apiData.extresCotxe : 
+                   Array.isArray(apiData['extres-cotxe']) ? apiData['extres-cotxe'] : [],
+      extresMoto: Array.isArray(apiData.extresMoto) ? apiData.extresMoto : 
+                  Array.isArray(apiData['extres-moto']) ? apiData['extres-moto'] : [],
+      extresAutocaravana: Array.isArray(apiData.extresAutocaravana) ? apiData.extresAutocaravana : 
+                          Array.isArray(apiData['extres-autocaravana']) ? apiData['extres-autocaravana'] : [],
+      extresHabitacle: Array.isArray(apiData.extresHabitacle) ? apiData.extresHabitacle : 
+                       Array.isArray(apiData['extres-habitacle']) ? apiData['extres-habitacle'] : [],
+      
+      // Step 5: Commercial Information
+      garantia: apiData.garantia || '',
+      vehicleAccidentat: apiData.vehicleAccidentat || apiData['vehicle-accidentat'] || '',
+      origen: apiData.origen || '',
+      
+      // Step 6: Descriptions (already in correct format)
+      descripcioAnunci: apiData.descripcioAnunci || apiData['descripcio-anunci'] || '',
+      
+      // Step 7: Images and Status
+      imatgeDestacadaUrl: apiData.imatgeDestacadaUrl || apiData['imatge-destacada-url'] || '',
+      galeriaVehicleUrls: Array.isArray(apiData.galeriaVehicleUrls) ? apiData.galeriaVehicleUrls :
+                         Array.isArray(apiData['galeria-vehicle-urls']) ? apiData['galeria-vehicle-urls'] : [],
+      anunciActiu: apiData.anunciActiu === true || apiData['anunci-actiu'] === 'true' || apiData['anunci-actiu'] === true,
+      anunciDestacat: parseInt(apiData.anunciDestacat || apiData['anunci-destacat'] || '0'),
+      venut: apiData.venut === true || apiData.venut === 'true',
+      
+      // Additional fields that might be missing
+      seguretat: [],
+      confort: [],
+      multimedia: []
+    };
+    
+    return formData;
+  };
+
   const loadVehicle = async () => {
     try {
       setLoading(true);
-      const response = await axiosAdmin.get(`/vehicles/${id}`);
-      setVehicleData(response.data);
+      const response = await axiosAdmin.get(`/vehicles/by-id/${id}`);
+      
+      // Transform API data to form format
+      const transformedData = transformApiDataToFormData(response.data);
+      setVehicleData(transformedData);
     } catch (err) {
       console.error('Error loading vehicle:', err);
       setError('Error al carregar el vehicle');
@@ -51,7 +161,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
         navigate('/admin/kars-vehicles');
       }, 1000);
     } catch (err) {
-      console.error('Error saving vehicle:', err);
       toast.error('❌ Error al guardar el vehicle. Si us plau, torna-ho a provar.');
       throw new Error('Error al guardar el vehicle');
     }

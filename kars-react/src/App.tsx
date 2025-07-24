@@ -12,6 +12,8 @@ import SystemInfo from "./pages/Admin/SystemInfo";
 import KarsVehicles from "./pages/Admin/KarsVehicles";
 import CreateVehicle from "./pages/Admin/CreateVehicle";
 import EditVehicle from "./pages/Admin/EditVehicle";
+import SystemSetup from "./pages/Admin/SystemSetup";
+import SystemInstaller from "./components/Admin/SystemInstaller";
 import { useAuth } from "./context/AuthContext";
 import Header from "./components/Header";
 import CotxesAndorra from "./pages/CotxesAndorra";
@@ -133,8 +135,10 @@ function App() {
           <Route path="/admin/kars-vehicles" element={<PrivateRoute><KarsVehicles /></PrivateRoute>} />
           <Route path="/admin/vehicles/create" element={<PrivateRoute><CreateVehicle /></PrivateRoute>} />
           <Route path="/admin/vehicles/edit/:id" element={<PrivateRoute><EditVehicle /></PrivateRoute>} />
+          <Route path="/admin/system-setup" element={<PrivateRoute><SystemSetup /></PrivateRoute>} />
           <Route path="/admin/system-info" element={<PrivateRoute><SystemInfo /></PrivateRoute>} />
           <Route path="/admin/logs" element={<PrivateRoute><SystemInfo /></PrivateRoute>} />
+          <Route path="/admin/installer" element={<PrivateRoute><SystemInstaller /></PrivateRoute>} />
           {/* Ruta dinámica para estado de vehículo */}
           <Route path="/estat-vehicle/:slug" element={<EstatVehiclePage />} />
         </Routes>

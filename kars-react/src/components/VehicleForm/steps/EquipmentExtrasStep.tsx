@@ -1,30 +1,58 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { axiosAdmin } from '../../../api/axiosClient';
+import ExtrasGrid from '../ExtrasGrid';
 
 interface EquipmentExtrasStepProps {
   formData: any;
   updateFormData: (data: any) => void;
 }
 
+interface Extra {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 const EquipmentExtrasStep: React.FC<EquipmentExtrasStepProps> = ({ formData, updateFormData }) => {
-  // Definir extras por tipo de vehículo
-  const carExtras = [
-    'aire-acondicionat', 'abs', 'airbag-frontal', 'airbag-lateral', 'alarma',
-    'bluetooth', 'cd-player', 'climatitzador', 'control-creuer', 'direccio-assistida',
-    'elevador-cristalls-electric', 'esp', 'faros-xenon', 'gps', 'llantes-aleacio',
-    'mp3-player', 'navegador', 'ordinador-bord', 'radio', 'retrovisors-electrics',
-    'sistema-handfree', 'sostre-solar', 'tapisseria-cuir', 'usb'
-  ];
+  const [carExtras, setCarExtras] = useState<Extra[]>([]);
+  const [motorcycleExtras, setMotorcycleExtras] = useState<Extra[]>([]);
+  const [caravanExtras, setCaravanExtras] = useState<Extra[]>([]);
+  const [habitacleExtras, setHabitacleExtras] = useState<Extra[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const motorcycleExtras = [
-    'abs', 'alarma', 'bluetooth', 'control-traccio', 'faros-led', 'gps',
-    'handfree', 'maletes', 'pantalla-vent', 'sistema-navegacio', 'usb',
-    'windshield'
-  ];
+  // Cargar extras desde la API
+  useEffect(() => {
+    const loadExtras = async () => {
+      setLoading(true);
+      try {
+        const [carResponse, motorcycleResponse, caravanResponse, habitacleResponse] = await Promise.all([
+          axiosAdmin.get('/car-extras'),
+          axiosAdmin.get('/motorcycle-extras'),
+          axiosAdmin.get('/caravan-extras'),
+          axiosAdmin.get('/habitacle-extras')
+        ]);
 
-  const comercialExtras = [
-    'abs', 'aire-acondicionat', 'alarma', 'bluetooth', 'cd-player', 'climatitzador',
-    'direccio-assistida', 'esp', 'gps', 'handfree', 'radio', 'usb'
-  ];
+        if (carResponse.data?.data) {
+          setCarExtras(carResponse.data.data);
+        }
+        if (motorcycleResponse.data?.data) {
+          setMotorcycleExtras(motorcycleResponse.data.data);
+        }
+        if (caravanResponse.data?.data) {
+          setCaravanExtras(caravanResponse.data.data);
+        }
+        if (habitacleResponse.data?.data) {
+          setHabitacleExtras(habitacleResponse.data.data);
+        }
+      } catch (error) {
+        console.error('Error cargando extras:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadExtras();
+  }, []);
 
   // Función para normalizar strings para comparación
   const normalizeExtra = (extra: string): string => {
@@ -41,7 +69,7 @@ const EquipmentExtrasStep: React.FC<EquipmentExtrasStepProps> = ({ formData, upd
 
   // Función para obtener la configuración de extras según el tipo de vehículo
   const getExtrasConfig = () => {
-    let extras: string[];
+    let extras: Extra[];
     let currentField: string;
     let rawExtras: string[];
     
@@ -52,10 +80,15 @@ const EquipmentExtrasStep: React.FC<EquipmentExtrasStepProps> = ({ formData, upd
         rawExtras = formData.extresMoto || [];
         break;
       case 'AUTOCARAVANA':
+        // Para autocaravanas, usar tanto caravana como habitáculo
+        extras = [...caravanExtras, ...habitacleExtras];
+        currentField = 'extresAutocaravana';
+        rawExtras = formData.extresAutocaravana || [];
+        break;
       case 'VEHICLE_COMERCIAL':
-        extras = comercialExtras;
-        currentField = 'extresHabitacle';
-        rawExtras = formData.extresHabitacle || [];
+        extras = carExtras; // Los comerciales usan extras de coches
+        currentField = 'extresCotxe';
+        rawExtras = formData.extresCotxe || [];
         break;
       default:
         extras = carExtras;
@@ -76,9 +109,9 @@ const EquipmentExtrasStep: React.FC<EquipmentExtrasStepProps> = ({ formData, upd
 
   const extrasConfig = getExtrasConfig();
 
-  const toggleExtra = (extra: string) => {
+  const toggleExtra = (extra: Extra) => {
     const currentExtras = extrasConfig.currentExtras;
-    const normalizedNew = normalizeExtra(extra);
+    const normalizedNew = normalizeExtra(extra.slug);
     
     // Buscar si existe un extra con el mismo valor normalizado
     const existingIndex = currentExtras.findIndex(
@@ -90,55 +123,48 @@ const EquipmentExtrasStep: React.FC<EquipmentExtrasStepProps> = ({ formData, upd
       // Si existe, lo quitamos
       updatedExtras = currentExtras.filter((_: string, index: number) => index !== existingIndex);
     } else {
-      // Si no existe, lo agregamos con formato capitalizado
-      const capitalizedExtra = extra
-        .split('-')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-      updatedExtras = [...currentExtras, capitalizedExtra];
+      // Si no existe, lo agregamos con el slug original
+      updatedExtras = [...currentExtras, extra.slug];
     }
     
     updateFormData({ [extrasConfig.currentField]: updatedExtras });
   };
 
-  return (
-    <div className="space-y-8">
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-        Equipament i extras del vehicle
-      </h3>
-      
-      {/* Equipment Checkboxes */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-          Equipament disponible (selecciona tots els que corresponguin)
-        </label>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {extrasConfig.extras.map((extra) => {
-            // Comparar usando valores normalizados
-            const normalizedCheckboxValue = normalizeExtra(extra);
-            const isSelected = extrasConfig.normalizedExtras.includes(normalizedCheckboxValue);
-            
-            return (
-              <div key={extra} className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id={extra}
-                  checked={isSelected}
-                  onChange={() => toggleExtra(extra)}
-                  className="rounded"
-                />
-                <label 
-                  htmlFor={extra} 
-                  className="text-sm text-gray-700 dark:text-gray-300 capitalize cursor-pointer"
-                >
-                  {extra.replace(/-/g, ' ')}
-                </label>
-              </div>
-            );
-          })}
+  // Obtener el título según el tipo de vehículo
+  const getTitle = () => {
+    switch (formData.tipusVehicle) {
+      case 'MOTO':
+        return 'Equipament i extras de la moto';
+      case 'AUTOCARAVANA':
+        return 'Equipament i extras de l\'autocaravana';
+      case 'VEHICLE_COMERCIAL':
+        return 'Equipament i extras del vehicle comercial';
+      default:
+        return 'Equipament i extras del cotxe';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400 font-medium">Carregant extras...</p>
+            <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">Preparant la selecció d'equipament</p>
+          </div>
         </div>
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <ExtrasGrid
+      extras={extrasConfig.extras}
+      selectedExtras={extrasConfig.currentExtras}
+      onToggleExtra={toggleExtra}
+      title={getTitle()}
+    />
   );
 };
 
