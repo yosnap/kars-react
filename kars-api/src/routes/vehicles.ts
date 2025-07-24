@@ -7,7 +7,6 @@ const prisma = new PrismaClient();
 // GET /api/vehicles - Listado de vehículos con filtros y paginación
 router.get('/', async (req, res) => {
   try {
-    console.log('🔍 GET /vehicles called with query:', req.query);
     
     const {
       page = '1',
@@ -96,7 +95,6 @@ router.get('/', async (req, res) => {
       ];
     }
 
-    console.log('📋 Where clause:', JSON.stringify(where, null, 2));
 
     // Construcción del orderBy
     const orderDirection = (order as string).toLowerCase() === 'asc' ? 'asc' : 'desc';
@@ -125,7 +123,6 @@ router.get('/', async (req, res) => {
         orderByClause = { dataCreacio: 'desc' };
     }
 
-    console.log('📊 Order by:', orderByClause);
 
     // Ejecutar consultas en paralelo
     const [vehicles, total] = await Promise.all([
@@ -177,7 +174,6 @@ router.get('/', async (req, res) => {
       prisma.vehicle.count({ where })
     ]);
 
-    console.log(`✅ Found ${total} vehicles, returning ${vehicles.length} items`);
 
     // Calcular facets si se solicitan
     let facets = {};
@@ -210,7 +206,6 @@ router.get('/', async (req, res) => {
 // GET /api/vehicles/id/:id - Obtener vehículo por ID
 router.get('/id/:id', async (req, res) => {
   try {
-    console.log('🔍 GET /vehicles/id/:id called with id:', req.params.id);
     const { id } = req.params;
     
     const vehicle = await prisma.vehicle.findUnique({
@@ -218,14 +213,12 @@ router.get('/id/:id', async (req, res) => {
     });
     
     if (!vehicle) {
-      console.log('❌ Vehicle not found');
       return res.status(404).json({ 
         error: 'Vehicle not found',
         id 
       });
     }
     
-    console.log('✅ Vehicle found, returning data');
     const transformed = transformVehicleForFrontend(vehicle);
     return res.json(transformed);
     
@@ -241,7 +234,6 @@ router.get('/id/:id', async (req, res) => {
 // PUT /api/vehicles/:id - Actualizar vehículo
 router.put('/:id', async (req, res) => {
   try {
-    console.log('📝 PUT /vehicles/:id called with id:', req.params.id);
     const { id } = req.params;
     const updateData = req.body;
     
@@ -274,7 +266,6 @@ router.put('/:id', async (req, res) => {
       }
     });
     
-    console.log('✅ Vehicle updated successfully');
     const transformed = transformVehicleForFrontend(updatedVehicle);
     return res.json({
       success: true,
@@ -293,7 +284,6 @@ router.put('/:id', async (req, res) => {
 // GET /api/vehicles/json - Servir JSON completo de vehículos para importación
 router.get('/json', async (req, res) => {
   try {
-    console.log('📁 GET /vehicles/json - Sirviendo JSON de vehículos');
     
     const {
       limit = '1000',
@@ -310,7 +300,6 @@ router.get('/json', async (req, res) => {
       // Incluir todos los campos necesarios para importación
     });
     
-    console.log(`📊 Sirviendo ${vehicles.length} vehículos en formato JSON`);
     
     // Si raw=true, devolver solo el array para importación directa
     if (raw === 'true') {
@@ -362,10 +351,38 @@ router.get('/json', async (req, res) => {
   }
 });
 
+// GET /api/vehicles/by-id/:id - Obtener vehículo por ID para edición
+router.get('/by-id/:id', async (req, res) => {
+  try {
+    
+    const { id } = req.params;
+    
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id },
+    });
+    
+    if (!vehicle) {
+      return res.status(404).json({ error: 'Vehicle not found' });
+    }
+    
+    
+    // Transformar para el frontend
+    const transformedVehicle = transformVehicleForFrontend(vehicle);
+    
+    return res.json(transformedVehicle);
+    
+  } catch (error) {
+    console.error('❌ Error fetching vehicle by ID:', error);
+    return res.status(500).json({ 
+      error: 'Failed to fetch vehicle',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // GET /api/vehicles/:slug - Detalle de vehículo
 router.get('/:slug', async (req, res) => {
   try {
-    console.log('🔍 GET /vehicles/:slug called with slug:', req.params.slug);
     
     const { slug } = req.params;
     
@@ -458,14 +475,12 @@ router.get('/:slug', async (req, res) => {
       }
     });
 
-    console.log('📋 Vehicle found:', vehicle ? 'YES' : 'NO');
 
     if (!vehicle) {
       return res.status(404).json({ error: 'Vehicle not found' });
     }
 
     const transformed = transformVehicleForFrontend(vehicle);
-    console.log('✅ Returning transformed vehicle');
     
     return res.json(transformed);
 
@@ -676,8 +691,6 @@ function transformVehicleForFrontend(vehicle: any) {
 // POST /api/vehicles - Crear nuevo vehículo
 router.post('/', async (req, res) => {
   try {
-    console.log('🚗 Creating new vehicle...');
-    console.log('📝 Raw vehicle data:', JSON.stringify(req.body, null, 2));
     
     const vehicleData = req.body;
     
@@ -688,8 +701,6 @@ router.post('/', async (req, res) => {
     if (!vehicleData.preu && vehicleData.preu !== 0) missingFields.push('preu');
     
     if (missingFields.length > 0) {
-      console.log('❌ Missing required fields:', missingFields);
-      console.log('❌ Received data:', vehicleData);
       return res.status(400).json({
         error: `Missing required fields: ${missingFields.join(', ')}`,
         missingFields,
@@ -744,7 +755,6 @@ router.post('/', async (req, res) => {
       if (validFields.includes(key)) {
         filteredData[key] = value;
       } else {
-        console.log(`⚠️ Filtering out unknown field: ${key}`);
       }
     }
 
@@ -761,13 +771,11 @@ router.post('/', async (req, res) => {
       descripcioAnunci: vehicleData.descripcioAnunciCA || vehicleData.descripcioAnunci || ''
     };
     
-    console.log('💾 Processed data for creation:', JSON.stringify(processedData, null, 2));
     
     const newVehicle = await prisma.vehicle.create({
       data: processedData
     });
     
-    console.log('✅ Vehicle created successfully:', newVehicle.slug);
     
     return res.status(201).json({
       success: true,
@@ -842,10 +850,6 @@ router.post('/import-json', async (req, res) => {
       });
     }
 
-    console.log('📥 Starting JSON vehicle import...', { 
-      vehicleCount: vehiclesData.length, 
-      clearDatabase 
-    });
 
     const results = await importVehiclesFromJSON(
       vehiclesData,
@@ -871,7 +875,6 @@ router.post('/import-json', async (req, res) => {
 // POST /api/vehicles/import - DEPRECATED: Importar vehículos desde Motoraldia API
 router.post('/import', async (req, res) => {
   try {
-    console.log('⚠️ DEPRECATED endpoint called: /import');
     
     res.status(410).json({
       success: false,
@@ -892,7 +895,6 @@ router.post('/import', async (req, res) => {
 // DELETE /api/vehicles/clear - Limpiar base de datos
 router.delete('/clear', async (req, res) => {
   try {
-    console.log('🗑️ Clearing vehicle database...');
     
     await clearVehicleDatabase();
     
@@ -934,12 +936,10 @@ router.get('/import/stats', async (req, res) => {
 // GET /api/vehicles/kars/stats - Estadísticas específicas de Kars.ad
 router.get('/kars/stats', async (req, res) => {
   try {
-    console.log('📊 Getting Kars stats...');
     
     // Test database connection first
     try {
       const testCount = await prisma.vehicle.count();
-      console.log(`✅ Database connection OK, total vehicles: ${testCount}`);
     } catch (dbError) {
       console.error('❌ Database connection error:', dbError);
       throw new Error(`Database connection failed: ${dbError instanceof Error ? dbError.message : 'Unknown'}`);
@@ -978,7 +978,6 @@ router.get('/kars/stats', async (req, res) => {
       })
     ]);
 
-    console.log('✅ Stats retrieved successfully');
     
     res.json({
       success: true,
@@ -1034,7 +1033,6 @@ router.post('/:id/sync-to-motoraldia', async (req, res) => {
 
     // TODO: Implement actual sync to Motoraldia API
     // For now, we'll simulate the sync
-    console.log(`🔄 Syncing vehicle ${vehicle.slug} to Motoraldia...`);
     
     // Simulate API call delay
     await new Promise(resolve => setTimeout(resolve, 2000));

@@ -11,7 +11,10 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "sync": "node dist/sync/syncService.js",
-    "test:connection": "ts-node src/scripts/test-db-connection.ts"
+    "test:connection": "ts-node src/scripts/test-db-connection.ts",
+    "import:brands": "ts-node src/scripts/importBrandsProduction.ts",
+    "import:brands:dev": "ts-node src/scripts/importBrands.ts",
+    "import:models": "curl -X POST http://localhost:3001/api/brands/import-models -H 'Authorization: Basic <credentials>'"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

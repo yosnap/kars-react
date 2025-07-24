@@ -346,6 +346,17 @@ model FuelType {
   updatedAt       DateTime  @updatedAt @map("updated_at")
 }
 
+model PropulsionType {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String    // "Combustió", "Elèctric", "Híbrid", etc.
+  value           String    @unique // "combustio", "electric", "hibrid", etc.
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+}
+
 model TransmissionType {
   id              String    @id @default(auto()) @map("_id") @db.ObjectId
   name            String    // "Auto-Seqüencial", "Automàtic", "Manual", etc.

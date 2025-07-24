@@ -14,6 +14,7 @@ RUN npm ci
 # Copy source code
 COPY src/ ./src/
 COPY prisma/ ./prisma/
+COPY data/ ./data/
 
 # Generate Prisma client
 RUN npx prisma generate
@@ -45,6 +46,7 @@ RUN npm ci --omit=dev && npm cache clean --force
 # Copy built application from builder stage
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nodejs:nodejs /app/data ./data
 
 # Copy generated Prisma client from builder stage
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules/.prisma ./node_modules/.prisma

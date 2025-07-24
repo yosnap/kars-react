@@ -14,6 +14,7 @@ import metadataRoutes from './routes/metadata';
 import professionalRoutes from './routes/professionals';
 import brandRoutes from './routes/brands';
 import uploadRoutes from './routes/upload';
+import installerRoutes from './routes/installer';
 
 // Import sync service
 import { initializeCronSync } from './services/syncService';
@@ -46,6 +47,15 @@ app.get('/health', (req, res) => {
   });
 });
 
+// API status check
+app.get('/api', (req, res) => {
+  res.json({ 
+    status: 'API OK', 
+    version: '0.1.3',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/vehicles', vehicleRoutes);
@@ -55,6 +65,7 @@ app.use('/api/professionals', professionalRoutes);
 app.use('/api/sellers', professionalRoutes); // Alias para compatibilidad
 app.use('/api/brands', brandRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/installer', installerRoutes);
 app.use('/api', metadataRoutes);
 
 // 404 handler

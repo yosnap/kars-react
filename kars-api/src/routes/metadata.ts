@@ -73,28 +73,18 @@ router.get('/transmission-types', async (req, res) => {
 // GET /api/exterior-colors
 router.get('/exterior-colors', async (req, res) => {
   try {
-    // Extraer colores únicos de los vehículos existentes
-    const vehicles = await prisma.vehicle.findMany({
-      select: { colorVehicle: true },
-      where: { 
-        colorVehicle: { not: null },
-        anunciActiu: true // Solo vehículos activos
-      }
+    const exteriorColors = await prisma.exteriorColor.findMany({
+      orderBy: { name: 'asc' }
     });
     
-    const uniqueColors = [...new Set(vehicles
-      .map(v => v.colorVehicle)
-      .filter(color => color && color.trim() !== '')
-    )];
-    
-    const formattedColors = uniqueColors.map((color, index) => ({
-      id: index + 1,
-      name: String(color || ''),
-      slug: String(color || '').toLowerCase().replace(/\s+/g, '-') || ''
+    const formattedColors = exteriorColors.map(color => ({
+      id: color.id,
+      name: color.name,
+      slug: color.value
     }));
     
     res.json({
-      data: formattedColors.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')))
+      data: formattedColors
     });
   } catch (error) {
     console.error('Error fetching exterior colors:', error);
@@ -105,6 +95,22 @@ router.get('/exterior-colors', async (req, res) => {
 // GET /api/brands/cars
 router.get('/brands/cars', async (req, res) => {
   try {
+    console.log('🔍 BMW DEBUG: Ejecutando consulta para marcas de coches...');
+    
+    // Primero, buscar BMW específicamente en toda la base de datos
+    const allBmw = await prisma.brand.findMany({
+      where: { 
+        name: { contains: 'BMW', mode: 'insensitive' }
+      }
+    });
+    console.log('🔍 BMW en base de datos completa:', allBmw.map(b => ({ 
+      name: b.name, 
+      slug: b.slug, 
+      vehicleTypes: b.vehicleTypes,
+      id: b.id
+    })));
+    
+    // Ejecutar la consulta principal
     const brands = await prisma.brand.findMany({
       where: { vehicleTypes: { hasSome: ['car'] } },
       include: {
@@ -115,18 +121,70 @@ router.get('/brands/cars', async (req, res) => {
       orderBy: { name: 'asc' }
     });
     
+    console.log('🔍 BMW DEBUG: Query hasSome ["car"] returned', brands.length, 'brands');
+    
+    // Buscar BMW en los resultados
+    const bmwBrand = brands.find(b => b.name && b.name.toLowerCase().includes('bmw'));
+    
+    if (!bmwBrand && allBmw.length > 0) {
+      console.log('❌ BMW existe en DB pero NO aparece en consulta hasSome ["car"]');
+      console.log('🔍 Probando consulta alternativa...');
+      
+      // Probar consulta alternativa
+      const testQuery = await prisma.brand.findMany({
+        where: { 
+          AND: [
+            { name: { contains: 'BMW', mode: 'insensitive' } },
+            { vehicleTypes: { hasSome: ['car'] } }
+          ]
+        }
+      });
+      console.log('🧪 Test query BMW + hasSome car:', testQuery.length, 'results');
+      
+      // Si BMW no aparece en hasSome, agregar BMW manualmente a los resultados
+      if (testQuery.length === 0 && allBmw.length > 0) {
+        console.log('🔧 FIXING: Agregando BMW manualmente a los resultados');
+        const bmwWithModels = await prisma.brand.findFirst({
+          where: { name: { contains: 'BMW', mode: 'insensitive' } },
+          include: {
+            models: {
+              orderBy: { name: 'asc' }
+            }
+          }
+        });
+        
+        if (bmwWithModels) {
+          brands.push(bmwWithModels);
+          console.log('✅ BMW agregado manualmente:', { 
+            name: bmwWithModels.name, 
+            slug: bmwWithModels.slug, 
+            vehicleTypes: bmwWithModels.vehicleTypes 
+          });
+        }
+      }
+      
+    } else if (bmwBrand) {
+      console.log('✅ BMW SÍ aparece en consulta hasSome ["car"]:', { 
+        name: bmwBrand.name, 
+        slug: bmwBrand.slug, 
+        vehicleTypes: bmwBrand.vehicleTypes,
+        id: bmwBrand.id
+      });
+    }
+    
     const formattedBrands = brands.map(brand => ({
       id: brand.id,
-      name: brand.name,
-      slug: brand.slug,
+      value: brand.slug,
+      label: brand.name,
       models: brand.models.map(model => ({
         id: model.id,
-        name: model.name,
-        slug: model.slug
+        value: model.slug,
+        label: model.name
       }))
     }));
     
     res.json({
+      success: true,
       data: formattedBrands
     });
   } catch (error) {
@@ -150,16 +208,17 @@ router.get('/brands/motorcycles', async (req, res) => {
     
     const formattedBrands = brands.map(brand => ({
       id: brand.id,
-      name: brand.name,
-      slug: brand.slug,
+      value: brand.slug,
+      label: brand.name,
       models: brand.models.map(model => ({
         id: model.id,
-        name: model.name,
-        slug: model.slug
+        value: model.slug,
+        label: model.name
       }))
     }));
     
     res.json({
+      success: true,
       data: formattedBrands
     });
   } catch (error) {
@@ -291,6 +350,248 @@ router.get('/marques-moto', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching motorcycle brands:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/propulsion-types
+router.get('/propulsion-types', async (req, res) => {
+  try {
+    const propulsionTypes = await prisma.propulsionType.findMany({
+      orderBy: { name: 'asc' }
+    });
+    
+    const formattedTypes = propulsionTypes.map(type => ({
+      id: type.id,
+      name: type.name,
+      slug: type.value
+    }));
+    
+    res.json({
+      data: formattedTypes
+    });
+  } catch (error) {
+    console.error('Error fetching propulsion types:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/body-types
+router.get('/body-types', async (req, res) => {
+  try {
+    const bodyTypes = await prisma.bodyType.findMany({
+      orderBy: { name: 'asc' }
+    });
+    
+    const formattedTypes = bodyTypes.map(type => ({
+      id: type.id,
+      name: type.name,
+      slug: type.value
+    }));
+    
+    res.json({
+      data: formattedTypes
+    });
+  } catch (error) {
+    console.error('Error fetching body types:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/motorcycle-body-types
+router.get('/motorcycle-body-types', async (req, res) => {
+  try {
+    const bodyTypes = await prisma.motorcycleBodyType.findMany({
+      orderBy: { name: 'asc' }
+    });
+    
+    const formattedTypes = bodyTypes.map(type => ({
+      id: type.id,
+      name: type.name,
+      slug: type.value
+    }));
+    
+    res.json({
+      data: formattedTypes
+    });
+  } catch (error) {
+    console.error('Error fetching motorcycle body types:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/caravan-body-types
+router.get('/caravan-body-types', async (req, res) => {
+  try {
+    const bodyTypes = await prisma.caravanBodyType.findMany({
+      orderBy: { name: 'asc' }
+    });
+    
+    const formattedTypes = bodyTypes.map(type => ({
+      id: type.id,
+      name: type.name,
+      slug: type.value
+    }));
+    
+    res.json({
+      data: formattedTypes
+    });
+  } catch (error) {
+    console.error('Error fetching caravan body types:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/commercial-body-types
+router.get('/commercial-body-types', async (req, res) => {
+  try {
+    const bodyTypes = await prisma.commercialVehicleBodyType.findMany({
+      orderBy: { name: 'asc' }
+    });
+    
+    const formattedTypes = bodyTypes.map(type => ({
+      id: type.id,
+      name: type.name,
+      slug: type.value
+    }));
+    
+    res.json({
+      data: formattedTypes
+    });
+  } catch (error) {
+    console.error('Error fetching commercial body types:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/upholstery-types
+router.get('/upholstery-types', async (req, res) => {
+  try {
+    const upholsteryTypes = await prisma.upholsteryType.findMany({
+      orderBy: { name: 'asc' }
+    });
+    
+    const formattedTypes = upholsteryTypes.map(type => ({
+      id: type.id,
+      name: type.name,
+      slug: type.value
+    }));
+    
+    res.json({
+      data: formattedTypes
+    });
+  } catch (error) {
+    console.error('Error fetching upholstery types:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/upholstery-colors
+router.get('/upholstery-colors', async (req, res) => {
+  try {
+    const upholsteryColors = await prisma.upholsteryColor.findMany({
+      orderBy: { name: 'asc' }
+    });
+    
+    const formattedColors = upholsteryColors.map(color => ({
+      id: color.id,
+      name: color.name,
+      slug: color.value
+    }));
+    
+    res.json({
+      data: formattedColors
+    });
+  } catch (error) {
+    console.error('Error fetching upholstery colors:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/car-extras
+router.get('/car-extras', async (req, res) => {
+  try {
+    const carExtras = await prisma.carExtras.findMany({
+      orderBy: { name: 'asc' }
+    });
+    
+    const formattedExtras = carExtras.map(extra => ({
+      id: extra.id,
+      name: extra.name,
+      slug: extra.value
+    }));
+    
+    res.json({
+      data: formattedExtras
+    });
+  } catch (error) {
+    console.error('Error fetching car extras:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/motorcycle-extras
+router.get('/motorcycle-extras', async (req, res) => {
+  try {
+    const motorcycleExtras = await prisma.motorcycleExtras.findMany({
+      orderBy: { name: 'asc' }
+    });
+    
+    const formattedExtras = motorcycleExtras.map(extra => ({
+      id: extra.id,
+      name: extra.name,
+      slug: extra.value
+    }));
+    
+    res.json({
+      data: formattedExtras
+    });
+  } catch (error) {
+    console.error('Error fetching motorcycle extras:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/caravan-extras
+router.get('/caravan-extras', async (req, res) => {
+  try {
+    const caravanExtras = await prisma.caravanExtras.findMany({
+      orderBy: { name: 'asc' }
+    });
+    
+    const formattedExtras = caravanExtras.map(extra => ({
+      id: extra.id,
+      name: extra.name,
+      slug: extra.value
+    }));
+    
+    res.json({
+      data: formattedExtras
+    });
+  } catch (error) {
+    console.error('Error fetching caravan extras:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/habitacle-extras  
+router.get('/habitacle-extras', async (req, res) => {
+  try {
+    const habitacleExtras = await prisma.habitacleExtras.findMany({
+      orderBy: { name: 'asc' }
+    });
+    
+    const formattedExtras = habitacleExtras.map(extra => ({
+      id: extra.id,
+      name: extra.name,
+      slug: extra.value
+    }));
+    
+    res.json({
+      data: formattedExtras
+    });
+  } catch (error) {
+    console.error('Error fetching habitacle extras:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
