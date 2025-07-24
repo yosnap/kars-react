@@ -2100,7 +2100,67 @@ router.post('/emergency-db-fix', async (req, res) => {
       results.steps.push('Starting data type correction...');
       
       try {
-        // Usar updateMany para corregir tipos sin replica set
+        // Paso 1: Limpiar fechas corruptas en Brand
+        console.log('🔧 Fixing corrupted dates in Brand table...');
+        const brandsWithStringDates = await prisma.brand.findMany({});
+        let brandDatesFixed = 0;
+        
+        for (const brand of brandsWithStringDates) {
+          const updates: any = {};
+          let hasUpdates = false;
+          
+          // Verificar lastSyncAt
+          if (brand.lastSyncAt && typeof brand.lastSyncAt === 'string') {
+            try {
+              const cleanDate = String(brand.lastSyncAt).replace(/"/g, '');
+              updates.lastSyncAt = new Date(cleanDate);
+              hasUpdates = true;
+            } catch (dateError) {
+              updates.lastSyncAt = new Date();
+              hasUpdates = true;
+            }
+          }
+          
+          // Verificar createdAt
+          if (brand.createdAt && typeof brand.createdAt === 'string') {
+            try {
+              const cleanDate = String(brand.createdAt).replace(/"/g, '');
+              updates.createdAt = new Date(cleanDate);
+              hasUpdates = true;
+            } catch (dateError) {
+              updates.createdAt = new Date();
+              hasUpdates = true;
+            }
+          }
+          
+          // Verificar updatedAt
+          if (brand.updatedAt && typeof brand.updatedAt === 'string') {
+            try {
+              const cleanDate = String(brand.updatedAt).replace(/"/g, '');
+              updates.updatedAt = new Date(cleanDate);
+              hasUpdates = true;
+            } catch (dateError) {
+              updates.updatedAt = new Date();
+              hasUpdates = true;
+            }
+          }
+          
+          if (hasUpdates) {
+            try {
+              await prisma.brand.update({
+                where: { id: brand.id },
+                data: updates
+              });
+              brandDatesFixed++;
+            } catch (updateError) {
+              console.error(`Error updating brand ${brand.id}:`, updateError);
+            }
+          }
+        }
+        
+        console.log(`✅ Fixed ${brandDatesFixed} brand date fields`);
+        
+        // Paso 2: Limpiar datos de vehículos
         const vehiclesWithStringPrices = await prisma.vehicle.findMany({
           where: { preu: { not: { gte: 0 } } } // Encuentra precios no numéricos
         });
@@ -2137,10 +2197,11 @@ router.post('/emergency-db-fix', async (req, res) => {
         results.dataTypesFix = {
           preuFixed,
           garantiaFixed,
+          brandDatesFixed,
           success: true
         };
         
-        results.steps.push(`✅ Fixed ${preuFixed} prices and ${garantiaFixed} guarantees`);
+        results.steps.push(`✅ Fixed ${brandDatesFixed} brand dates, ${preuFixed} prices and ${garantiaFixed} guarantees`);
         
       } catch (fixError) {
         console.error('Error fixing data types:', fixError);
