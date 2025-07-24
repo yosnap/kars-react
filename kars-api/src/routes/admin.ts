@@ -2368,6 +2368,150 @@ router.post('/emergency-db-fix', async (req, res) => {
   }
 });
 
+// POST /api/admin/fix-date-fields - Fix fechas sin replica set
+router.post('/fix-date-fields', async (req, res) => {
+  try {
+    console.log('🚀 Emergency fix for DateTime fields without replica set...');
+    
+    let results = {
+      vehiclesProcessed: 0,
+      vehiclesFixed: 0,
+      errors: 0,
+      steps: [] as string[]
+    };
+    
+    results.steps.push('Starting date field fix without replica set...');
+    
+    try {
+      // Obtener todos los vehículos para procesar
+      console.log('🔍 Fetching all vehicles...');
+      
+      // Usar agregación para obtener datos sin fallar por tipos
+      const vehicles = await prisma.$runCommandRaw({
+        aggregate: 'Vehicle',
+        pipeline: [
+          { $match: {} },
+          { $project: {
+            _id: 1,
+            'data-creacio': 1,
+            'data-modificacio': 1,
+            dataCreacio: 1,
+            dataModificacio: 1
+          }}
+        ]
+      }) as any;
+      
+      const vehiclesList = vehicles?.cursor?.firstBatch || [];
+      console.log(`📊 Found ${vehiclesList.length} vehicles to check`);
+      results.steps.push(`Found ${vehiclesList.length} vehicles to check`);
+      results.vehiclesProcessed = vehiclesList.length;
+      
+      // Procesar cada vehículo individualmente
+      for (const vehicle of vehiclesList) {
+        try {
+          let needsUpdate = false;
+          const updates: any = {};
+          
+          // Verificar data-creacio
+          if (vehicle['data-creacio'] && typeof vehicle['data-creacio'] === 'string') {
+            try {
+              const cleanDate = vehicle['data-creacio'].replace(/"/g, '');
+              updates['data-creacio'] = new Date(cleanDate);
+              needsUpdate = true;
+            } catch (dateError) {
+              console.log(`⚠️ Invalid data-creacio: ${vehicle['data-creacio']}`);
+              updates['data-creacio'] = new Date();
+              needsUpdate = true;
+            }
+          }
+          
+          // Verificar data-modificacio
+          if (vehicle['data-modificacio'] && typeof vehicle['data-modificacio'] === 'string') {
+            try {
+              const cleanDate = vehicle['data-modificacio'].replace(/"/g, '');
+              updates['data-modificacio'] = new Date(cleanDate);
+              needsUpdate = true;
+            } catch (dateError) {
+              console.log(`⚠️ Invalid data-modificacio: ${vehicle['data-modificacio']}`);
+              updates['data-modificacio'] = null;
+              needsUpdate = true;
+            }
+          }
+          
+          // Verificar dataCreacio (camelCase)
+          if (vehicle.dataCreacio && typeof vehicle.dataCreacio === 'string') {
+            try {
+              const cleanDate = vehicle.dataCreacio.replace(/"/g, '');
+              updates.dataCreacio = new Date(cleanDate);
+              needsUpdate = true;
+            } catch (dateError) {
+              console.log(`⚠️ Invalid dataCreacio: ${vehicle.dataCreacio}`);
+              updates.dataCreacio = new Date();
+              needsUpdate = true;
+            }
+          }
+          
+          // Verificar dataModificacio (camelCase)
+          if (vehicle.dataModificacio && typeof vehicle.dataModificacio === 'string') {
+            try {
+              const cleanDate = vehicle.dataModificacio.replace(/"/g, '');
+              updates.dataModificacio = new Date(cleanDate);
+              needsUpdate = true;
+            } catch (dateError) {
+              console.log(`⚠️ Invalid dataModificacio: ${vehicle.dataModificacio}`);
+              updates.dataModificacio = null;
+              needsUpdate = true;
+            }
+          }
+          
+          // Actualizar si es necesario usando update sin transacciones
+          if (needsUpdate) {
+            await prisma.$runCommandRaw({
+              update: 'Vehicle',
+              updates: [{
+                q: { _id: vehicle._id },
+                u: { $set: updates }
+              }]
+            });
+            results.vehiclesFixed++;
+            console.log(`✅ Fixed vehicle ${vehicle._id}`);
+          }
+          
+        } catch (vehicleError) {
+          console.error(`❌ Error processing vehicle ${vehicle._id}:`, vehicleError);
+          results.errors++;
+        }
+      }
+      
+      results.steps.push(`✅ Fixed ${results.vehiclesFixed} vehicles (${results.errors} errors)`);
+      
+    } catch (error) {
+      console.error('❌ Error in date fix:', error);
+      results.steps.push('❌ Error during date fix process');
+      results.errors++;
+    }
+    
+    const success = results.vehiclesFixed > 0 || results.errors === 0;
+    results.steps.push(success ? '🎉 Date fix completed!' : '⚠️ Date fix completed with issues');
+    
+    return res.json({
+      message: 'Date field fix completed',
+      success: success,
+      results: results,
+      recommendation: success 
+        ? 'Date fields have been fixed. Try querying vehicles now.'
+        : 'Some fixes failed. Check the logs for details.'
+    });
+    
+  } catch (error) {
+    console.error('❌ Error in fix-date-fields:', error);
+    return res.status(500).json({ 
+      error: 'Failed to fix date fields',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // Endpoint eliminado por seguridad - solo usar emergency-db-fix para este caso específico
 
 // Función auxiliar para formatear tamaño de archivo
