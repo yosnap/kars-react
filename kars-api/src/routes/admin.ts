@@ -2363,6 +2363,93 @@ router.post('/nuclear-db-reset', async (req, res) => {
   }
 });
 
+// POST /api/admin/import-production-data-native - Importar datos usando MongoDB nativo
+router.post('/import-production-data-native', async (req, res) => {
+  try {
+    console.log('📥 Starting NATIVE MongoDB import...');
+    
+    const { MongoClient } = require('mongodb');
+    const fs = require('fs');
+    
+    // Obtener URL de MongoDB desde Prisma
+    const dbUrl = process.env.DATABASE_URL || '';
+    const client = new MongoClient(dbUrl);
+    
+    await client.connect();
+    const db = client.db();
+    
+    // Leer datos
+    const jsonPath = 'production-import.json';
+    if (!fs.existsSync(jsonPath)) {
+      await client.close();
+      return res.status(400).json({ error: 'production-import.json not found' });
+    }
+    
+    const data = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+    
+    let results = {
+      brands: { imported: 0, errors: 0 },
+      vehicles: { imported: 0, errors: 0 }
+    };
+    
+    // Importar marcas directamente
+    try {
+      const brandCollection = db.collection('Brand');
+      await brandCollection.deleteMany({}); // Limpiar
+      
+      for (const brand of data.brands) {
+        brand.lastSyncAt = new Date(brand.lastSyncAt);
+        brand.createdAt = new Date(brand.createdAt);
+        brand.updatedAt = new Date(brand.updatedAt);
+      }
+      
+      const brandResult = await brandCollection.insertMany(data.brands);
+      results.brands.imported = brandResult.insertedCount;
+    } catch (error) {
+      console.error('Brand import error:', error);
+      results.brands.errors = data.brands.length;
+    }
+    
+    // Importar vehículos directamente
+    try {
+      const vehicleCollection = db.collection('Vehicle');
+      await vehicleCollection.deleteMany({}); // Limpiar
+      
+      for (const vehicle of data.vehicles) {
+        // Convertir fechas
+        vehicle['data-creacio'] = new Date(vehicle['data-creacio']);
+        vehicle['data-modificacio'] = vehicle['data-modificacio'] ? new Date(vehicle['data-modificacio']) : null;
+        vehicle.dataCreacio = new Date(vehicle.dataCreacio);
+        vehicle.dataModificacio = vehicle.dataModificacio ? new Date(vehicle.dataModificacio) : null;
+        vehicle.createdAt = new Date(vehicle.createdAt);
+        vehicle.updatedAt = new Date(vehicle.updatedAt);
+        vehicle.lastSyncAt = vehicle.lastSyncAt ? new Date(vehicle.lastSyncAt) : null;
+      }
+      
+      const vehicleResult = await vehicleCollection.insertMany(data.vehicles);
+      results.vehicles.imported = vehicleResult.insertedCount;
+    } catch (error) {
+      console.error('Vehicle import error:', error);
+      results.vehicles.errors = data.vehicles.length;
+    }
+    
+    await client.close();
+    
+    return res.json({
+      success: true,
+      message: 'Native MongoDB import completed',
+      results
+    });
+    
+  } catch (error) {
+    console.error('Native import error:', error);
+    return res.status(500).json({
+      error: 'Native import failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // POST /api/admin/import-production-data - Importar datos desde JSON
 router.post('/import-production-data', async (req, res) => {
   try {
