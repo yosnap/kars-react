@@ -1,15 +1,17 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Car, 
   Database, 
-  RefreshCw, 
-  FileText,
   Plus,
-  CheckCircle,
-  AlertCircle,
   Loader2,
-  Upload,
-  Info
+  Info,
+  Truck,
+  Bike,
+  Home,
+  BarChart3,
+  Building2,
+  FileText,
+  Calendar
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { VERSION_INFO } from '../../config/version';
@@ -18,10 +20,6 @@ import { axiosAdmin } from '../../api/axiosClient';
 
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('overview');
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
-  const [importStatus, setImportStatus] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
-  const [syncMessage, setSyncMessage] = useState('');
-  const [importMessage, setImportMessage] = useState('');
   const [vehicleStats, setVehicleStats] = useState({
     total: 0,
     sold: 0,
@@ -30,7 +28,34 @@ export default function AdminDashboard() {
     inactive: 0,
     loading: true
   });
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [detailedStats, setDetailedStats] = useState({
+    byType: {
+      cotxe: 0,
+      moto: 0,
+      'autocaravana-camper': 0,
+      'vehicle-comercial': 0
+    },
+    byBrand: {
+      cotxe: [],
+      moto: [],
+      'autocaravana-camper': [],
+      'vehicle-comercial': []
+    },
+    totalBrands: {
+      cotxe: 0,
+      moto: 0,
+      'autocaravana-camper': 0,
+      'vehicle-comercial': 0
+    },
+    totalModels: {
+      cotxe: 0,
+      moto: 0,
+      'autocaravana-camper': 0,
+      'vehicle-comercial': 0
+    },
+    loading: true
+  });
 
   // Función para obtener estadísticas de vehículos
   const fetchVehicleStats = async () => {
@@ -66,6 +91,12 @@ export default function AdminDashboard() {
       
       setVehicleStats(stats);
       console.log('📊 Vehicle stats calculated:', stats);
+      console.log('🔍 Debug basic stats:');
+      console.log('- Total vehicles:', totalData.total, 'from API call:', '/vehicles?per_page=1');
+      console.log('- Sold vehicles:', soldData.total, 'from API call:', '/vehicles?per_page=1&venut=true');
+      console.log('- Available vehicles:', availableData.total, 'from API call:', '/vehicles?per_page=1&anunci-actiu=true&venut=false');
+      console.log('- Active vehicles:', activeData.total, 'from API call:', '/vehicles?per_page=1&anunci-actiu=true');
+      console.log('- Inactive vehicles:', inactiveData.total, 'from API call:', '/vehicles?per_page=1&anunci-actiu=false');
       
     } catch (error) {
       console.error('❌ Error fetching vehicle stats:', error);
@@ -73,200 +104,144 @@ export default function AdminDashboard() {
     }
   };
 
+  // Función para obtener estadísticas detalladas
+  const fetchDetailedStats = async () => {
+    try {
+      console.log('🔍 Fetching detailed stats...');
+      setDetailedStats(prev => ({ ...prev, loading: true }));
+      
+      // Llamadas en paralelo para estadísticas por tipo (usando los parámetros correctos)
+      const [cotxeResponse, motoResponse, autocaravanaResponse, comercialResponse, totalResponse] = await Promise.all([
+        axiosAdmin.get('/vehicles?per_page=1&tipus-vehicle=cotxe'),
+        axiosAdmin.get('/vehicles?per_page=1&tipus-vehicle=moto'),
+        axiosAdmin.get('/vehicles?per_page=1&tipus-vehicle=autocaravana-camper'),
+        axiosAdmin.get('/vehicles?per_page=1&tipus-vehicle=vehicle-comercial'),
+        axiosAdmin.get('/vehicles?per_page=1') // Total sin filtro para comparar
+      ]);
+      
+      // Usar los mismos endpoints que ya funcionan en KarsVehicles
+      const [brandsResponse, vehiclesWithFacetsResponse] = await Promise.all([
+        axiosAdmin.get('/brands'), // Todas las marcas con conteo de modelos
+        axiosAdmin.get('/vehicles?per_page=10') // Obtener facets para conteos
+      ]);
+      
+      const allBrands = brandsResponse.data?.data || [];
+      const facets = vehiclesWithFacetsResponse.data?.facets || {};
+      
+      // Como solo tienes coches (150), usar una aproximación simple hasta encontrar el campo correcto
+      // Temporalmente: asumir que todas las marcas son de coches si no encontramos el campo vehicleTypes
+      const hasVehicleTypesField = allBrands.length > 0 && allBrands[0].vehicleTypes !== undefined;
+      
+      let cotxeBrands, motoBrands, cotxeModelsCount, motoModelsCount;
+      
+      if (hasVehicleTypesField) {
+        // Usar el filtrado normal si existe el campo
+        cotxeBrands = allBrands.filter((brand: any) => 
+          brand.vehicleTypes && brand.vehicleTypes.includes('cotxe')
+        );
+        motoBrands = allBrands.filter((brand: any) => 
+          brand.vehicleTypes && brand.vehicleTypes.includes('moto')
+        );
+        cotxeModelsCount = cotxeBrands.reduce((sum: number, brand: any) => 
+          sum + (brand._count?.models || 0), 0
+        );
+        motoModelsCount = motoBrands.reduce((sum: number, brand: any) => 
+          sum + (brand._count?.models || 0), 0
+        );
+      } else {
+        // Fallback: como solo hay coches, contar todas las marcas como de coches
+        cotxeBrands = allBrands;
+        motoBrands = [];
+        cotxeModelsCount = allBrands.reduce((sum: number, brand: any) => 
+          sum + (brand.modelCount || brand._count?.models || 0), 0
+        );
+        motoModelsCount = 0;
+      }
+      
+      console.log('🔍 Debug brands and models:');
+      console.log('- Total brands from /brands:', allBrands.length);
+      console.log('- Sample brand structure:', allBrands[0]);
+      console.log('- All fields in first brand:', Object.keys(allBrands[0] || {}));
+      console.log('- Has vehicleTypes field?', hasVehicleTypesField);
+      console.log('- Using fallback logic?', !hasVehicleTypesField);
+      console.log('- Cotxe brands:', cotxeBrands.length);
+      console.log('- Moto brands:', motoBrands.length);
+      console.log('- Cotxe models total:', cotxeModelsCount);
+      console.log('- Moto models total:', motoModelsCount);
+      
+      // Si solo tienes coches, usar el total real en lugar del filtrado
+      const cotxeActual = cotxeResponse.data.total || 0;
+      const motoActual = motoResponse.data.total || 0;  
+      const autocaravanaActual = autocaravanaResponse.data.total || 0;
+      const comercialActual = comercialResponse.data.total || 0;
+      
+      // Si hay vehículos sin tipo definido y no hay otros tipos, asumimos que son coches
+      const totalSinFiltro = totalResponse.data.total || 0;
+      const sumaConFiltros = cotxeActual + motoActual + autocaravanaActual + comercialActual;
+      const vehiculosSinTipo = totalSinFiltro - sumaConFiltros;
+      
+      const stats = {
+        byType: {
+          cotxe: vehiculosSinTipo > 0 && motoActual === 0 && autocaravanaActual === 0 && comercialActual === 0 
+            ? totalSinFiltro  // Si solo hay coches, mostrar el total real
+            : cotxeActual,    // Si hay otros tipos, mostrar solo los filtrados
+          moto: motoActual,
+          'autocaravana-camper': autocaravanaActual,
+          'vehicle-comercial': comercialActual
+        },
+        byBrand: {
+          cotxe: [], // No mostramos top brands, solo conteos
+          moto: [],
+          'autocaravana-camper': [],
+          'vehicle-comercial': []
+        },
+        totalBrands: {
+          cotxe: cotxeBrands.length,
+          moto: motoBrands.length,
+          'autocaravana-camper': 0, // Los mismos que coches
+          'vehicle-comercial': 0    // Los mismos que coches
+        },
+        totalModels: {
+          cotxe: cotxeModelsCount,
+          moto: motoModelsCount,
+          'autocaravana-camper': 0, // Los mismos que coches
+          'vehicle-comercial': 0    // Los mismos que coches
+        },
+        loading: false
+      };
+      
+      setDetailedStats(stats);
+      console.log('📊 Detailed stats calculated:', stats);
+      console.log('🔍 Debug vehicle counts:');
+      console.log('- Total vehicles (no filter):', totalResponse.data.total, 'from API call:', '/vehicles?per_page=1');
+      console.log('- Cotxe total:', cotxeResponse.data.total, 'from API call:', '/vehicles?per_page=1&tipus-vehicle=cotxe');
+      console.log('- Moto total:', motoResponse.data.total, 'from API call:', '/vehicles?per_page=1&tipus-vehicle=moto');
+      console.log('- Autocaravana total:', autocaravanaResponse.data.total, 'from API call:', '/vehicles?per_page=1&tipus-vehicle=autocaravana-camper');
+      console.log('- Comercial total:', comercialResponse.data.total, 'from API call:', '/vehicles?per_page=1&tipus-vehicle=vehicle-comercial');
+      
+      const sumByType = (cotxeResponse.data.total || 0) + (motoResponse.data.total || 0) + (autocaravanaResponse.data.total || 0) + (comercialResponse.data.total || 0);
+      console.log('🧮 Sum of all types:', sumByType, 'vs Total:', totalResponse.data.total);
+      
+      if (vehiculosSinTipo > 0) {
+        console.log('⚠️ Vehicles without type:', vehiculosSinTipo, '(adding to coches count)');
+        console.log('✅ Corrected cotxe count:', stats.byType.cotxe, '(was', cotxeActual, ')');
+      }
+      
+    } catch (error) {
+      console.error('❌ Error fetching detailed stats:', error);
+      setDetailedStats(prev => ({ ...prev, loading: false }));
+    }
+  };
+
   // Cargar estadísticas al montar el componente
   useEffect(() => {
     fetchVehicleStats();
+    fetchDetailedStats();
   }, []);
 
   const handleCreateVehicle = () => {
     // Aquí podrías abrir un modal o navegar a un formulario
     alert('Función de crear vehículo - por implementar');
-  };
-
-  const handleManualSync = async () => {
-    console.log('🔵 handleManualSync called - API Sync');
-    setSyncStatus('running');
-    setSyncMessage('Iniciando sincronización desde API externa...');
-    
-    try {
-      const response = await axiosAdmin.post('/sync/manual');
-      const data = response.data;
-      setSyncStatus('success');
-      setSyncMessage(`Sincronización desde API iniciada exitosamente. ID: ${data.syncId}`);
-      
-      // Opcional: polling para obtener el estado de la sincronización
-      pollSyncStatus();
-      
-    } catch (error) {
-      console.error('Error during sync:', error);
-      setSyncStatus('error');
-      
-      if (error instanceof Error) {
-        if (error.message.includes('500')) {
-          setSyncMessage('Error 500: Problema en el servidor. Verifica que la API esté funcionando correctamente.');
-        } else if (error.message.includes('Network Error') || error.message.includes('Failed to fetch')) {
-          setSyncMessage('Error de conexión: No se puede conectar al servidor API');
-        } else {
-          setSyncMessage(`Error en la sincronización: ${error.message}`);
-        }
-      } else {
-        setSyncMessage('Error desconocido en la sincronización');
-      }
-    }
-  };
-
-  const handleImportFromJson = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || file.type !== 'application/json') {
-      setImportStatus('error');
-      setImportMessage('Por favor selecciona un archivo JSON válido');
-      return;
-    }
-
-    console.log('🟢 handleFileChange called - JSON Import from file:', file.name);
-    setImportStatus('running');
-    setImportMessage('Leyendo archivo JSON...');
-
-    try {
-      const fileText = await file.text();
-      const vehiclesData = JSON.parse(fileText);
-
-      if (!Array.isArray(vehiclesData)) {
-        throw new Error('El JSON debe contener un array de vehículos');
-      }
-
-      setImportMessage(`Importando ${vehiclesData.length} vehículos...`);
-
-      const response = await axiosAdmin.post('/vehicles/import-json', {
-        vehiclesData,
-        clearDatabase: false
-      });
-
-      if (response.data.success) {
-        setImportStatus('success');
-        setImportMessage(`Importación completada: ${response.data.data.imported} importados, ${response.data.data.skipped} omitidos`);
-        fetchVehicleStats(); // Actualizar estadísticas
-      } else {
-        throw new Error(response.data.error || 'Error desconocido');
-      }
-      
-    } catch (error) {
-      console.error('Error during JSON import:', error);
-      setImportStatus('error');
-      
-      if (error instanceof Error) {
-        if (error.message.includes('500')) {
-          setImportMessage('Error 500: Problema en el servidor. Verifica que el archivo JSON esté disponible.');
-        } else if (error.message.includes('Network Error') || error.message.includes('Failed to fetch')) {
-          setImportMessage('Error de conexión: No se puede conectar al servidor API');
-        } else {
-          setImportMessage(`Error en la importación: ${error.message}`);
-        }
-      } else {
-        setImportMessage('Error desconocido en la importación');
-      }
-    } finally {
-      // Limpiar el input file
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-
-  const handleDownloadJson = async () => {
-    console.log('📁 handleDownloadJson called - Download JSON');
-    
-    try {
-      const response = await axiosAdmin.get('/vehicles/json?format=full&limit=5000');
-      const jsonData = response.data;
-      
-      // Crear y descargar archivo JSON
-      const blob = new Blob([JSON.stringify(jsonData, null, 2)], {
-        type: 'application/json'
-      });
-      
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `kars-vehicles-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      
-      console.log(`✅ Descargado JSON con ${jsonData.total} vehículos`);
-      
-    } catch (error) {
-      console.error('Error descargando JSON:', error);
-      // No necesitamos mostrar toast, solo log
-    }
-  };
-
-  const pollSyncStatus = async () => {
-    // Polling cada 2 segundos para obtener el estado
-    const interval = setInterval(async () => {
-      try {
-        const response = await axiosAdmin.get('/sync/status');
-        const status = response.data;
-        
-        if (!status.isRunning) {
-          clearInterval(interval);
-          if (status.lastSync?.status === 'completed') {
-            setSyncStatus('success');
-            setSyncMessage(`Sincronización completada. Vehículos procesados: ${status.lastSync.vehiclesProcessed || 0}`);
-            // Actualizar estadísticas después de sincronización exitosa
-            fetchVehicleStats();
-          } else if (status.lastSync?.status === 'failed') {
-            setSyncStatus('error');
-            setSyncMessage(`Sincronización falló: ${status.lastSync.error || 'Error desconocido'}`);
-          }
-        } else {
-          setSyncMessage(`Sincronizando... ${status.currentSync?.status || 'En progreso'}`);
-        }
-      } catch (error) {
-        clearInterval(interval);
-        console.error('Error polling sync status:', error);
-      }
-    }, 2000);
-    
-    // Limpiar después de 5 minutos
-    setTimeout(() => clearInterval(interval), 300000);
-  };
-
-  const pollImportStatus = async () => {
-    // Polling cada 2 segundos para obtener el estado de importación
-    const interval = setInterval(async () => {
-      try {
-        const response = await axiosAdmin.get('/admin/import-status');
-        const status = response.data;
-        
-        if (!status.isRunning) {
-          clearInterval(interval);
-          if (status.currentImport?.status === 'completed') {
-            setImportStatus('success');
-            setImportMessage(`Importación completada. ${status.currentImport.createdVehicles} creados, ${status.currentImport.updatedVehicles} actualizados`);
-            // Actualizar estadísticas después de importación exitosa
-            fetchVehicleStats();
-          } else if (status.currentImport?.status === 'failed') {
-            setImportStatus('error');
-            setImportMessage(`Importación falló: ${status.currentImport.errors?.[0] || 'Error desconocido'}`);
-          }
-        } else if (status.currentImport) {
-          const progress = status.currentImport.progressPercentage || 0;
-          setImportMessage(`Importando... ${progress}% completado (${status.currentImport.processedVehicles}/${status.currentImport.totalVehicles})`);
-        }
-      } catch (error) {
-        clearInterval(interval);
-        console.error('Error polling import status:', error);
-      }
-    }, 2000);
-    
-    // Limpiar después de 10 minutos
-    setTimeout(() => clearInterval(interval), 600000);
   };
 
   return (
@@ -278,18 +253,6 @@ export default function AdminDashboard() {
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Gestiona vehículos y configuración de Kars.ad</p>
         </div>
         <div className="flex items-center gap-3">
-          {syncStatus === 'running' && (
-            <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Sincronizando API...
-            </div>
-          )}
-          {importStatus === 'running' && (
-            <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Importando JSON...
-            </div>
-          )}
           <button
             onClick={handleCreateVehicle}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors"
@@ -305,9 +268,6 @@ export default function AdminDashboard() {
         <nav className="flex space-x-8 px-6" aria-label="Tabs">
           {[
             { key: 'overview', label: 'Resumen', icon: Database },
-            { key: 'vehicles', label: 'Vehículos', icon: Car },
-            { key: 'sync', label: 'Sincronización', icon: RefreshCw },
-            { key: 'blog', label: 'Blog', icon: FileText }
           ].map((tab) => {
             const Icon = tab.icon;
             return (
@@ -358,7 +318,7 @@ export default function AdminDashboard() {
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <RefreshCw className="h-8 w-8 text-green-500" />
+                    <Car className="h-8 w-8 text-green-500" />
                   </div>
                   <div className="ml-5 w-0 flex-1">
                     <dl>
@@ -402,7 +362,7 @@ export default function AdminDashboard() {
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <CheckCircle className="h-8 w-8 text-green-600" />
+                    <Database className="h-8 w-8 text-green-600" />
                   </div>
                   <div className="ml-5 w-0 flex-1">
                     <dl>
@@ -424,7 +384,7 @@ export default function AdminDashboard() {
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <AlertCircle className="h-8 w-8 text-red-500" />
+                    <Info className="h-8 w-8 text-red-500" />
                   </div>
                   <div className="ml-5 w-0 flex-1">
                     <dl>
@@ -444,6 +404,156 @@ export default function AdminDashboard() {
               </div>
             </div>
 
+            {/* Detailed Vehicle Statistics */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Vehículos Section */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                    <Car className="w-5 h-5 text-blue-600" />
+                    Vehículos
+                  </h3>
+                  <Link 
+                    to="/admin/kars-vehicles" 
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                    Gestionar
+                  </Link>
+                </div>
+                
+                {/* Vehicle Types */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Por Tipo</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Car className="w-4 h-4 text-blue-500" />
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">Coches</span>
+                      </div>
+                      <span className="text-lg font-bold text-gray-900 dark:text-white">
+                        {detailedStats.loading ? <Loader2 className="w-4 h-4 animate-spin" /> : detailedStats.byType.cotxe}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Bike className="w-4 h-4 text-green-500" />
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">Motos</span>
+                      </div>
+                      <span className="text-lg font-bold text-gray-900 dark:text-white">
+                        {detailedStats.loading ? <Loader2 className="w-4 h-4 animate-spin" /> : detailedStats.byType.moto}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Home className="w-4 h-4 text-purple-500" />
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">Caravanas</span>
+                      </div>
+                      <span className="text-lg font-bold text-gray-900 dark:text-white">
+                        {detailedStats.loading ? <Loader2 className="w-4 h-4 animate-spin" /> : detailedStats.byType['autocaravana-camper']}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Truck className="w-4 h-4 text-orange-500" />
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">Comerciales</span>
+                      </div>
+                      <span className="text-lg font-bold text-gray-900 dark:text-white">
+                        {detailedStats.loading ? <Loader2 className="w-4 h-4 animate-spin" /> : detailedStats.byType['vehicle-comercial']}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Brands and Models Summary */}
+                <div className="space-y-4 mt-6">
+                  <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Marcas y Modelos</h4>
+                  
+                  {/* Cars */}
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-blue-700 dark:text-blue-300 flex items-center gap-1">
+                        <Car className="w-3 h-3" />
+                        Coches
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Marcas:</span>
+                        <span className="font-medium text-gray-900 dark:text-white">
+                          {detailedStats.loading ? <Loader2 className="w-3 h-3 animate-spin" /> : detailedStats.totalBrands.cotxe}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Modelos:</span>
+                        <span className="font-medium text-gray-900 dark:text-white">
+                          {detailedStats.loading ? <Loader2 className="w-3 h-3 animate-spin" /> : detailedStats.totalModels.cotxe}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Motorcycles */}
+                  <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-green-700 dark:text-green-300 flex items-center gap-1">
+                        <Bike className="w-3 h-3" />
+                        Motos
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Marcas:</span>
+                        <span className="font-medium text-gray-900 dark:text-white">
+                          {detailedStats.loading ? <Loader2 className="w-3 h-3 animate-spin" /> : detailedStats.totalBrands.moto}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Modelos:</span>
+                        <span className="font-medium text-gray-900 dark:text-white">
+                          {detailedStats.loading ? <Loader2 className="w-3 h-3 animate-spin" /> : detailedStats.totalModels.moto}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Blog Section */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-green-600" />
+                    Blog
+                  </h3>
+                  <Link 
+                    to="/admin/blog" 
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
+                  >
+                    <Building2 className="w-4 h-4" />
+                    Gestionar
+                  </Link>
+                </div>
+                
+                {/* En Construcción */}
+                <div className="text-center py-12">
+                  <div className="mx-auto w-16 h-16 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center mb-4">
+                    <Calendar className="w-8 h-8 text-yellow-600 dark:text-yellow-400" />
+                  </div>
+                  <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">En Construcción</h4>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
+                    El sistema de gestión de blog estará disponible próximamente.
+                  </p>
+                  <div className="space-y-2 text-xs text-gray-400 dark:text-gray-500">
+                    <p>• Creación y edición de artículos</p>
+                    <p>• Gestión de categorías</p>
+                    <p>• Sistema de publicación</p>
+                    <p>• Editor WYSIWYG avanzado</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
             {/* Quick System Info */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <div className="flex items-center justify-between mb-4">
@@ -474,205 +584,8 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {activeSection === 'vehicles' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Gestión de Vehículos</h2>
-            <div className="space-y-4">
-              <button
-                onClick={handleCreateVehicle}
-                className="w-full p-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-center hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                <Plus className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-                <p className="text-gray-600 dark:text-gray-400">Hacer clic para crear un nuevo vehículo</p>
-              </button>
-              
-              <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-                <p>No hay vehículos configurados aún.</p>
-                <p className="text-sm mt-2">Los vehículos aparecerán aquí una vez creados.</p>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {activeSection === 'sync' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-medium text-gray-900 dark:text-white">Sincronización con Motoraldia</h2>
-              <div className="flex items-center gap-3">
-                {syncStatus === 'running' && (
-                  <div className="flex items-center gap-2 text-sm text-blue-600">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Sincronización API en progreso
-                  </div>
-                )}
-                {importStatus === 'running' && (
-                  <div className="flex items-center gap-2 text-sm text-green-600">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Importación JSON en progreso
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">Opciones de Sincronización</h3>
-                <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                  <strong>Sincronización API:</strong> Conecta directamente con la API de Motoraldia para obtener vehículos en tiempo real.<br/>
-                  <strong>Importación JSON:</strong> Importa vehículos desde el archivo JSON actualizado sin conexión a internet.
-                </p>
-              </div>
-              
-              {/* Estado de sincronización API */}
-              {syncMessage && (
-                <div className={`rounded-lg p-4 flex items-center gap-3 ${
-                  syncStatus === 'success' ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' :
-                  syncStatus === 'error' ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' :
-                  'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
-                }`}>
-                  {syncStatus === 'running' && <Loader2 className="w-5 h-5 animate-spin text-blue-600" />}
-                  {syncStatus === 'success' && <CheckCircle className="w-5 h-5 text-green-600" />}
-                  {syncStatus === 'error' && <AlertCircle className="w-5 h-5 text-red-600" />}
-                  <div>
-                    <p className="text-sm font-medium text-blue-800 dark:text-blue-200">🔗 Sincronización API</p>
-                    <p className={`text-sm ${
-                      syncStatus === 'success' ? 'text-green-700 dark:text-green-300' :
-                      syncStatus === 'error' ? 'text-red-700 dark:text-red-300' :
-                      'text-blue-700 dark:text-blue-300'
-                    }`}>
-                      {syncMessage}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Estado de importación JSON */}
-              {importMessage && (
-                <div className={`rounded-lg p-4 flex items-center gap-3 ${
-                  importStatus === 'success' ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' :
-                  importStatus === 'error' ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' :
-                  'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
-                }`}>
-                  {importStatus === 'running' && <Loader2 className="w-5 h-5 animate-spin text-green-600" />}
-                  {importStatus === 'success' && <CheckCircle className="w-5 h-5 text-green-600" />}
-                  {importStatus === 'error' && <AlertCircle className="w-5 h-5 text-red-600" />}
-                  <div>
-                    <p className="text-sm font-medium text-green-800 dark:text-green-200">📁 Importación JSON</p>
-                    <p className={`text-sm ${
-                      importStatus === 'success' ? 'text-green-700 dark:text-green-300' :
-                      importStatus === 'error' ? 'text-red-700 dark:text-red-300' :
-                      'text-green-700 dark:text-green-300'
-                    }`}>
-                      {importMessage}
-                    </p>
-                  </div>
-                </div>
-              )}
-              
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button 
-                  onClick={handleManualSync}
-                  disabled={syncStatus === 'running' || importStatus === 'running'}
-                  className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${
-                    syncStatus === 'running' || importStatus === 'running'
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }`}
-                >
-                  {syncStatus === 'running' ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-4 h-4" />
-                  )}
-                  {syncStatus === 'running' ? 'Sincronizando...' : '🔵 API Sync'}
-                </button>
-
-                <button 
-                  onClick={handleImportFromJson}
-                  disabled={syncStatus === 'running' || importStatus === 'running'}
-                  className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${
-                    syncStatus === 'running' || importStatus === 'running'
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-green-600 text-white hover:bg-green-700'
-                  }`}
-                >
-                  {importStatus === 'running' ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Upload className="w-4 h-4" />
-                  )}
-                  {importStatus === 'running' ? 'Importando...' : '🟢 JSON Import'}
-                </button>
-
-                <button 
-                  onClick={handleDownloadJson}
-                  disabled={syncStatus === 'running' || importStatus === 'running'}
-                  className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${
-                    syncStatus === 'running' || importStatus === 'running'
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-purple-600 text-white hover:bg-purple-700'
-                  }`}
-                >
-                  <FileText className="w-4 h-4" />
-                  📁 Descargar JSON
-                </button>
-              </div>
-
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Métodos de Importación</h4>
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div>
-                    <h5 className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-2">🔗 Sincronización API</h5>
-                    <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                      <li>• Conecta directamente con Motoraldia</li>
-                      <li>• Datos en tiempo real</li>
-                      <li>• Requiere conexión a internet</li>
-                      <li>• Obtiene las últimas actualizaciones</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h5 className="text-sm font-medium text-green-700 dark:text-green-300 mb-2">📁 Importación JSON</h5>
-                    <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                      <li>• Usa archivo JSON local actualizado</li>
-                      <li>• Procesamiento por lotes optimizado</li>
-                      <li>• No requiere conexión externa</li>
-                      <li>• Ideal cuando la API no está disponible</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h5 className="text-sm font-medium text-purple-700 dark:text-purple-300 mb-2">📁 Descargar JSON</h5>
-                    <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                      <li>• Descarga JSON desde la base de datos</li>
-                      <li>• Hasta 5000 vehículos</li>
-                      <li>• Formato completo con todos los campos</li>
-                      <li>• Para respaldos o migración</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeSection === 'blog' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Gestión del Blog</h2>
-            <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-              <FileText className="w-12 h-12 mx-auto text-gray-300 mb-4" />
-              <p>Gestión de artículos del blog</p>
-              <p className="text-sm mt-2">Funcionalidad por implementar</p>
-            </div>
-          </div>
-        )}
       </div>
-
-      {/* Input file oculto para importar JSON */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".json"
-        onChange={handleFileChange}
-        className="hidden"
-      />
     </AdminLayout>
   );
 }

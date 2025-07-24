@@ -2,6 +2,35 @@
 
 Todas las modificaciones importantes del proyecto se documentarán en este archivo.
 
+## [0.1.4] - 2025-07-24
+
+### Añadido
+- **WhatsApp Integration System**: Sistema completo de integración de WhatsApp
+  - Panel de configuración en admin con campos personalizables
+  - Botón flotante responsive con mensajes contextuales
+  - Context system para compartir datos de vehículos entre componentes
+  - Mensajes personalizados según si se está viendo un vehículo específico
+- **VehicleContext**: Sistema de contexto para gestión de vehículo actual
+- **AdminSettings**: Nueva pestaña de configuración en panel administrativo
+
+### Cambiado
+- **Home Page Simplification**: Simplificación radical de la página principal
+  - Eliminada sección "Últims Vehicles Afegits" completa
+  - Removido listado de últimos vehículos y botón "VEURE MÉS VEHICLES"
+  - Eliminadas API calls innecesarias y estados de carga
+  - Página ahora solo contiene: HeroSection + FeaturedVehicles + Footer
+- **Admin Panel Navigation**: Reestructuración del panel administrativo
+  - Agregada pestaña "Configuración" como navegación principal
+  - Simplificación de la estructura de navegación
+
+### Mejorado
+- Integración del botón WhatsApp en MainLayout para disponibilidad global
+- Mensajes en catalán como idioma principal
+- Context cleanup automático al cambiar de páginas
+- Animaciones y tooltips mejorados en el botón flotante
+
+## [0.1.3] - 2025-07-23
+
 ## [1.0.0] - 2024-06-10
 ### Añadido
 - Instalación y configuración inicial de Tailwind CSS v4, PostCSS y Vite.

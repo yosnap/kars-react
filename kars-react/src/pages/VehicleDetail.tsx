@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useVehicleContext } from "../context/VehicleContext";
 import { axiosAdmin } from "../api/axiosClient";
 import { ChevronLeft, ChevronRight, Phone, MessageCircle, Star, Mail, CheckCircle, MapPin } from "lucide-react";
 import Footer from "../components/Footer";
@@ -68,6 +69,7 @@ const getVehicleDescription = (vehicle: Vehicle) => {
 const VehicleDetail = () => {
   const { slug } = useParams();
   const { user } = useAuth();
+  const { setCurrentVehicle, setIsVehicleDetailPage } = useVehicleContext();
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -89,6 +91,8 @@ const VehicleDetail = () => {
         const veh = res.data;
         if (veh) {
           setVehicle(veh);
+          setCurrentVehicle(veh); // Actualizar el contexto
+          setIsVehicleDetailPage(true); // Marcar que estamos en página de detalle
           if (!user && veh["anunci-actiu"] === false) {
             setError("Aquest vehicle no està disponible públicament.");
           }
@@ -116,6 +120,14 @@ const VehicleDetail = () => {
       setLoadingProfessional(false);
     }
   }, [vehicle]);
+
+  // Limpiar contexto al desmontar componente
+  useEffect(() => {
+    return () => {
+      setCurrentVehicle(null);
+      setIsVehicleDetailPage(false);
+    };
+  }, [setCurrentVehicle, setIsVehicleDetailPage]);
 
   // Cargar marcas
   useEffect(() => {

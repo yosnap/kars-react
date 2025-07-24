@@ -8,13 +8,16 @@ import NewVehicle from "./pages/NewVehicle";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
+import BlogManagement from "./pages/Admin/BlogManagement";
 import SystemInfo from "./pages/Admin/SystemInfo";
+import AdminSettings from "./pages/Admin/AdminSettings";
 import KarsVehicles from "./pages/Admin/KarsVehicles";
 import CreateVehicle from "./pages/Admin/CreateVehicle";
 import EditVehicle from "./pages/Admin/EditVehicle";
 import SystemSetup from "./pages/Admin/SystemSetup";
 import SystemInstaller from "./components/Admin/SystemInstaller";
 import { useAuth } from "./context/AuthContext";
+import { VehicleProvider } from "./context/VehicleContext";
 import Header from "./components/Header";
 import CotxesAndorra from "./pages/CotxesAndorra";
 // Import subpages for vehicle states
@@ -103,9 +106,10 @@ function App() {
   }, [isAdvancedSearchOpen]);
 
   return (
-    <Router>
-      <Header onSearch={handleSearch} onOpenAdvancedSearch={() => setIsAdvancedSearchOpen(true)} />
-      <MainLayout>
+    <VehicleProvider>
+      <Router>
+        <Header onSearch={handleSearch} onOpenAdvancedSearch={() => setIsAdvancedSearchOpen(true)} />
+        <MainLayout>
         <Routes>
           {/* Rutas públicas */}
           <Route path="/" element={<Home onSearch={handleSearch} />} />
@@ -137,7 +141,8 @@ function App() {
           <Route path="/admin/vehicles/edit/:id" element={<PrivateRoute><EditVehicle /></PrivateRoute>} />
           <Route path="/admin/system-setup" element={<PrivateRoute><SystemSetup /></PrivateRoute>} />
           <Route path="/admin/system-info" element={<PrivateRoute><SystemInfo /></PrivateRoute>} />
-          <Route path="/admin/logs" element={<PrivateRoute><SystemInfo /></PrivateRoute>} />
+          <Route path="/admin/blog" element={<PrivateRoute><BlogManagement /></PrivateRoute>} />
+          <Route path="/admin/settings" element={<PrivateRoute><AdminSettings /></PrivateRoute>} />
           <Route path="/admin/installer" element={<PrivateRoute><SystemInstaller /></PrivateRoute>} />
           {/* Ruta dinámica para estado de vehículo */}
           <Route path="/estat-vehicle/:slug" element={<EstatVehiclePage />} />
@@ -177,7 +182,8 @@ function App() {
           },
         }}
       />
-    </Router>
+      </Router>
+    </VehicleProvider>
   );
 }
 

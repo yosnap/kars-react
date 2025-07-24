@@ -29,7 +29,49 @@
 - Dashboard will be accessible only to administrators
 
 ## Recent Updates (July 2025)
-### Latest: Brands/Models Management & Data Initialization System (July 23, 2025)
+### Latest: WhatsApp Integration & Home Page Cleanup (July 24, 2025)
+
+#### ✅ WhatsApp Integration System
+1. **Admin Configuration Panel** - Nueva pestaña "Configuración" con gestión de WhatsApp
+   - Configuración de número de WhatsApp (34604128777)
+   - Nombre de contacto personalizable (Elisabeth)
+   - Plantilla de mensaje personalizable con variables dinámicas
+   - Toggle para habilitar/deshabilitar el botón flotante
+
+2. **WhatsApp Floating Button** - Botón flotante responsive en frontend
+   - **Location**: `src/components/WhatsAppFloatingButton.tsx`
+   - Mensajes contextuales según la página (detalle de vehículo vs genérico)
+   - Integración con `VehicleContext` para datos del vehículo actual
+   - Animaciones y tooltip en catalán
+   - Indicador contextual cuando se está viendo un vehículo
+
+3. **Context Integration** - Sistema de contexto para compartir datos de vehículos
+   - **VehicleContext**: Gestión del vehículo actual y estado de página
+   - **generateVehicleName()**: Función utilitaria para generar nombres de vehículos
+   - Integración en `VehicleDetail.tsx` para actualizar contexto automáticamente
+   - Limpieza automática del contexto al cambiar de página
+
+#### 🏠 Home Page Simplification
+1. **Removed "Últims Vehicles Afegits" Section** - Simplificación de la página principal
+   - Eliminado título y listado de últimos vehículos agregados
+   - Removido botón "VEURE MÉS VEHICLES"
+   - Eliminadas API calls innecesarias y estados de carga
+   - Página ahora solo contiene: HeroSection + FeaturedVehicles + Footer
+
+#### 🛠️ Technical Implementation
+- **AdminSettings.tsx**: Componente completo para configuración de WhatsApp
+- **MainLayout.tsx**: Integración del botón flotante en layout principal
+- **Home.tsx**: Simplificación radical eliminando sección de vehículos
+- **Context System**: Sistema robusto para compartir datos entre componentes
+
+#### 🎯 System Status
+- ✅ WhatsApp configuration: Panel de administración funcional
+- ✅ Floating button: Implementado con mensajes contextuales
+- ✅ Vehicle context: Sistema de contexto funcionando correctamente
+- ✅ Home page cleanup: Página simplificada y optimizada
+- 🔄 API integration: Pendiente guardar configuración en backend
+
+### Previous: Brands/Models Management & Data Initialization System (July 23, 2025)
 
 #### ✅ Brands and Models Management Interface
 1. **Admin Panel Integration** - Nueva pestaña "Marcas/Modelos" en la página de vehículos

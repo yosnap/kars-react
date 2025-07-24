@@ -5,6 +5,7 @@ import {
   Car, 
   Info,
   FileText,
+  Settings,
   LogOut
 } from 'lucide-react';
 
@@ -19,7 +20,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'Vehicles Kars.ad', href: '/admin/kars-vehicles', icon: Car },
     { name: 'Informació del Sistema', href: '/admin/system-info', icon: Info },
-    { name: 'Registres del Sistema', href: '/admin/logs', icon: FileText },
+    { name: 'Blog', href: '/admin/blog', icon: FileText },
+    { name: 'Configuración', href: '/admin/settings', icon: Settings },
   ];
 
   const isActive = (href: string) => {
