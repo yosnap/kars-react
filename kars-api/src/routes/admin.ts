@@ -2300,9 +2300,9 @@ router.post('/initialize-db', async (req, res) => {
     console.log('🚀 Initializing database from admin panel...');
     
     let results = {
-      dataTypesFix: null,
-      vehicleImport: null,
-      steps: []
+      dataTypesFix: null as any,
+      vehicleImport: null as any,
+      steps: [] as string[]
     };
     
     // Paso 1: Corregir tipos de datos
@@ -2499,7 +2499,7 @@ router.post('/import-json-vehicles', async (req, res) => {
     // Importar nuevos vehículos
     let imported = 0;
     let errors = 0;
-    const errorDetails = [];
+    const errorDetails: any[] = [];
     
     for (const vehicle of vehicles) {
       try {
