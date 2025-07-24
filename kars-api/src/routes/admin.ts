@@ -2669,6 +2669,226 @@ router.post('/nuclear-fix', async (req, res) => {
   }
 });
 
+// POST /api/admin/ultimate-fix - Corregir JSON y reimportar
+router.post('/ultimate-fix', async (req, res) => {
+  try {
+    console.log('🚀 Ultimate fix: Clean JSON and reimport...');
+    
+    let results = {
+      deletedVehicles: 0,
+      importedVehicles: 0,
+      jsonCleaned: false,
+      errors: 0,
+      steps: [] as string[]
+    };
+    
+    results.steps.push('Starting ultimate fix - clean JSON and reimport...');
+    
+    try {
+      const fs = require('fs');
+      const jsonPath = 'vehicles_export.json';
+      const cleanJsonPath = 'vehicles_clean.json';
+      
+      // Paso 1: Leer JSON original
+      if (!fs.existsSync(jsonPath)) {
+        results.steps.push('❌ No vehicles_export.json file found');
+        return res.json({
+          message: 'Ultimate fix failed',
+          success: false,
+          results: results,
+          recommendation: 'No vehicles_export.json file found to process.'
+        });
+      }
+      
+      console.log('📄 Reading and cleaning JSON...');
+      const jsonData = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+      const vehicles = jsonData.vehicles || jsonData;
+      
+      if (!Array.isArray(vehicles)) {
+        results.steps.push('❌ Invalid JSON structure');
+        return res.json({
+          message: 'Ultimate fix failed',
+          success: false,
+          results: results,
+          recommendation: 'JSON file has invalid structure.'
+        });
+      }
+      
+      // Paso 2: Limpiar todas las fechas en el JSON
+      console.log(`🧹 Cleaning dates in ${vehicles.length} vehicles...`);
+      
+      const cleanedVehicles = vehicles.map((vehicle: any) => {
+        const cleanVehicle = { ...vehicle };
+        
+        // Función helper para limpiar fechas
+        const cleanDate = (dateValue: any) => {
+          if (!dateValue) return null;
+          
+          let dateStr = String(dateValue);
+          // Remover comillas dobles que causan el problema
+          dateStr = dateStr.replace(/^"(.*)"$/, '$1');
+          
+          try {
+            const date = new Date(dateStr);
+            return isNaN(date.getTime()) ? null : date.toISOString();
+          } catch (e) {
+            return null;
+          }
+        };
+        
+        // Limpiar todos los campos de fecha
+        if (cleanVehicle['data-creacio']) {
+          cleanVehicle['data-creacio'] = cleanDate(cleanVehicle['data-creacio']) || new Date().toISOString();
+        }
+        
+        if (cleanVehicle['data-modificacio']) {
+          cleanVehicle['data-modificacio'] = cleanDate(cleanVehicle['data-modificacio']);
+        }
+        
+        if (cleanVehicle.dataCreacio) {
+          cleanVehicle.dataCreacio = cleanDate(cleanVehicle.dataCreacio) || new Date().toISOString();
+        }
+        
+        if (cleanVehicle.dataModificacio) {
+          cleanVehicle.dataModificacio = cleanDate(cleanVehicle.dataModificacio);
+        }
+        
+        if (cleanVehicle.createdAt) {
+          cleanVehicle.createdAt = cleanDate(cleanVehicle.createdAt) || new Date().toISOString();
+        }
+        
+        if (cleanVehicle.updatedAt) {
+          cleanVehicle.updatedAt = cleanDate(cleanVehicle.updatedAt) || new Date().toISOString();
+        }
+        
+        if (cleanVehicle.lastSyncAt) {
+          cleanVehicle.lastSyncAt = cleanDate(cleanVehicle.lastSyncAt);
+        }
+        
+        return cleanVehicle;
+      });
+      
+      // Paso 3: Guardar JSON limpio
+      fs.writeFileSync(cleanJsonPath, JSON.stringify({ vehicles: cleanedVehicles }, null, 2));
+      results.jsonCleaned = true;
+      results.steps.push(`🧹 Cleaned JSON saved to ${cleanJsonPath}`);
+      
+      // Paso 4: Eliminar vehículos existentes
+      console.log('🗑️ Deleting all existing vehicles...');
+      
+      const deleteResult = await prisma.$runCommandRaw({
+        delete: 'Vehicle',
+        deletes: [{ q: {}, limit: 0 }]
+      });
+      
+      results.deletedVehicles = (deleteResult as any).n || 0;
+      results.steps.push(`🗑️ Deleted ${results.deletedVehicles} vehicles`);
+      
+      // Paso 5: Importar desde JSON limpio
+      console.log('💾 Importing from cleaned JSON...');
+      
+      const batchSize = 20;
+      for (let i = 0; i < cleanedVehicles.length; i += batchSize) {
+        const batch = cleanedVehicles.slice(i, i + batchSize);
+        const documentsToInsert: any[] = [];
+        
+        for (const vehicle of batch) {
+          try {
+            const { _id, ...cleanVehicle } = vehicle;
+            
+            // Convertir fechas ISO string a Date objects para MongoDB
+            const processedVehicle = {
+              ...cleanVehicle,
+              
+              'data-creacio': cleanVehicle['data-creacio'] 
+                ? new Date(cleanVehicle['data-creacio'])
+                : new Date(),
+                
+              'data-modificacio': cleanVehicle['data-modificacio'] 
+                ? new Date(cleanVehicle['data-modificacio'])
+                : null,
+                
+              dataCreacio: cleanVehicle.dataCreacio 
+                ? new Date(cleanVehicle.dataCreacio)
+                : new Date(),
+                
+              dataModificacio: cleanVehicle.dataModificacio 
+                ? new Date(cleanVehicle.dataModificacio)
+                : null,
+                
+              createdAt: cleanVehicle.createdAt 
+                ? new Date(cleanVehicle.createdAt)
+                : new Date(),
+                
+              updatedAt: new Date(),
+              
+              lastSyncAt: cleanVehicle.lastSyncAt 
+                ? new Date(cleanVehicle.lastSyncAt)
+                : null,
+                
+              // Otros tipos
+              preu: typeof cleanVehicle.preu === 'number' 
+                ? cleanVehicle.preu 
+                : parseFloat(String(cleanVehicle.preu)) || 0,
+                
+              garantia: cleanVehicle.garantia !== undefined 
+                ? String(cleanVehicle.garantia) 
+                : null
+            };
+            
+            documentsToInsert.push(processedVehicle);
+            
+          } catch (vehicleError) {
+            console.error('Error processing vehicle:', vehicleError);
+            results.errors++;
+          }
+        }
+        
+        // Insertar lote
+        if (documentsToInsert.length > 0) {
+          try {
+            await prisma.$runCommandRaw({
+              insert: 'Vehicle',
+              documents: documentsToInsert
+            });
+            results.importedVehicles += documentsToInsert.length;
+            console.log(`💾 Imported ${results.importedVehicles}/${cleanedVehicles.length} vehicles...`);
+          } catch (batchError) {
+            console.error('Error inserting batch:', batchError);
+            results.errors += documentsToInsert.length;
+          }
+        }
+      }
+      
+      results.steps.push(`💾 Imported ${results.importedVehicles} vehicles with ${results.errors} errors`);
+      
+    } catch (error) {
+      console.error('❌ Error in ultimate fix:', error);
+      results.steps.push(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      results.errors++;
+    }
+    
+    const success = results.importedVehicles > 0 && results.jsonCleaned && results.errors < results.importedVehicles / 4;
+    results.steps.push(success ? '🎉 Ultimate fix completed!' : '⚠️ Ultimate fix completed with issues');
+    
+    return res.json({
+      message: 'Ultimate fix completed',
+      success: success,
+      results: results,
+      recommendation: success 
+        ? 'JSON cleaned and vehicles reimported with correct formats. DateTime errors should be gone!'
+        : 'Some issues occurred. Check logs for details.'
+    });
+    
+  } catch (error) {
+    console.error('❌ Error in ultimate-fix:', error);
+    return res.status(500).json({ 
+      error: 'Failed to perform ultimate fix',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // Endpoint eliminado por seguridad - solo usar emergency-db-fix para este caso específico
 
 // Función auxiliar para formatear tamaño de archivo
