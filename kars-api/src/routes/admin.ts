@@ -2084,7 +2084,8 @@ router.post('/fix-data-types', async (req, res) => {
     console.log('🔧 Starting data type correction...');
     
     const { MongoClient } = require('mongodb');
-    const url = process.env.DATABASE_URL || 'mongodb://localhost:27017/karsad';
+    // Use production database URL with encoded special characters
+    const url = process.env.PRODUCTION_DATABASE_URL || 'mongodb://kars:c%40D%2APZmWQZ49gMYD@motoraldia_kars-db:27017/karsad?tls=false';
     const client = new MongoClient(url);
     
     await client.connect();
