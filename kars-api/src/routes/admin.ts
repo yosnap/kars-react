@@ -2078,165 +2078,10 @@ router.get('/import-status', async (req, res) => {
   }
 });
 
-// GET /api/admin/fix-data-types-safe - Endpoint seguro para verificar y corregir tipos
-router.get('/fix-data-types-safe', async (req, res) => {
-  try {
-    console.log('🔧 Safe data type correction using Prisma connection...');
-    
-    // Get the MongoDB database from Prisma's internal connection
-    const internalClient = (prisma as any)._engineConfig?.internalDatasources?.db;
-    const dbUrl = process.env.DATABASE_URL;
-    
-    // Extract connection details from DATABASE_URL
-    const match = dbUrl?.match(/mongodb:\/\/([^:]+):([^@]+)@([^\/]+)\/([^?]+)/);
-    if (!match) {
-      throw new Error('Could not parse DATABASE_URL');
-    }
-    
-    const [, username, password, host, database] = match;
-    console.log(`📊 Using database: ${database} on ${host}`);
-    
-    // Use Prisma's $runCommandRaw to execute MongoDB commands
-    try {
-      // First, let's check what we have
-      const stats = await prisma.$runCommandRaw({
-        collStats: 'Vehicle',
-        scale: 1
-      });
-      
-      console.log(`📊 Collection stats: ${stats.count} documents`);
-      
-      // Fix using aggregation pipeline
-      const fixPreu = await prisma.$runCommandRaw({
-        update: 'Vehicle',
-        updates: [{
-          q: { preu: { $type: 'string' } },
-          u: [{ $set: { preu: { $toDouble: { $ifNull: [{ $toDouble: '$preu' }, 0] } } } }],
-          multi: true
-        }]
-      });
-      
-      const fixGarantia = await prisma.$runCommandRaw({
-        update: 'Vehicle',
-        updates: [{
-          q: { garantia: { $type: 'bool' } },
-          u: [{ $set: { garantia: { $toString: '$garantia' } } }],
-          multi: true
-        }]
-      });
-      
-      console.log('✅ Fix commands executed');
-      
-      return res.json({
-        message: 'Data type correction completed using safe method',
-        success: true,
-        results: {
-          stats: stats,
-          preuFixed: fixPreu.nModified || 0,
-          garantiaFixed: fixGarantia.nModified || 0
-        },
-        recommendation: 'Restart the service to apply changes'
-      });
-      
-    } catch (cmdError) {
-      console.error('Error with runCommand:', cmdError);
-      
-      return res.json({
-        message: 'MongoDB command failed, but the initialize-db endpoint should work better',
-        success: false,
-        error: cmdError instanceof Error ? cmdError.message : 'Unknown error',
-        recommendation: 'Use POST /api/admin/initialize-db instead for a more reliable solution'
-      });
-    }
-    
-  } catch (error) {
-    console.error('❌ Error in safe fix:', error);
-    return res.status(500).json({ 
-      error: 'Failed to fix data types safely',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
+// Endpoints eliminados por seguridad - solo usar emergency-db-fix
 
-// POST /api/admin/fix-data-types - Corregir tipos de datos en producción
-router.post('/fix-data-types', async (req, res) => {
-  try {
-    console.log('🔧 Starting data type correction...');
-    
-    const { MongoClient } = require('mongodb');
-    // Use production database URL exactly as provided with authSource
-    const url = process.env.PRODUCTION_DATABASE_URL || 'mongodb://kars:c@D*PZmWQZ49gMYD@motoraldia_kars-db:27017/karsad?authSource=admin&tls=false';
-    const client = new MongoClient(url);
-    
-    await client.connect();
-    const db = client.db();
-    
-    console.log('🔍 Analyzing current data types...');
-    
-    // Count current issues
-    const preuStrings = await db.collection('Vehicle').countDocuments({ preu: { $type: 'string' } });
-    const garantiaBools = await db.collection('Vehicle').countDocuments({ garantia: { $type: 'bool' } });
-    
-    console.log(`📊 Found ${preuStrings} prices as string, ${garantiaBools} garantias as boolean`);
-    
-    let preuFixed = 0;
-    let garantiaFixed = 0;
-    
-    if (preuStrings > 0) {
-      console.log('🔧 Fixing price fields...');
-      const result1 = await db.collection('Vehicle').updateMany(
-        { preu: { $type: 'string' } },
-        [{ $set: { preu: { $toDouble: { $ifNull: [{ $toDouble: '$preu' }, 0] } } } }]
-      );
-      preuFixed = result1.modifiedCount;
-    }
-    
-    if (garantiaBools > 0) {
-      console.log('🔧 Fixing garantia fields...');
-      const result2 = await db.collection('Vehicle').updateMany(
-        { garantia: { $type: 'bool' } },
-        [{ $set: { garantia: { $toString: '$garantia' } } }]
-      );
-      garantiaFixed = result2.modifiedCount;
-    }
-    
-    // Verify fixes
-    const remainingPreuStrings = await db.collection('Vehicle').countDocuments({ preu: { $type: 'string' } });
-    const remainingGarantiaBools = await db.collection('Vehicle').countDocuments({ garantia: { $type: 'bool' } });
-    
-    await client.close();
-    
-    const success = remainingPreuStrings === 0 && remainingGarantiaBools === 0;
-    
-    console.log(`✅ Data type correction completed. Fixed ${preuFixed} prices, ${garantiaFixed} garantias`);
-    
-    return res.json({
-      message: 'Data type correction completed',
-      success: success,
-      results: {
-        preuFixed: preuFixed,
-        garantiaFixed: garantiaFixed,
-        remainingIssues: {
-          preuStrings: remainingPreuStrings,
-          garantiaBools: remainingGarantiaBools
-        }
-      },
-      recommendation: success 
-        ? 'All data types corrected successfully. You can now restart the service.'
-        : 'Some issues remain. Please check the logs and try again.'
-    });
-    
-  } catch (error) {
-    console.error('❌ Error fixing data types:', error);
-    return res.status(500).json({ 
-      error: 'Failed to fix data types',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
-
-// POST /api/admin/initialize-db - Inicializar y corregir base de datos desde el admin
-router.post('/initialize-db', async (req, res) => {
+// POST /api/admin/emergency-db-fix - Fix SOLO para este problema específico
+router.post('/emergency-db-fix', async (req, res) => {
   try {
     console.log('🚀 Initializing database from admin panel...');
     
@@ -2246,146 +2091,161 @@ router.post('/initialize-db', async (req, res) => {
       steps: [] as string[]
     };
     
-    // Paso 1: Corregir tipos de datos
-    console.log('📊 Step 1: Fixing data types...');
-    results.steps.push('Starting data type correction...');
+    // Usar MongoDB directamente para evitar problemas con Prisma
+    const { MongoClient } = require('mongodb');
+    const url = process.env.DATABASE_URL;
     
-    try {
-      // Usar Prisma directamente para evitar problemas de conexión
-      const vehicles = await prisma.vehicle.findMany({
-        select: { id: true, preu: true, garantia: true }
-      });
-      
-      let preuFixed = 0;
-      let garantiaFixed = 0;
-      
-      for (const vehicle of vehicles) {
-        const updates: any = {};
-        let needsUpdate = false;
-        
-        // Corregir preu si es string
-        if (typeof vehicle.preu === 'string') {
-          updates.preu = parseFloat(vehicle.preu) || 0;
-          needsUpdate = true;
-          preuFixed++;
-        }
-        
-        // Corregir garantia si es boolean
-        if (typeof vehicle.garantia === 'boolean') {
-          updates.garantia = String(vehicle.garantia);
-          needsUpdate = true;
-          garantiaFixed++;
-        }
-        
-        if (needsUpdate) {
-          await prisma.vehicle.update({
-            where: { id: vehicle.id },
-            data: updates
-          });
-        }
-      }
-      
-      results.dataTypesFix = {
-        preuFixed,
-        garantiaFixed,
-        success: true
-      };
-      
-      results.steps.push(`✅ Fixed ${preuFixed} prices and ${garantiaFixed} guarantees`);
-      
-    } catch (fixError) {
-      console.error('Error fixing data types:', fixError);
-      results.dataTypesFix = {
-        error: fixError instanceof Error ? fixError.message : 'Unknown error',
-        success: false
-      };
-      results.steps.push('❌ Error fixing data types');
+    if (!url) {
+      throw new Error('DATABASE_URL not found');
     }
     
-    // Paso 2: Importar vehículos desde JSON si existe
-    console.log('📄 Step 2: Importing vehicles from JSON...');
-    results.steps.push('Checking for vehicles JSON file...');
+    const client = new MongoClient(url);
+    await client.connect();
+    const db = client.db();
     
     try {
-      const fs = require('fs');
-      const jsonPath = 'vehicles_export.json';
+      // Paso 1: Corregir tipos de datos
+      console.log('📊 Step 1: Fixing data types...');
+      results.steps.push('Starting data type correction...');
       
-      if (fs.existsSync(jsonPath)) {
-        results.steps.push('JSON file found, importing vehicles...');
+      try {
+        // Contar problemas actuales
+        const preuStrings = await db.collection('Vehicle').countDocuments({ preu: { $type: 'string' } });
+        const garantiaBools = await db.collection('Vehicle').countDocuments({ garantia: { $type: 'bool' } });
         
-        const jsonData = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-        const vehicles = jsonData.vehicles || jsonData;
+        console.log(`📊 Found ${preuStrings} prices as string, ${garantiaBools} garantias as boolean`);
         
-        if (Array.isArray(vehicles) && vehicles.length > 0) {
-          // Limpiar vehículos existentes
-          const deleteResult = await prisma.vehicle.deleteMany({});
-          results.steps.push(`🗑️ Deleted ${deleteResult.count} existing vehicles`);
-          
-          // Importar nuevos vehículos
-          let imported = 0;
-          let errors = 0;
-          
-          for (const vehicle of vehicles) {
-            try {
-              const { _id, ...cleanVehicle } = vehicle;
-              
-              // Asegurar tipos correctos
-              const processedVehicle = {
-                ...cleanVehicle,
-                preu: typeof cleanVehicle.preu === 'number' 
-                  ? cleanVehicle.preu 
-                  : parseFloat(cleanVehicle.preu) || 0,
-                garantia: cleanVehicle.garantia !== undefined 
-                  ? String(cleanVehicle.garantia) 
-                  : null,
-                dataCreacio: cleanVehicle.dataCreacio 
-                  ? new Date(cleanVehicle.dataCreacio) 
-                  : new Date(),
-                createdAt: cleanVehicle.createdAt 
-                  ? new Date(cleanVehicle.createdAt) 
-                  : new Date(),
-                updatedAt: new Date()
-              };
-              
-              await prisma.vehicle.create({ data: processedVehicle });
-              imported++;
-              
-            } catch (vehicleError) {
-              console.error('Error importing vehicle:', vehicleError);
-              errors++;
-            }
-          }
-          
-          results.vehicleImport = {
-            imported,
-            errors,
-            total: vehicles.length,
-            success: true
-          };
-          
-          results.steps.push(`✅ Imported ${imported} vehicles (${errors} errors)`);
-          
-        } else {
-          results.steps.push('⚠️ JSON file is empty or invalid format');
-          results.vehicleImport = { success: false, message: 'Empty JSON file' };
+        let preuFixed = 0;
+        let garantiaFixed = 0;
+        
+        // Corregir precios: string -> number
+        if (preuStrings > 0) {
+          const result1 = await db.collection('Vehicle').updateMany(
+            { preu: { $type: 'string' } },
+            [{ $set: { preu: { $toDouble: { $ifNull: [{ $toDouble: '$preu' }, 0] } } } }]
+          );
+          preuFixed = result1.modifiedCount;
         }
         
-      } else {
-        results.steps.push('📄 No JSON file found, skipping import');
-        results.vehicleImport = { success: false, message: 'No JSON file found' };
+        // Corregir garantías: boolean -> string
+        if (garantiaBools > 0) {
+          const result2 = await db.collection('Vehicle').updateMany(
+            { garantia: { $type: 'bool' } },
+            [{ $set: { garantia: { $toString: '$garantia' } } }]
+          );
+          garantiaFixed = result2.modifiedCount;
+        }
+        
+        results.dataTypesFix = {
+          preuFixed,
+          garantiaFixed,
+          success: true
+        };
+        
+        results.steps.push(`✅ Fixed ${preuFixed} prices and ${garantiaFixed} guarantees`);
+        
+      } catch (fixError) {
+        console.error('Error fixing data types:', fixError);
+        results.dataTypesFix = {
+          error: fixError instanceof Error ? fixError.message : 'Unknown error',
+          success: false
+        };
+        results.steps.push('❌ Error fixing data types');
       }
       
-    } catch (importError) {
-      console.error('Error importing vehicles:', importError);
-      results.vehicleImport = {
-        error: importError instanceof Error ? importError.message : 'Unknown error',
-        success: false
-      };
-      results.steps.push('❌ Error importing vehicles');
+      // Paso 2: Importar vehículos desde JSON si existe
+      console.log('📄 Step 2: Importing vehicles from JSON...');
+      results.steps.push('Checking for vehicles JSON file...');
+      
+      try {
+        const fs = require('fs');
+        const jsonPath = 'vehicles_export.json';
+        
+        if (fs.existsSync(jsonPath)) {
+          results.steps.push('JSON file found, importing vehicles...');
+          
+          const jsonData = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+          const vehicles = jsonData.vehicles || jsonData;
+          
+          if (Array.isArray(vehicles) && vehicles.length > 0) {
+            // Limpiar vehículos existentes
+            const deleteResult = await db.collection('Vehicle').deleteMany({});
+            results.steps.push(`🗑️ Deleted ${deleteResult.deletedCount} existing vehicles`);
+            
+            // Importar nuevos vehículos
+            let imported = 0;
+            let errors = 0;
+            
+            for (const vehicle of vehicles) {
+              try {
+                const { _id, ...cleanVehicle } = vehicle;
+                
+                // Asegurar tipos correctos
+                const processedVehicle = {
+                  ...cleanVehicle,
+                  preu: typeof cleanVehicle.preu === 'number' 
+                    ? cleanVehicle.preu 
+                    : parseFloat(cleanVehicle.preu) || 0,
+                  garantia: cleanVehicle.garantia !== undefined 
+                    ? String(cleanVehicle.garantia) 
+                    : null,
+                  dataCreacio: cleanVehicle.dataCreacio 
+                    ? new Date(cleanVehicle.dataCreacio) 
+                    : new Date(),
+                  createdAt: cleanVehicle.createdAt 
+                    ? new Date(cleanVehicle.createdAt) 
+                    : new Date(),
+                  updatedAt: new Date()
+                };
+                
+                await db.collection('Vehicle').insertOne(processedVehicle);
+                imported++;
+                
+                if (imported % 50 === 0) {
+                  console.log(`💾 Imported ${imported}/${vehicles.length} vehicles...`);
+                }
+                
+              } catch (vehicleError) {
+                console.error('Error importing vehicle:', vehicleError);
+                errors++;
+                if (errors > 20) break; // Stop if too many errors
+              }
+            }
+            
+            results.vehicleImport = {
+              imported,
+              errors,
+              total: vehicles.length,
+              success: true
+            };
+            
+            results.steps.push(`✅ Imported ${imported} vehicles (${errors} errors)`);
+            
+          } else {
+            results.steps.push('⚠️ JSON file is empty or invalid format');
+            results.vehicleImport = { success: false, message: 'Empty JSON file' };
+          }
+          
+        } else {
+          results.steps.push('📄 No JSON file found, skipping import');
+          results.vehicleImport = { success: false, message: 'No JSON file found' };
+        }
+        
+      } catch (importError) {
+        console.error('Error importing vehicles:', importError);
+        results.vehicleImport = {
+          error: importError instanceof Error ? importError.message : 'Unknown error',
+          success: false
+        };
+        results.steps.push('❌ Error importing vehicles');
+      }
+      
+    } finally {
+      await client.close();
     }
     
     // Resumen final
-    const success = results.dataTypesFix?.success && (results.vehicleImport?.success !== false);
+    const success = results.dataTypesFix?.success && results.vehicleImport?.success;
     results.steps.push(success ? '🎉 Database initialization completed!' : '⚠️ Initialization completed with some issues');
     
     return res.json({
@@ -2406,114 +2266,7 @@ router.post('/initialize-db', async (req, res) => {
   }
 });
 
-// POST /api/admin/import-json-vehicles - Importar SOLO vehículos desde JSON
-router.post('/import-json-vehicles', async (req, res) => {
-  try {
-    console.log('📄 Importing vehicles from JSON file...');
-    
-    const fs = require('fs');
-    const jsonPath = 'vehicles_export.json';
-    
-    if (!fs.existsSync(jsonPath)) {
-      return res.status(404).json({ 
-        error: 'JSON file not found',
-        message: 'vehicles_export.json not found in the server'
-      });
-    }
-    
-    const jsonData = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-    const vehicles = jsonData.vehicles || jsonData;
-    
-    if (!Array.isArray(vehicles) || vehicles.length === 0) {
-      return res.status(400).json({ 
-        error: 'Invalid JSON format',
-        message: 'JSON file is empty or does not contain vehicles array'
-      });
-    }
-    
-    console.log(`📊 Preparing to import ${vehicles.length} vehicles...`);
-    
-    // Limpiar vehículos existentes
-    const deleteResult = await prisma.vehicle.deleteMany({});
-    console.log(`🗑️ Deleted ${deleteResult.count} existing vehicles`);
-    
-    // Importar nuevos vehículos
-    let imported = 0;
-    let errors = 0;
-    const errorDetails: any[] = [];
-    
-    for (const vehicle of vehicles) {
-      try {
-        const { _id, ...cleanVehicle } = vehicle;
-        
-        // Asegurar tipos correctos
-        const processedVehicle = {
-          ...cleanVehicle,
-          preu: typeof cleanVehicle.preu === 'number' 
-            ? cleanVehicle.preu 
-            : parseFloat(cleanVehicle.preu) || 0,
-          garantia: cleanVehicle.garantia !== undefined 
-            ? String(cleanVehicle.garantia) 
-            : null,
-          dataCreacio: cleanVehicle.dataCreacio 
-            ? new Date(cleanVehicle.dataCreacio) 
-            : new Date(),
-          createdAt: cleanVehicle.createdAt 
-            ? new Date(cleanVehicle.createdAt) 
-            : new Date(),
-          updatedAt: new Date()
-        };
-        
-        await prisma.vehicle.create({ data: processedVehicle });
-        imported++;
-        
-        if (imported % 50 === 0) {
-          console.log(`💾 Imported ${imported}/${vehicles.length} vehicles...`);
-        }
-        
-      } catch (vehicleError) {
-        console.error('Error importing vehicle:', vehicleError);
-        errors++;
-        errorDetails.push({
-          vehicle: vehicle.slug || vehicle.id || 'unknown',
-          error: vehicleError instanceof Error ? vehicleError.message : 'Unknown error'
-        });
-        
-        // Si hay demasiados errores, parar
-        if (errors > 20) {
-          console.log('🛑 Too many errors, stopping import');
-          break;
-        }
-      }
-    }
-    
-    // Verificar importación
-    const finalCount = await prisma.vehicle.count();
-    console.log(`✅ Import completed: ${imported} imported, ${errors} errors, ${finalCount} total in DB`);
-    
-    return res.json({
-      message: 'Vehicle import from JSON completed',
-      success: imported > 0,
-      results: {
-        totalVehicles: vehicles.length,
-        imported: imported,
-        errors: errors,
-        finalCount: finalCount,
-        errorDetails: errorDetails.slice(0, 5) // Solo los primeros 5 errores
-      },
-      recommendation: imported > 0 
-        ? 'Vehicles imported successfully. You may need to restart the service.'
-        : 'Import failed. Check error details.'
-    });
-    
-  } catch (error) {
-    console.error('❌ Error importing vehicles from JSON:', error);
-    return res.status(500).json({ 
-      error: 'Failed to import vehicles from JSON',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
+// Endpoint eliminado por seguridad - solo usar emergency-db-fix para este caso específico
 
 // Función auxiliar para formatear tamaño de archivo
 function formatFileSize(bytes: number): string {
