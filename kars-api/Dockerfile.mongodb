@@ -24,8 +24,8 @@ until mongosh --eval "print('MongoDB is ready')" > /dev/null 2>&1; do
   sleep 2
 done
 
-echo "Initializing replica set with authentication..."
-mongosh -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "
+echo "Initializing replica set..."
+mongosh --eval "
 try {
   rs.status();
   print('Replica set already initialized');
@@ -46,6 +46,28 @@ try {
 "
 
 echo "Replica set initialization completed"
+
+# Set up authentication if credentials are provided
+if [ ! -z "$MONGO_INITDB_ROOT_USERNAME" ] && [ ! -z "$MONGO_INITDB_ROOT_PASSWORD" ]; then
+  echo "Setting up authentication..."
+  mongosh --eval "
+    use admin;
+    try {
+      db.createUser({
+        user: '$MONGO_INITDB_ROOT_USERNAME',
+        pwd: '$MONGO_INITDB_ROOT_PASSWORD',
+        roles: ['root']
+      });
+      print('Root user created successfully');
+    } catch (error) {
+      if (error.message.includes('already exists')) {
+        print('Root user already exists');
+      } else {
+        print('Error creating user: ' + error.message);
+      }
+    }
+  "
+fi
 EOF
 
 # Make the script executable
@@ -58,8 +80,8 @@ set -e
 
 echo "Starting MongoDB with replica set configuration and authentication..."
 
-# Start MongoDB in background with replica set and authentication
-mongod --replSet rs0 --bind_ip_all --port 27017 --auth &
+# Start MongoDB in background with replica set (authentication will be set up after initialization)
+mongod --replSet rs0 --bind_ip_all --port 27017 &
 MONGOD_PID=\$!
 
 # Wait a bit for MongoDB to start
