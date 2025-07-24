@@ -2565,7 +2565,196 @@ router.post('/import-production-data', async (req, res) => {
   }
 });
 
-// Endpoint eliminado por seguridad - solo usar emergency-db-fix para este caso específico
+// POST /api/admin/clean-imported-data - Limpiar datos importados para compatibilidad con Prisma
+router.post('/clean-imported-data', async (req, res) => {
+  try {
+    console.log('🧹 Starting data cleanup for Prisma compatibility...');
+    
+    const { MongoClient } = require('mongodb');
+    
+    // Obtener URL de MongoDB desde Prisma
+    const dbUrl = process.env.DATABASE_URL || '';
+    const client = new MongoClient(dbUrl);
+    
+    await client.connect();
+    const db = client.db();
+    
+    const results = {
+      vehiclesFixed: 0,
+      brandsFixed: 0,
+      errors: 0,
+      steps: [] as string[]
+    };
+    
+    results.steps.push('🔍 Analyzing Vehicle collection...');
+    
+    // Limpiar colección Vehicle
+    const vehicleCollection = db.collection('Vehicle');
+    const vehicles = await vehicleCollection.find({}).toArray();
+    results.steps.push(`📊 Found ${vehicles.length} vehicles to check`);
+    
+    for (const vehicle of vehicles) {
+      try {
+        const updates: any = {};
+        let needsUpdate = false;
+        
+        // Asegurar campos requeridos no-null
+        if (!vehicle.titolAnunci || vehicle.titolAnunci === null) {
+          updates.titolAnunci = vehicle.slug || vehicle.marca || 'Vehicle';
+          needsUpdate = true;
+        }
+        
+        if (!vehicle.slug || vehicle.slug === null) {
+          updates.slug = vehicle.titolAnunci || vehicle.marca || `vehicle-${vehicle._id}`;
+          needsUpdate = true;
+        }
+        
+        if (!vehicle.marca || vehicle.marca === null) {
+          updates.marca = 'Unknown';
+          needsUpdate = true;
+        }
+        
+        if (!vehicle.model || vehicle.model === null) {
+          updates.model = 'Unknown';
+          needsUpdate = true;
+        }
+        
+        if (!vehicle.tipusVehicle || vehicle.tipusVehicle === null) {
+          updates.tipusVehicle = 'cotxe';
+          needsUpdate = true;
+        }
+        
+        if (!vehicle.tipusCarrosseria || vehicle.tipusCarrosseria === null) {
+          updates.tipusCarrosseria = 'Unknown';
+          needsUpdate = true;
+        }
+        
+        if (!vehicle.tipusCombustible || vehicle.tipusCombustible === null) {
+          updates.tipusCombustible = 'Unknown';
+          needsUpdate = true;
+        }
+        
+        if (!vehicle.tipusTransmissio || vehicle.tipusTransmissio === null) {
+          updates.tipusTransmissio = 'Unknown';
+          needsUpdate = true;
+        }
+        
+        if (!vehicle.estat || vehicle.estat === null) {
+          updates.estat = 'nou';
+          needsUpdate = true;
+        }
+        
+        if (!vehicle.preu || vehicle.preu === null) {
+          updates.preu = 0;
+          needsUpdate = true;
+        }
+        
+        // Asegurar que arrays no sean null
+        if (!Array.isArray(vehicle.imatges)) {
+          updates.imatges = [];
+          needsUpdate = true;
+        }
+        
+        if (!Array.isArray(vehicle.extras)) {
+          updates.extras = [];
+          needsUpdate = true;
+        }
+        
+        // Limpiar campos de fecha
+        const dateFields = ['dataCreacio', 'dataModificacio', 'createdAt', 'updatedAt', 'lastSyncAt'];
+        for (const field of dateFields) {
+          if (vehicle[field] && typeof vehicle[field] === 'string') {
+            // Remover comillas dobles si existen
+            const cleanDate = vehicle[field].replace(/^"|"$/g, '');
+            try {
+              updates[field] = new Date(cleanDate);
+              needsUpdate = true;
+            } catch (e) {
+              if (field === 'dataCreacio' || field === 'createdAt') {
+                updates[field] = new Date();
+                needsUpdate = true;
+              }
+            }
+          }
+        }
+        
+        if (needsUpdate) {
+          await vehicleCollection.updateOne(
+            { _id: vehicle._id },
+            { $set: updates }
+          );
+          results.vehiclesFixed++;
+        }
+        
+      } catch (error) {
+        console.error(`Error fixing vehicle ${vehicle._id}:`, error);
+        results.errors++;
+      }
+    }
+    
+    results.steps.push(`✅ Fixed ${results.vehiclesFixed} vehicles`);
+    
+    // Limpiar colección Brand
+    results.steps.push('🔍 Analyzing Brand collection...');
+    const brandCollection = db.collection('Brand');
+    const brands = await brandCollection.find({}).toArray();
+    results.steps.push(`📊 Found ${brands.length} brands to check`);
+    
+    for (const brand of brands) {
+      try {
+        const updates: any = {};
+        let needsUpdate = false;
+        
+        if (!brand.name || brand.name === null) {
+          updates.name = brand.slug || 'Unknown Brand';
+          needsUpdate = true;
+        }
+        
+        if (!brand.slug || brand.slug === null) {
+          updates.slug = brand.name || `brand-${brand._id}`;
+          needsUpdate = true;
+        }
+        
+        if (!Array.isArray(brand.vehicleTypes)) {
+          updates.vehicleTypes = ['cotxe'];
+          needsUpdate = true;
+        }
+        
+        if (needsUpdate) {
+          await brandCollection.updateOne(
+            { _id: brand._id },
+            { $set: updates }
+          );
+          results.brandsFixed++;
+        }
+        
+      } catch (error) {
+        console.error(`Error fixing brand ${brand._id}:`, error);
+        results.errors++;
+      }
+    }
+    
+    results.steps.push(`✅ Fixed ${results.brandsFixed} brands`);
+    
+    await client.close();
+    
+    results.steps.push('🎉 Data cleanup completed successfully!');
+    
+    return res.json({
+      success: true,
+      message: 'Data cleanup completed',
+      results
+    });
+    
+  } catch (error) {
+    console.error('❌ Error cleaning imported data:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to clean imported data',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
 
 // Función auxiliar para formatear tamaño de archivo
 function formatFileSize(bytes: number): string {
