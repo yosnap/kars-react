@@ -2141,70 +2141,11 @@ router.get('/fix-data-types-safe', async (req, res) => {
     } catch (cmdError) {
       console.error('Error with runCommand:', cmdError);
       
-      // Fallback: Manual fix using Prisma queries
-      console.log('🔄 Falling back to manual fix...');
-      
-      // We'll fetch and update in batches to avoid type errors
-      const batchSize = 10;
-      let fixed = 0;
-      let offset = 0;
-      let hasMore = true;
-      
-      while (hasMore) {
-        try {
-          // Use raw query to get IDs only (avoiding type conversion issues)
-          const vehicleIds = await prisma.$queryRaw`
-            SELECT _id FROM "Vehicle" 
-            LIMIT ${batchSize} 
-            OFFSET ${offset}
-          ` as any[];
-          
-          if (vehicleIds.length === 0) {
-            hasMore = false;
-            break;
-          }
-          
-          // For each ID, update using MongoDB command
-          for (const vehicle of vehicleIds) {
-            await prisma.$runCommandRaw({
-              update: 'Vehicle',
-              updates: [{
-                q: { _id: vehicle._id },
-                u: [{
-                  $set: {
-                    preu: { $cond: {
-                      if: { $eq: [{ $type: '$preu' }, 'string'] },
-                      then: { $toDouble: { $ifNull: [{ $toDouble: '$preu' }, 0] } },
-                      else: '$preu'
-                    }},
-                    garantia: { $cond: {
-                      if: { $eq: [{ $type: '$garantia' }, 'bool'] },
-                      then: { $toString: '$garantia' },
-                      else: '$garantia'
-                    }}
-                  }
-                }]
-              }]
-            });
-            fixed++;
-          }
-          
-          offset += batchSize;
-          console.log(`🔧 Processed ${fixed} vehicles...`);
-          
-        } catch (batchError) {
-          console.error('Batch error:', batchError);
-          hasMore = false;
-        }
-      }
-      
       return res.json({
-        message: 'Data type correction completed using fallback method',
-        success: true,
-        results: {
-          vehiclesProcessed: fixed
-        },
-        recommendation: 'Restart the service to apply changes'
+        message: 'MongoDB command failed, but the initialize-db endpoint should work better',
+        success: false,
+        error: cmdError instanceof Error ? cmdError.message : 'Unknown error',
+        recommendation: 'Use POST /api/admin/initialize-db instead for a more reliable solution'
       });
     }
     
