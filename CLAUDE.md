@@ -29,6 +29,54 @@
 - Dashboard will be accessible only to administrators
 
 ## Recent Updates (July 2025)
+### Latest: Brands/Models Management & Data Initialization System (July 23, 2025)
+
+#### ✅ Brands and Models Management Interface
+1. **Admin Panel Integration** - Nueva pestaña "Marcas/Modelos" en la página de vehículos
+   - Gestión completa de marcas para coches y motos
+   - Sincronización automática de modelos desde API externa
+   - Interface de administración con crear, editar, eliminar marcas
+   - Filtrado por tipo de vehículo y búsqueda de marcas
+
+2. **API Endpoints Fixes** - Corrección de rutas de API para marcas y modelos
+   - Fixed: `/marques-cotxe` → `/brands/cars`
+   - Fixed: `/marques-moto` → `/brands/motorcycles`
+   - Proper error handling para endpoints no disponibles
+   - Brand/model mapping para mostrar nombres legibles en lugar de slugs
+
+3. **Data Initialization System** - Sistema completo de inicialización de datos
+   - **Location**: `kars-api/src/data/initialization/`
+   - **Files**: 
+     - `car-extras.ts` - 58 extras para coches con 4 idiomas
+     - `motorhome-extras.ts` - 51 extras para autocaravanas con 4 idiomas
+     - `motorcycle-extras.ts` - 47 extras para motos con 4 idiomas
+     - `index.ts` - Utilidades y funciones helper
+   - **Languages**: Catalán (principal), Español, Francés, Inglés
+   - **Features**: Normalización, búsqueda, traducciones automáticas
+
+#### 🛠️ Technical Implementation
+- **BrandsModelsManager.tsx**: Componente completo para gestión de marcas y modelos
+- **Tab System**: Sistema de pestañas integrado en KarsVehicles
+- **API Integration**: Conectado con endpoints existentes de brands y sync
+- **Multi-language Support**: Sistema preparado para traducciones de extras
+
+#### 📁 New File Structure
+```
+kars-api/src/data/initialization/
+├── car-extras.ts           # Extras coches (58 items)
+├── motorhome-extras.ts     # Extras autocaravanas (51 items)  
+├── motorcycle-extras.ts    # Extras motos (47 items)
+├── index.ts               # Utilities & exports
+└── README.md              # Documentation
+```
+
+#### 🎯 System Status
+- ✅ Brands management: Fully functional with CRUD operations
+- ✅ Models sync: API integration working from external source
+- ✅ Data initialization: Complete multi-language extras system
+- ✅ Admin interface: Integrated in vehicle management page
+- 🔄 Database seeding: Ready for integration (pending implementation)
+
 ### System Fixes & Improvements
 
 #### ✅ Vehicle Management System Overhaul
