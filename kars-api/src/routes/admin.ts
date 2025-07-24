@@ -2368,10 +2368,10 @@ router.post('/emergency-db-fix', async (req, res) => {
   }
 });
 
-// POST /api/admin/fix-date-fields - Fix fechas sin replica set
+// POST /api/admin/fix-date-fields - Fix fechas sin replica set (versión simplificada)
 router.post('/fix-date-fields', async (req, res) => {
   try {
-    console.log('🚀 Emergency fix for DateTime fields without replica set...');
+    console.log('🚀 Simple fix for DateTime fields...');
     
     let results = {
       vehiclesProcessed: 0,
@@ -2380,98 +2380,90 @@ router.post('/fix-date-fields', async (req, res) => {
       steps: [] as string[]
     };
     
-    results.steps.push('Starting date field fix without replica set...');
+    results.steps.push('Starting simple date field fix...');
     
     try {
-      // Obtener todos los vehículos para procesar
-      console.log('🔍 Fetching all vehicles...');
+      // Usar MongoDB directamente sin Prisma para evitar validaciones
+      console.log('🔍 Connecting directly to MongoDB...');
       
-      // Usar agregación para obtener datos sin fallar por tipos
-      const vehicles = await prisma.$runCommandRaw({
-        aggregate: 'Vehicle',
-        pipeline: [
-          { $match: {} },
-          { $project: {
-            _id: 1,
-            'data-creacio': 1,
-            'data-modificacio': 1,
-            dataCreacio: 1,
-            dataModificacio: 1
-          }}
-        ]
+      // Obtener la conexión raw de MongoDB
+      const db = await prisma.$runCommandRaw({ ping: 1 });
+      console.log('✅ MongoDB connection successful');
+      
+      // Buscar documentos con fechas como string
+      const vehiclesWithStringDates = await prisma.$runCommandRaw({
+        find: 'Vehicle',
+        filter: {
+          $or: [
+            { 'data-creacio': { $type: 'string' } },
+            { 'data-modificacio': { $type: 'string' } }
+          ]
+        },
+        limit: 100 // Procesar en lotes pequeños
       }) as any;
       
-      const vehiclesList = vehicles?.cursor?.firstBatch || [];
-      console.log(`📊 Found ${vehiclesList.length} vehicles to check`);
-      results.steps.push(`Found ${vehiclesList.length} vehicles to check`);
-      results.vehiclesProcessed = vehiclesList.length;
+      const vehicles = vehiclesWithStringDates?.cursor?.firstBatch || [];
+      console.log(`📊 Found ${vehicles.length} vehicles with string dates`);
+      results.steps.push(`Found ${vehicles.length} vehicles with string dates`);
+      results.vehiclesProcessed = vehicles.length;
       
-      // Procesar cada vehículo individualmente
-      for (const vehicle of vehiclesList) {
+      if (vehicles.length === 0) {
+        results.steps.push('✅ No vehicles found with string dates - all good!');
+        return res.json({
+          message: 'No date fixes needed',
+          success: true,
+          results: results,
+          recommendation: 'All dates are already in correct format.'
+        });
+      }
+      
+      // Procesar cada vehículo
+      for (const vehicle of vehicles) {
         try {
-          let needsUpdate = false;
           const updates: any = {};
+          let hasUpdates = false;
           
-          // Verificar data-creacio
+          // Procesar data-creacio
           if (vehicle['data-creacio'] && typeof vehicle['data-creacio'] === 'string') {
-            try {
-              const cleanDate = vehicle['data-creacio'].replace(/"/g, '');
-              updates['data-creacio'] = new Date(cleanDate);
-              needsUpdate = true;
-            } catch (dateError) {
-              console.log(`⚠️ Invalid data-creacio: ${vehicle['data-creacio']}`);
-              updates['data-creacio'] = new Date();
-              needsUpdate = true;
+            const cleanDateStr = vehicle['data-creacio'].replace(/"/g, '');
+            if (cleanDateStr && cleanDateStr !== 'null' && cleanDateStr !== 'undefined') {
+              try {
+                const dateObj = new Date(cleanDateStr);
+                if (!isNaN(dateObj.getTime())) {
+                  updates['data-creacio'] = dateObj;
+                  hasUpdates = true;
+                }
+              } catch (e) {
+                console.log(`⚠️ Invalid date: ${cleanDateStr}`);
+                updates['data-creacio'] = new Date();
+                hasUpdates = true;
+              }
             }
           }
           
-          // Verificar data-modificacio
+          // Procesar data-modificacio
           if (vehicle['data-modificacio'] && typeof vehicle['data-modificacio'] === 'string') {
-            try {
-              const cleanDate = vehicle['data-modificacio'].replace(/"/g, '');
-              updates['data-modificacio'] = new Date(cleanDate);
-              needsUpdate = true;
-            } catch (dateError) {
-              console.log(`⚠️ Invalid data-modificacio: ${vehicle['data-modificacio']}`);
-              updates['data-modificacio'] = null;
-              needsUpdate = true;
+            const cleanDateStr = vehicle['data-modificacio'].replace(/"/g, '');
+            if (cleanDateStr && cleanDateStr !== 'null' && cleanDateStr !== 'undefined') {
+              try {
+                const dateObj = new Date(cleanDateStr);
+                if (!isNaN(dateObj.getTime())) {
+                  updates['data-modificacio'] = dateObj;
+                  hasUpdates = true;
+                }
+              } catch (e) {
+                console.log(`⚠️ Invalid modification date: ${cleanDateStr}`);
+              }
             }
           }
           
-          // Verificar dataCreacio (camelCase)
-          if (vehicle.dataCreacio && typeof vehicle.dataCreacio === 'string') {
-            try {
-              const cleanDate = vehicle.dataCreacio.replace(/"/g, '');
-              updates.dataCreacio = new Date(cleanDate);
-              needsUpdate = true;
-            } catch (dateError) {
-              console.log(`⚠️ Invalid dataCreacio: ${vehicle.dataCreacio}`);
-              updates.dataCreacio = new Date();
-              needsUpdate = true;
-            }
-          }
-          
-          // Verificar dataModificacio (camelCase)
-          if (vehicle.dataModificacio && typeof vehicle.dataModificacio === 'string') {
-            try {
-              const cleanDate = vehicle.dataModificacio.replace(/"/g, '');
-              updates.dataModificacio = new Date(cleanDate);
-              needsUpdate = true;
-            } catch (dateError) {
-              console.log(`⚠️ Invalid dataModificacio: ${vehicle.dataModificacio}`);
-              updates.dataModificacio = null;
-              needsUpdate = true;
-            }
-          }
-          
-          // Actualizar si es necesario usando update sin transacciones
-          if (needsUpdate) {
+          // Actualizar si hay cambios
+          if (hasUpdates) {
             await prisma.$runCommandRaw({
-              update: 'Vehicle',
-              updates: [{
-                q: { _id: vehicle._id },
-                u: { $set: updates }
-              }]
+              updateOne: {
+                filter: { _id: vehicle._id },
+                update: { $set: updates }
+              }
             });
             results.vehiclesFixed++;
             console.log(`✅ Fixed vehicle ${vehicle._id}`);
@@ -2480,6 +2472,7 @@ router.post('/fix-date-fields', async (req, res) => {
         } catch (vehicleError) {
           console.error(`❌ Error processing vehicle ${vehicle._id}:`, vehicleError);
           results.errors++;
+          if (results.errors > 10) break; // Stop if too many errors
         }
       }
       
@@ -2487,11 +2480,11 @@ router.post('/fix-date-fields', async (req, res) => {
       
     } catch (error) {
       console.error('❌ Error in date fix:', error);
-      results.steps.push('❌ Error during date fix process');
+      results.steps.push(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       results.errors++;
     }
     
-    const success = results.vehiclesFixed > 0 || results.errors === 0;
+    const success = results.vehiclesFixed > 0 && results.errors < results.vehiclesProcessed / 2;
     results.steps.push(success ? '🎉 Date fix completed!' : '⚠️ Date fix completed with issues');
     
     return res.json({
@@ -2500,13 +2493,177 @@ router.post('/fix-date-fields', async (req, res) => {
       results: results,
       recommendation: success 
         ? 'Date fields have been fixed. Try querying vehicles now.'
-        : 'Some fixes failed. Check the logs for details.'
+        : 'Some fixes failed. Check the server logs for details.'
     });
     
   } catch (error) {
     console.error('❌ Error in fix-date-fields:', error);
     return res.status(500).json({ 
       error: 'Failed to fix date fields',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// POST /api/admin/nuclear-fix - Eliminar y reimportar vehículos problemáticos
+router.post('/nuclear-fix', async (req, res) => {
+  try {
+    console.log('🚀 Nuclear fix: Delete and reimport vehicles...');
+    
+    let results = {
+      deletedVehicles: 0,
+      importedVehicles: 0,
+      errors: 0,
+      steps: [] as string[]
+    };
+    
+    results.steps.push('Starting nuclear fix - delete and reimport...');
+    
+    try {
+      // Paso 1: Eliminar todos los vehículos
+      console.log('🗑️ Deleting all existing vehicles...');
+      
+      const deleteResult = await prisma.$runCommandRaw({
+        delete: 'Vehicle',
+        deletes: [{ q: {}, limit: 0 }]
+      });
+      
+      results.deletedVehicles = (deleteResult as any).n || 0;
+      results.steps.push(`🗑️ Deleted ${results.deletedVehicles} vehicles`);
+      console.log(`🗑️ Deleted ${results.deletedVehicles} vehicles`);
+      
+      // Paso 2: Verificar si existe el archivo JSON
+      const fs = require('fs');
+      const jsonPath = 'vehicles_export.json';
+      
+      if (!fs.existsSync(jsonPath)) {
+        results.steps.push('❌ No vehicles_export.json file found');
+        return res.json({
+          message: 'Nuclear fix partially completed',
+          success: false,
+          results: results,
+          recommendation: 'Vehicles deleted but no JSON file found to reimport.'
+        });
+      }
+      
+      // Paso 3: Leer y procesar vehículos del JSON
+      console.log('📄 Reading vehicles from JSON...');
+      const jsonData = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+      const vehicles = jsonData.vehicles || jsonData;
+      
+      if (!Array.isArray(vehicles) || vehicles.length === 0) {
+        results.steps.push('❌ Invalid or empty JSON file');
+        return res.json({
+          message: 'Nuclear fix failed',
+          success: false,
+          results: results,
+          recommendation: 'Vehicles deleted but JSON file is invalid.'
+        });
+      }
+      
+      results.steps.push(`📄 Found ${vehicles.length} vehicles in JSON`);
+      
+      // Paso 4: Importar vehículos con fechas corregidas
+      console.log('💾 Importing vehicles with corrected dates...');
+      
+      const batchSize = 25; // Lotes más pequeños
+      for (let i = 0; i < vehicles.length; i += batchSize) {
+        const batch = vehicles.slice(i, i + batchSize);
+        const documentsToInsert: any[] = [];
+        
+        for (const vehicle of batch) {
+          try {
+            const { _id, ...cleanVehicle } = vehicle;
+            
+            // Procesar todas las fechas correctamente
+            const processedVehicle = {
+              ...cleanVehicle,
+              
+              // Procesar fechas - remover comillas y convertir a Date
+              'data-creacio': cleanVehicle['data-creacio'] 
+                ? new Date(String(cleanVehicle['data-creacio']).replace(/"/g, ''))
+                : new Date(),
+                
+              'data-modificacio': cleanVehicle['data-modificacio'] 
+                ? new Date(String(cleanVehicle['data-modificacio']).replace(/"/g, ''))
+                : null,
+                
+              dataCreacio: cleanVehicle.dataCreacio 
+                ? new Date(String(cleanVehicle.dataCreacio).replace(/"/g, ''))
+                : new Date(),
+                
+              dataModificacio: cleanVehicle.dataModificacio 
+                ? new Date(String(cleanVehicle.dataModificacio).replace(/"/g, ''))
+                : null,
+                
+              createdAt: cleanVehicle.createdAt 
+                ? new Date(String(cleanVehicle.createdAt).replace(/"/g, ''))
+                : new Date(),
+                
+              updatedAt: new Date(),
+              
+              lastSyncAt: cleanVehicle.lastSyncAt 
+                ? new Date(String(cleanVehicle.lastSyncAt).replace(/"/g, ''))
+                : null,
+                
+              // Asegurar otros tipos correctos
+              preu: typeof cleanVehicle.preu === 'number' 
+                ? cleanVehicle.preu 
+                : parseFloat(String(cleanVehicle.preu)) || 0,
+                
+              garantia: cleanVehicle.garantia !== undefined 
+                ? String(cleanVehicle.garantia) 
+                : null
+            };
+            
+            documentsToInsert.push(processedVehicle);
+            
+          } catch (vehicleError) {
+            console.error('Error processing vehicle:', vehicleError);
+            results.errors++;
+          }
+        }
+        
+        // Insertar lote
+        if (documentsToInsert.length > 0) {
+          try {
+            await prisma.$runCommandRaw({
+              insert: 'Vehicle',
+              documents: documentsToInsert
+            });
+            results.importedVehicles += documentsToInsert.length;
+            console.log(`💾 Imported ${results.importedVehicles}/${vehicles.length} vehicles...`);
+          } catch (batchError) {
+            console.error('Error inserting batch:', batchError);
+            results.errors += documentsToInsert.length;
+          }
+        }
+      }
+      
+      results.steps.push(`💾 Imported ${results.importedVehicles} vehicles with ${results.errors} errors`);
+      
+    } catch (error) {
+      console.error('❌ Error in nuclear fix:', error);
+      results.steps.push(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      results.errors++;
+    }
+    
+    const success = results.importedVehicles > 0 && results.errors < results.importedVehicles / 4;
+    results.steps.push(success ? '🎉 Nuclear fix completed!' : '⚠️ Nuclear fix completed with issues');
+    
+    return res.json({
+      message: 'Nuclear fix completed',
+      success: success,
+      results: results,
+      recommendation: success 
+        ? 'All vehicles reimported with correct date formats. Try querying vehicles now.'
+        : 'Some issues occurred during reimport. Check logs for details.'
+    });
+    
+  } catch (error) {
+    console.error('❌ Error in nuclear-fix:', error);
+    return res.status(500).json({ 
+      error: 'Failed to perform nuclear fix',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
