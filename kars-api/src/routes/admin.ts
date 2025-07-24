@@ -2848,6 +2848,127 @@ router.post('/memory-fix', async (req, res) => {
   }
 });
 
+// POST /api/admin/nuclear-clean - Limpieza absoluta sin importar nada
+router.post('/nuclear-clean', async (req, res) => {
+  try {
+    console.log('🚀 Nuclear clean: Complete database cleanup...');
+    
+    let results = {
+      deletedVehicles: 0,
+      verificationTest: false,
+      steps: [] as string[]
+    };
+    
+    results.steps.push('Starting nuclear clean - complete DB cleanup...');
+    
+    try {
+      // Paso 1: Eliminar TODO de la colección Vehicle
+      console.log('🗑️ Performing complete database cleanup...');
+      
+      const deleteResult = await prisma.$runCommandRaw({
+        delete: 'Vehicle',
+        deletes: [{ q: {}, limit: 0 }]
+      });
+      
+      results.deletedVehicles = (deleteResult as any).n || 0;
+      results.steps.push(`🗑️ Deleted ${results.deletedVehicles} vehicles`);
+      
+      // Paso 2: Verificar que la colección esté completamente vacía
+      console.log('🔍 Verifying database is clean...');
+      
+      const countResult = await prisma.$runCommandRaw({
+        count: 'Vehicle'
+      });
+      
+      const remainingCount = (countResult as any).n || 0;
+      results.steps.push(`🔍 Remaining vehicles in DB: ${remainingCount}`);
+      
+      if (remainingCount === 0) {
+        results.verificationTest = true;
+        results.steps.push('✅ Database completely clean - verified!');
+      } else {
+        results.steps.push('❌ Database still has vehicles - cleanup failed!');
+      }
+      
+      // Paso 3: Crear UN vehículo de prueba con fechas correctas
+      console.log('🧪 Creating test vehicle with clean dates...');
+      
+      const testVehicle = {
+        id: 'test-vehicle-clean-dates',
+        slug: 'test-vehicle-clean',
+        titolAnunci: 'Test Vehicle - Clean Dates',
+        tipusVehicle: 'cotxe',
+        marcaCotxe: 'Test',
+        modelsCotxe: 'Test Model',
+        preu: 25000,
+        any: 2024,
+        quilometratge: 50000,
+        estatVehicle: 'seminou',
+        tipusCombustible: 'gasolina',
+        anunciActiu: true,
+        anunciDestacat: 0,
+        venut: false,
+        
+        // Fechas completamente limpias
+        'data-creacio': new Date(),
+        'data-modificacio': new Date(),
+        dataCreacio: new Date(),
+        dataModificacio: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastSyncAt: new Date(),
+        
+        professionalId: 'test-professional',
+        galeriaVehicleUrls: [],
+        extresCotxe: [],
+        extresMoto: [],
+        extresAutocaravana: []
+      };
+      
+      await prisma.$runCommandRaw({
+        insert: 'Vehicle',
+        documents: [testVehicle]
+      });
+      
+      results.steps.push('🧪 Created test vehicle with clean dates');
+      
+      // Paso 4: Probar consulta para verificar que funciona
+      console.log('✅ Testing vehicle query...');
+      
+      try {
+        const testQuery = await prisma.vehicle.findMany({ take: 1 });
+        results.steps.push(`✅ Query test successful - found ${testQuery.length} vehicle(s)`);
+        results.verificationTest = true;
+      } catch (queryError) {
+        results.steps.push('❌ Query test failed - dates still problematic');
+        results.verificationTest = false;
+      }
+      
+    } catch (error) {
+      console.error('❌ Error in nuclear clean:', error);
+      results.steps.push(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+    
+    results.steps.push(results.verificationTest ? '🎉 Nuclear clean successful!' : '⚠️ Nuclear clean completed with issues');
+    
+    return res.json({
+      message: 'Nuclear clean completed',
+      success: results.verificationTest,
+      results: results,
+      recommendation: results.verificationTest 
+        ? 'Database completely cleaned. You can now safely reimport clean data or the query should work.'
+        : 'Clean operation had issues. The P2023 error may persist.'
+    });
+    
+  } catch (error) {
+    console.error('❌ Error in nuclear-clean:', error);
+    return res.status(500).json({ 
+      error: 'Failed to perform nuclear clean',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // Endpoint eliminado por seguridad - solo usar emergency-db-fix para este caso específico
 
 // Función auxiliar para formatear tamaño de archivo
