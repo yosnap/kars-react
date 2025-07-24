@@ -2091,50 +2091,36 @@ router.post('/emergency-db-fix', async (req, res) => {
       steps: [] as string[]
     };
     
-    // Usar MongoDB directamente para evitar problemas con Prisma
-    const { MongoClient } = require('mongodb');
-    const url = process.env.DATABASE_URL;
-    
-    if (!url) {
-      throw new Error('DATABASE_URL not found');
-    }
-    
-    const client = new MongoClient(url);
-    await client.connect();
-    const db = client.db();
+    // Usar comandos raw de MongoDB a través de Prisma para evitar problemas de conexión
+    console.log('🔧 Using Prisma raw commands to avoid connection issues...');
     
     try {
-      // Paso 1: Corregir tipos de datos
+      // Paso 1: Corregir tipos de datos usando comandos raw
       console.log('📊 Step 1: Fixing data types...');
       results.steps.push('Starting data type correction...');
       
       try {
-        // Contar problemas actuales
-        const preuStrings = await db.collection('Vehicle').countDocuments({ preu: { $type: 'string' } });
-        const garantiaBools = await db.collection('Vehicle').countDocuments({ garantia: { $type: 'bool' } });
+        // Usar comandos raw para corregir tipos
+        const fixPreuResult = await prisma.$runCommandRaw({
+          update: 'Vehicle',
+          updates: [{
+            q: { preu: { $type: 'string' } },
+            u: [{ $set: { preu: { $toDouble: { $ifNull: [{ $toDouble: '$preu' }, 0] } } } }],
+            multi: true
+          }]
+        });
         
-        console.log(`📊 Found ${preuStrings} prices as string, ${garantiaBools} garantias as boolean`);
+        const fixGarantiaResult = await prisma.$runCommandRaw({
+          update: 'Vehicle',
+          updates: [{
+            q: { garantia: { $type: 'bool' } },
+            u: [{ $set: { garantia: { $toString: '$garantia' } } }],
+            multi: true
+          }]
+        });
         
-        let preuFixed = 0;
-        let garantiaFixed = 0;
-        
-        // Corregir precios: string -> number
-        if (preuStrings > 0) {
-          const result1 = await db.collection('Vehicle').updateMany(
-            { preu: { $type: 'string' } },
-            [{ $set: { preu: { $toDouble: { $ifNull: [{ $toDouble: '$preu' }, 0] } } } }]
-          );
-          preuFixed = result1.modifiedCount;
-        }
-        
-        // Corregir garantías: boolean -> string
-        if (garantiaBools > 0) {
-          const result2 = await db.collection('Vehicle').updateMany(
-            { garantia: { $type: 'bool' } },
-            [{ $set: { garantia: { $toString: '$garantia' } } }]
-          );
-          garantiaFixed = result2.modifiedCount;
-        }
+        const preuFixed = fixPreuResult.nModified || 0;
+        const garantiaFixed = fixGarantiaResult.nModified || 0;
         
         results.dataTypesFix = {
           preuFixed,
@@ -2168,48 +2154,69 @@ router.post('/emergency-db-fix', async (req, res) => {
           const vehicles = jsonData.vehicles || jsonData;
           
           if (Array.isArray(vehicles) && vehicles.length > 0) {
-            // Limpiar vehículos existentes
-            const deleteResult = await db.collection('Vehicle').deleteMany({});
-            results.steps.push(`🗑️ Deleted ${deleteResult.deletedCount} existing vehicles`);
+            // Limpiar vehículos existentes usando comando raw
+            const deleteResult = await prisma.$runCommandRaw({
+              delete: 'Vehicle',
+              deletes: [{ q: {}, limit: 0 }]
+            });
+            results.steps.push(`🗑️ Deleted existing vehicles`);
             
-            // Importar nuevos vehículos
+            // Importar nuevos vehículos usando comando raw
             let imported = 0;
             let errors = 0;
             
-            for (const vehicle of vehicles) {
-              try {
-                const { _id, ...cleanVehicle } = vehicle;
-                
-                // Asegurar tipos correctos
-                const processedVehicle = {
-                  ...cleanVehicle,
-                  preu: typeof cleanVehicle.preu === 'number' 
-                    ? cleanVehicle.preu 
-                    : parseFloat(cleanVehicle.preu) || 0,
-                  garantia: cleanVehicle.garantia !== undefined 
-                    ? String(cleanVehicle.garantia) 
-                    : null,
-                  dataCreacio: cleanVehicle.dataCreacio 
-                    ? new Date(cleanVehicle.dataCreacio) 
-                    : new Date(),
-                  createdAt: cleanVehicle.createdAt 
-                    ? new Date(cleanVehicle.createdAt) 
-                    : new Date(),
-                  updatedAt: new Date()
-                };
-                
-                await db.collection('Vehicle').insertOne(processedVehicle);
-                imported++;
-                
-                if (imported % 50 === 0) {
-                  console.log(`💾 Imported ${imported}/${vehicles.length} vehicles...`);
+            // Procesar vehículos en lotes para mejor rendimiento
+            const batchSize = 50;
+            for (let i = 0; i < vehicles.length; i += batchSize) {
+              const batch = vehicles.slice(i, i + batchSize);
+              const documentsToInsert = [];
+              
+              for (const vehicle of batch) {
+                try {
+                  const { _id, ...cleanVehicle } = vehicle;
+                  
+                  // Asegurar tipos correctos
+                  const processedVehicle = {
+                    ...cleanVehicle,
+                    preu: typeof cleanVehicle.preu === 'number' 
+                      ? cleanVehicle.preu 
+                      : parseFloat(cleanVehicle.preu) || 0,
+                    garantia: cleanVehicle.garantia !== undefined 
+                      ? String(cleanVehicle.garantia) 
+                      : null,
+                    dataCreacio: cleanVehicle.dataCreacio 
+                      ? new Date(cleanVehicle.dataCreacio) 
+                      : new Date(),
+                    createdAt: cleanVehicle.createdAt 
+                      ? new Date(cleanVehicle.createdAt) 
+                      : new Date(),
+                    updatedAt: new Date()
+                  };
+                  
+                  documentsToInsert.push(processedVehicle);
+                  
+                } catch (vehicleError) {
+                  console.error('Error processing vehicle:', vehicleError);
+                  errors++;
                 }
-                
-              } catch (vehicleError) {
-                console.error('Error importing vehicle:', vehicleError);
-                errors++;
-                if (errors > 20) break; // Stop if too many errors
               }
+              
+              // Insertar lote usando comando raw
+              if (documentsToInsert.length > 0) {
+                try {
+                  await prisma.$runCommandRaw({
+                    insert: 'Vehicle',
+                    documents: documentsToInsert
+                  });
+                  imported += documentsToInsert.length;
+                  console.log(`💾 Imported ${imported}/${vehicles.length} vehicles...`);
+                } catch (batchError) {
+                  console.error('Error inserting batch:', batchError);
+                  errors += documentsToInsert.length;
+                }
+              }
+              
+              if (errors > 50) break; // Stop if too many errors
             }
             
             results.vehicleImport = {
@@ -2240,8 +2247,12 @@ router.post('/emergency-db-fix', async (req, res) => {
         results.steps.push('❌ Error importing vehicles');
       }
       
-    } finally {
-      await client.close();
+    } catch (mainError) {
+      console.error('❌ Main error:', mainError);
+      return res.status(500).json({ 
+        error: 'Failed to initialize database',
+        details: mainError instanceof Error ? mainError.message : 'Unknown error'
+      });
     }
     
     // Resumen final
