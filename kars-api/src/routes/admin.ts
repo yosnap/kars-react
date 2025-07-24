@@ -2304,6 +2304,47 @@ router.post('/emergency-db-fix', async (req, res) => {
   }
 });
 
+// POST /api/admin/nuclear-brand-fix - Recrear tabla Brand completamente
+router.post('/nuclear-brand-fix', async (req, res) => {
+  try {
+    console.log('🧨 Nuclear Brand Fix: Recreating Brand table...');
+    
+    // Borrar todas las marcas una por una (para evitar deleteMany)
+    let deletedCount = 0;
+    try {
+      const brands = await prisma.brand.findMany({ select: { id: true } });
+      console.log(`Found ${brands.length} brands to delete`);
+      
+      for (const brand of brands) {
+        try {
+          await prisma.brand.delete({ where: { id: brand.id } });
+          deletedCount++;
+        } catch (deleteError) {
+          console.log(`Could not delete brand ${brand.id}, continuing...`);
+        }
+      }
+    } catch (findError) {
+      console.log('Could not find brands due to corruption, continuing...');
+    }
+    
+    console.log(`🗑️ Deleted ${deletedCount} brands`);
+    
+    return res.json({
+      message: 'Nuclear Brand fix completed',
+      success: true,
+      deletedCount,
+      recommendation: 'Now run the installer to recreate brands from scratch'
+    });
+    
+  } catch (error) {
+    console.error('❌ Error in nuclear-brand-fix:', error);
+    return res.status(500).json({ 
+      error: 'Failed to perform nuclear brand fix',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // Endpoint eliminado por seguridad - solo usar emergency-db-fix para este caso específico
 
 // Función auxiliar para formatear tamaño de archivo
