@@ -2078,6 +2078,145 @@ router.get('/import-status', async (req, res) => {
   }
 });
 
+// GET /api/admin/fix-data-types-safe - Endpoint seguro para verificar y corregir tipos
+router.get('/fix-data-types-safe', async (req, res) => {
+  try {
+    console.log('🔧 Safe data type correction using Prisma connection...');
+    
+    // Get the MongoDB database from Prisma's internal connection
+    const internalClient = (prisma as any)._engineConfig?.internalDatasources?.db;
+    const dbUrl = process.env.DATABASE_URL;
+    
+    // Extract connection details from DATABASE_URL
+    const match = dbUrl?.match(/mongodb:\/\/([^:]+):([^@]+)@([^\/]+)\/([^?]+)/);
+    if (!match) {
+      throw new Error('Could not parse DATABASE_URL');
+    }
+    
+    const [, username, password, host, database] = match;
+    console.log(`📊 Using database: ${database} on ${host}`);
+    
+    // Use Prisma's $runCommandRaw to execute MongoDB commands
+    try {
+      // First, let's check what we have
+      const stats = await prisma.$runCommandRaw({
+        collStats: 'Vehicle',
+        scale: 1
+      });
+      
+      console.log(`📊 Collection stats: ${stats.count} documents`);
+      
+      // Fix using aggregation pipeline
+      const fixPreu = await prisma.$runCommandRaw({
+        update: 'Vehicle',
+        updates: [{
+          q: { preu: { $type: 'string' } },
+          u: [{ $set: { preu: { $toDouble: { $ifNull: [{ $toDouble: '$preu' }, 0] } } } }],
+          multi: true
+        }]
+      });
+      
+      const fixGarantia = await prisma.$runCommandRaw({
+        update: 'Vehicle',
+        updates: [{
+          q: { garantia: { $type: 'bool' } },
+          u: [{ $set: { garantia: { $toString: '$garantia' } } }],
+          multi: true
+        }]
+      });
+      
+      console.log('✅ Fix commands executed');
+      
+      return res.json({
+        message: 'Data type correction completed using safe method',
+        success: true,
+        results: {
+          stats: stats,
+          preuFixed: fixPreu.nModified || 0,
+          garantiaFixed: fixGarantia.nModified || 0
+        },
+        recommendation: 'Restart the service to apply changes'
+      });
+      
+    } catch (cmdError) {
+      console.error('Error with runCommand:', cmdError);
+      
+      // Fallback: Manual fix using Prisma queries
+      console.log('🔄 Falling back to manual fix...');
+      
+      // We'll fetch and update in batches to avoid type errors
+      const batchSize = 10;
+      let fixed = 0;
+      let offset = 0;
+      let hasMore = true;
+      
+      while (hasMore) {
+        try {
+          // Use raw query to get IDs only (avoiding type conversion issues)
+          const vehicleIds = await prisma.$queryRaw`
+            SELECT _id FROM "Vehicle" 
+            LIMIT ${batchSize} 
+            OFFSET ${offset}
+          ` as any[];
+          
+          if (vehicleIds.length === 0) {
+            hasMore = false;
+            break;
+          }
+          
+          // For each ID, update using MongoDB command
+          for (const vehicle of vehicleIds) {
+            await prisma.$runCommandRaw({
+              update: 'Vehicle',
+              updates: [{
+                q: { _id: vehicle._id },
+                u: [{
+                  $set: {
+                    preu: { $cond: {
+                      if: { $eq: [{ $type: '$preu' }, 'string'] },
+                      then: { $toDouble: { $ifNull: [{ $toDouble: '$preu' }, 0] } },
+                      else: '$preu'
+                    }},
+                    garantia: { $cond: {
+                      if: { $eq: [{ $type: '$garantia' }, 'bool'] },
+                      then: { $toString: '$garantia' },
+                      else: '$garantia'
+                    }}
+                  }
+                }]
+              }]
+            });
+            fixed++;
+          }
+          
+          offset += batchSize;
+          console.log(`🔧 Processed ${fixed} vehicles...`);
+          
+        } catch (batchError) {
+          console.error('Batch error:', batchError);
+          hasMore = false;
+        }
+      }
+      
+      return res.json({
+        message: 'Data type correction completed using fallback method',
+        success: true,
+        results: {
+          vehiclesProcessed: fixed
+        },
+        recommendation: 'Restart the service to apply changes'
+      });
+    }
+    
+  } catch (error) {
+    console.error('❌ Error in safe fix:', error);
+    return res.status(500).json({ 
+      error: 'Failed to fix data types safely',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // POST /api/admin/fix-data-types - Corregir tipos de datos en producción
 router.post('/fix-data-types', async (req, res) => {
   try {
