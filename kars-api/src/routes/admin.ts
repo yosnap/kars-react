@@ -2080,7 +2080,7 @@ router.get('/import-status', async (req, res) => {
 
 // Endpoints eliminados por seguridad - solo usar emergency-db-fix
 
-// POST /api/admin/emergency-db-fix - Fix SOLO para este problema específico
+// POST /api/admin/emergency-db-fix - Fix SOLO para este problema específico (SIN AUTH)
 router.post('/emergency-db-fix', async (req, res) => {
   try {
     console.log('🚀 Initializing database from admin panel...');
