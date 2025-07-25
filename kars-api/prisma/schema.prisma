@@ -41,8 +41,10 @@ model Vehicle {
   modelsAutocaravana String?  @map("models-autocaravana")
   marcaCotxe        String?  @map("marca-cotxe")
   marcaMoto         String?  @map("marca-moto")
+  marquesComercial  String?  @map("marques-comercial")
   modelsCotxe       String?  @map("models-cotxe")
   modelsMoto        String?  @map("models-moto")
+  modelsComercial   String?  @map("models-comercial")
   
   // Especificaciones técnicas
   estatVehicle      String?  @map("estat-vehicle")
@@ -485,6 +487,61 @@ model UpholsteryColor {
   id              String    @id @default(auto()) @map("_id") @db.ObjectId
   name            String    // "Bicolor", "Negre", "Antracita", etc.
   value           String    @unique // "tapisseria-bicolor", "tapisseria-negre", etc.
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+}
+
+model BatteryType {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String    // "Ions de Liti (Li-on)", "Níquel / Cadmi (NiCd)", etc.
+  value           String    @unique // "ions-liti", "niquel-cadmi", etc.
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+}
+
+model ChargingCable {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String    // "Mennekes", "CSS Combo", "Schuko", etc.
+  value           String    @unique // "mennekes", "css-combo", "cables-schuko", etc.
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+}
+
+model ElectricConnector {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String    // "Connector Shuko", "Connector Mennekes (Tipo 2)", etc.
+  value           String    @unique // "connector-shuko", "connector-mennekes", etc.
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+}
+
+model ChargingSpeed {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String    // "Lenta", "Mitjana", "Ràpida", "Súper ràpida"
+  value           String    @unique // "v_lenta", "v_mitjana", "v_rapida", "v_super_rapida"
+  
+  // Metadatos de sincronización
+  lastSyncAt      DateTime  @default(now()) @map("last_sync_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+}
+
+model EmissionType {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String    // "Euro1", "Euro2", "Euro3", etc.
+  value           String    @unique // "euro1", "euro2", "euro3", etc.
   
   // Metadatos de sincronización
   lastSyncAt      DateTime  @default(now()) @map("last_sync_at")

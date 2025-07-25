@@ -15,6 +15,7 @@ import professionalRoutes from './routes/professionals';
 import brandRoutes from './routes/brands';
 import uploadRoutes from './routes/upload';
 import installerRoutes from './routes/installer';
+import systemRoutes from './routes/system';
 
 // Import sync service
 import { initializeCronSync } from './services/syncService';
@@ -51,7 +52,7 @@ app.get('/health', (req, res) => {
 app.get('/api', (req, res) => {
   res.json({ 
     status: 'API OK', 
-    version: '0.1.3',
+    version: '0.2.0',
     timestamp: new Date().toISOString()
   });
 });
@@ -66,6 +67,7 @@ app.use('/api/sellers', professionalRoutes); // Alias para compatibilidad
 app.use('/api/brands', brandRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/installer', installerRoutes);
+app.use('/api/system', systemRoutes);
 app.use('/api', metadataRoutes);
 
 // 404 handler
@@ -89,7 +91,7 @@ async function startServer() {
     console.log(`📊 Health check: http://localhost:${port}/health`);
     
     // Initialize automatic sync
-    await initializeCronSync();
+    // await initializeCronSync(); // Temporalmente comentado para debugging
     
     // Blog sync disabled temporarily
     // TODO: Re-enable when blog sync is implemented

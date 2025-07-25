@@ -149,6 +149,55 @@ router.post('/stop', async (req, res) => {
   }
 });
 
+// GET /api/sync/logs - Obtener todos los logs de sincronización
+router.get('/logs', authenticateAdmin, async (req, res) => {
+  try {
+    const { page = '1', limit = '10' } = req.query;
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const offset = (pageNum - 1) * limitNum;
+
+    const [logs, total] = await Promise.all([
+      prisma.syncLog.findMany({
+        orderBy: { startedAt: 'desc' },
+        skip: offset,
+        take: limitNum,
+        select: {
+          id: true,
+          type: true,
+          status: true,
+          startedAt: true,
+          completedAt: true,
+          vehiclesProcessed: true,
+          vehiclesCreated: true,
+          vehiclesUpdated: true,
+          vehiclesDeleted: true,
+          errorMessage: true
+        }
+      }),
+      prisma.syncLog.count()
+    ]);
+
+    const logsWithDuration = logs.map(log => ({
+      ...log,
+      duration: log.completedAt 
+        ? log.completedAt.getTime() - log.startedAt.getTime()
+        : null
+    }));
+
+    return res.json({
+      logs: logsWithDuration,
+      total,
+      page: pageNum,
+      totalPages: Math.ceil(total / limitNum)
+    });
+
+  } catch (error) {
+    console.error('Error fetching sync logs:', error);
+    return res.status(500).json({ error: 'Failed to fetch sync logs' });
+  }
+});
+
 // GET /api/sync/logs/:id - Detalle de una sincronización específica
 router.get('/logs/:id', async (req, res) => {
   try {
@@ -172,6 +221,70 @@ router.get('/logs/:id', async (req, res) => {
   } catch (error) {
     console.error('Error fetching sync log:', error);
     return res.status(500).json({ error: 'Failed to fetch sync log' });
+  }
+});
+
+// DELETE /api/sync/logs/:id - Eliminar un log específico
+router.delete('/logs/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const deletedLog = await prisma.syncLog.delete({
+      where: { id }
+    });
+
+    return res.json({
+      message: 'Sync log deleted successfully',
+      deletedLog: {
+        id: deletedLog.id,
+        type: deletedLog.type,
+        startedAt: deletedLog.startedAt
+      }
+    });
+
+  } catch (error) {
+    console.error('Error deleting sync log:', error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Sync log not found' });
+    }
+    return res.status(500).json({ error: 'Failed to delete sync log' });
+  }
+});
+
+// DELETE /api/sync/logs - Eliminar múltiples logs o todos
+router.delete('/logs', authenticateAdmin, async (req, res) => {
+  try {
+    const { ids, deleteAll } = req.body;
+
+    if (deleteAll) {
+      // Eliminar todos los logs
+      const result = await prisma.syncLog.deleteMany({});
+      
+      return res.json({
+        message: `All sync logs deleted successfully`,
+        deletedCount: result.count
+      });
+    } else if (ids && Array.isArray(ids)) {
+      // Eliminar logs específicos
+      const result = await prisma.syncLog.deleteMany({
+        where: {
+          id: { in: ids }
+        }
+      });
+      
+      return res.json({
+        message: `${result.count} sync logs deleted successfully`,
+        deletedCount: result.count
+      });
+    } else {
+      return res.status(400).json({ 
+        error: 'Either provide ids array or set deleteAll to true' 
+      });
+    }
+
+  } catch (error) {
+    console.error('Error deleting sync logs:', error);
+    return res.status(500).json({ error: 'Failed to delete sync logs' });
   }
 });
 
@@ -807,5 +920,396 @@ router.post('/professionals', authenticateAdmin, async (req, res) => {
     });
   }
 });
+
+// ==================== NUEVAS RUTAS PARA CONFIGURACIÓN API ====================
+
+// GET /api/sync/config - Obtener configuración actual de sincronización
+router.get('/config', authenticateAdmin, async (req, res) => {
+  try {
+    // Buscar configuración existente o crear una por defecto
+    let config = await prisma.config.findFirst({
+      where: { key: 'api_sync_config' }
+    });
+
+    if (!config) {
+      // Crear configuración por defecto
+      const defaultConfig = {
+        apiUrl: process.env.ORIGINAL_API_URL || '',
+        username: process.env.ORIGINAL_API_USER || '',
+        password: '', // No exponer la contraseña
+        userId: '113',
+        importSold: true,
+        importNotSold: true,
+        convertImages: true,
+        imageFormat: 'avif',
+        autoSync: false,
+        syncFrequency: 60,
+        batchSize: 50,
+        lastSync: null
+      };
+
+      config = await prisma.config.create({
+        data: {
+          key: 'api_sync_config',
+          value: JSON.stringify(defaultConfig)
+        }
+      });
+    }
+
+    const configData = JSON.parse(config.value);
+    
+    // Obtener información de la última sincronización
+    const lastSyncLog = await prisma.syncLog.findFirst({
+      orderBy: { startedAt: 'desc' },
+      select: {
+        id: true,
+        startedAt: true,
+        completedAt: true,
+        status: true,
+        type: true,
+        vehiclesProcessed: true,
+        vehiclesCreated: true,
+        vehiclesUpdated: true
+      }
+    });
+
+    res.json({
+      ...configData,
+      lastSync: lastSyncLog?.completedAt || null,
+      lastSyncStatus: lastSyncLog || null
+    });
+
+  } catch (error) {
+    console.error('Error getting sync config:', error);
+    res.status(500).json({ 
+      error: 'Failed to get sync configuration',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// POST /api/sync/config - Guardar configuración de sincronización
+router.post('/config', authenticateAdmin, async (req, res) => {
+  try {
+    const {
+      apiUrl,
+      username,
+      password,
+      userId,
+      importSold,
+      importNotSold,
+      convertImages,
+      imageFormat,
+      autoSync,
+      syncFrequency,
+      batchSize
+    } = req.body;
+
+    // Validar campos requeridos
+    if (!apiUrl || !username) {
+      return res.status(400).json({ error: 'API URL and username are required' });
+    }
+
+    const configData = {
+      apiUrl,
+      username,
+      password: password || '', // Si no se proporciona contraseña, mantener la existente
+      userId: userId || '',
+      importSold: Boolean(importSold),
+      importNotSold: Boolean(importNotSold),
+      convertImages: Boolean(convertImages),
+      imageFormat: imageFormat || 'avif',
+      autoSync: Boolean(autoSync),
+      syncFrequency: parseInt(syncFrequency) || 60,
+      batchSize: parseInt(batchSize) || 50
+    };
+
+    // Buscar configuración existente
+    const existingConfig = await prisma.config.findFirst({
+      where: { key: 'api_sync_config' }
+    });
+
+    if (existingConfig) {
+      // Si existe, mantener la contraseña anterior si no se proporciona una nueva
+      if (!password || password === '') {
+        const existingData = JSON.parse(existingConfig.value);
+        configData.password = existingData.password || '';
+      }
+
+      await prisma.config.update({
+        where: { id: existingConfig.id },
+        data: {
+          value: JSON.stringify(configData),
+          updatedAt: new Date()
+        }
+      });
+    } else {
+      await prisma.config.create({
+        data: {
+          key: 'api_sync_config',
+          value: JSON.stringify(configData)
+        }
+      });
+    }
+
+    // Actualizar variables de entorno si es necesario
+    if (process.env.ORIGINAL_API_URL !== apiUrl) {
+      console.log('🔄 API URL updated in configuration');
+    }
+
+    return res.json({
+      message: 'Sync configuration saved successfully',
+      config: {
+        ...configData,
+        password: '' // No devolver la contraseña
+      }
+    });
+
+  } catch (error) {
+    console.error('Error saving sync config:', error);
+    return res.status(500).json({ 
+      error: 'Failed to save sync configuration',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// POST /api/sync/test-connection - Probar conexión con API externa
+router.post('/test-connection', authenticateAdmin, async (req, res) => {
+  try {
+    const { apiUrl, username, password } = req.body;
+
+    if (!apiUrl || !username || !password) {
+      return res.status(400).json({ error: 'API URL, username, and password are required' });
+    }
+
+    console.log(`🔍 Testing connection to: ${apiUrl}`);
+
+    // Probar conexión con un request simple
+    const response = await axios.get(`${apiUrl}`, {
+      auth: { username, password },
+      params: { per_page: 1 },
+      timeout: 10000
+    });
+
+    // Verificar respuesta
+    if (response.status === 200 && response.data) {
+      const hasItems = response.data.items && Array.isArray(response.data.items);
+      const itemCount = hasItems ? response.data.items.length : 0;
+
+      return res.json({
+        success: true,
+        message: 'Connection successful',
+        apiStatus: response.status,
+        responseFormat: hasItems ? 'valid' : 'unknown',
+        sampleItems: itemCount,
+        apiVersion: response.headers['x-api-version'] || 'unknown'
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Connection failed - Invalid response format',
+        apiStatus: response.status
+      });
+    }
+
+  } catch (error) {
+    console.error('Connection test failed:', error);
+    
+    if (axios.isAxiosError(error)) {
+      const statusCode = error.response?.status || 500;
+      const message = error.response?.status === 401 
+        ? 'Authentication failed - Invalid credentials'
+        : error.response?.status === 404
+        ? 'API endpoint not found'
+        : error.response?.status === 403
+        ? 'Access denied - Insufficient permissions'
+        : 'Connection failed';
+
+      return res.status(statusCode).json({
+        success: false,
+        message,
+        error: error.message,
+        statusCode
+      });
+    } else {
+      return res.status(500).json({
+        success: false,
+        message: 'Connection test failed',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+});
+
+// POST /api/sync/import-with-config - Importación manual con configuración personalizada
+router.post('/import-with-config', authenticateAdmin, async (req, res) => {
+  try {
+    const config = req.body;
+
+    if (!config.apiUrl || !config.username || !config.password) {
+      return res.status(400).json({ error: 'API URL, username, and password are required' });
+    }
+
+    console.log('🚀 Starting custom import with provided configuration...');
+
+    // Crear un log de sincronización
+    const syncLog = await prisma.syncLog.create({
+      data: {
+        type: 'manual_custom',
+        startedAt: new Date(),
+        status: 'running',
+        vehiclesProcessed: 0,
+        vehiclesCreated: 0,
+        vehiclesUpdated: 0
+      }
+    });
+
+    // Ejecutar importación en background (no bloquear la respuesta)
+    setImmediate(async () => {
+      try {
+        await executeCustomImport(config, syncLog.id);
+      } catch (error) {
+        console.error('Custom import failed:', error);
+        await prisma.syncLog.update({
+          where: { id: syncLog.id },
+          data: {
+            status: 'failed',
+            completedAt: new Date(),
+            errorMessage: error instanceof Error ? error.message : 'Unknown error'
+          }
+        });
+      }
+    });
+
+    return res.json({
+      message: 'Custom import started successfully',
+      syncId: syncLog.id,
+      status: 'running'
+    });
+
+  } catch (error) {
+    console.error('Error starting custom import:', error);
+    return res.status(500).json({ 
+      error: 'Failed to start custom import',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Función auxiliar para ejecutar importación personalizada
+async function executeCustomImport(config: any, syncLogId: string) {
+  let vehiclesProcessed = 0;
+  let vehiclesCreated = 0;
+  let vehiclesUpdated = 0;
+
+  try {
+    console.log(`🔄 Executing custom import with sync ID: ${syncLogId}`);
+
+    const requests: Array<{params: any, type: string}> = [];
+    
+    // Importar vehículos no vendidos si está habilitado
+    if (config.importNotSold) {
+      requests.push({
+        params: { user_id: config.userId, venut: 'false', per_page: config.batchSize },
+        type: 'not_sold'
+      });
+    }
+
+    // Importar vehículos vendidos si está habilitado
+    if (config.importSold) {
+      requests.push({
+        params: { user_id: config.userId, venut: 'true', per_page: config.batchSize },
+        type: 'sold'
+      });
+    }
+
+    for (const request of requests) {
+      try {
+        console.log(`📥 Fetching ${request.type} vehicles...`);
+
+        const response = await axios.get(config.apiUrl, {
+          auth: { username: config.username, password: config.password },
+          params: request.params,
+          timeout: 30000
+        });
+
+        const vehicles = response.data.items || response.data;
+
+        if (Array.isArray(vehicles)) {
+          console.log(`📊 Processing ${vehicles.length} ${request.type} vehicles...`);
+
+          for (const vehicle of vehicles) {
+            try {
+              console.log(`🔄 Processing vehicle: ${vehicle.slug}`);
+              
+              // Usar la función syncVehicle del servicio de sincronización
+              const result = await syncVehicle(vehicle);
+              
+              vehiclesProcessed++;
+              if (result === 'created') {
+                vehiclesCreated++;
+              } else if (result === 'updated') {
+                vehiclesUpdated++;
+              }
+              
+              console.log(`✅ Vehicle ${vehicle.slug} ${result}`);
+              
+              // Actualizar progreso cada 10 vehículos
+              if (vehiclesProcessed % 10 === 0) {
+                await prisma.syncLog.update({
+                  where: { id: syncLogId },
+                  data: {
+                    vehiclesProcessed,
+                    vehiclesCreated,
+                    vehiclesUpdated
+                  }
+                });
+              }
+            } catch (vehicleError) {
+              console.error(`❌ Error processing vehicle ${vehicle.slug}:`, vehicleError);
+              vehiclesProcessed++;
+              // El vehículo falló, pero seguimos contando para el progreso
+            }
+          }
+        }
+      } catch (requestError) {
+        console.error(`Error fetching ${request.type} vehicles:`, requestError);
+        // Registrar error pero continuar
+      }
+    }
+
+    // Finalizar log de sincronización
+    await prisma.syncLog.update({
+      where: { id: syncLogId },
+      data: {
+        status: 'completed',
+        completedAt: new Date(),
+        vehiclesProcessed,
+        vehiclesCreated,
+        vehiclesUpdated
+      }
+    });
+
+    console.log(`✅ Custom import completed: ${vehiclesCreated} created, ${vehiclesUpdated} updated, ${vehiclesProcessed} total`);
+
+  } catch (error) {
+    console.error('Custom import failed:', error);
+    
+    await prisma.syncLog.update({
+      where: { id: syncLogId },
+      data: {
+        status: 'failed',
+        completedAt: new Date(),
+        vehiclesProcessed,
+        vehiclesCreated,
+        vehiclesUpdated,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error'
+      }
+    });
+    
+    throw error;
+  }
+}
 
 export default router;

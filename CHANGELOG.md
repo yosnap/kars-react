@@ -5,6 +5,78 @@ Todos los cambios notables de este proyecto se documentarán en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-es/1.0.0/),
 y este proyecto adhiere al [Versionado Semántico](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-07-25
+
+### 🎉 NEW FEATURE - Sistema de Versiones Unificado
+
+### ✅ Añadido
+
+#### Sistema de Versiones API/Frontend
+- **Endpoint de información del sistema**: Nuevo endpoint `/api/system/info` que retorna:
+  - Versión de la API (extraída dinámicamente de package.json)
+  - Información del sistema (Node.js version, platform, arquitectura)
+  - Estado de memoria (RSS, heap total, heap usado)
+  - Información de base de datos (estado de conexión, conteos de colecciones)
+  - Variables de entorno (NODE_ENV, PORT, CORS origins)
+- **Seguimiento de versión unificado**: Ambos proyectos ahora en versión 0.2.0
+- **getApiVersion()**: Función helper para leer versión dinámicamente del package.json
+
+#### Interfaz de Usuario Mejorada
+- **SystemInfo.tsx**: Actualizado para usar datos reales de la API
+  - Muestra versiones separadas de Frontend y API
+  - Estado de conexión de MongoDB con colores indicativos
+  - Información del sistema actualizada en tiempo real
+  - Función `formatUptime()` para mostrar uptime en formato legible
+- **AdminDashboard.tsx**: Widget de información del sistema mejorado
+  - Versiones Frontend/API mostradas por separado
+  - Estado de base de datos con indicadores visuales
+  - Grid de 4 columnas para mejor distribución de información
+
+### 🔧 Mejoras Técnicas
+
+#### Frontend
+- **Fetch en tiempo real**: Sistema info se actualiza desde API en lugar de datos estáticos
+- **Manejo de errores**: Graceful degradation si la API no está disponible
+- **TypeScript**: Interfaces apropiadas para `SystemData` y `SystemInfo`
+- **Refresh automático**: Botón de actualización refesca tanto system info como vehicle stats
+
+#### Backend
+- **Lectura dinámica de versiones**: No más hardcoding de versiones en el código
+- **Información completa del sistema**: Memoria, CPU, uptime, database stats
+- **Error handling robusto**: Manejo de errores en caso de problemas de BD
+- **Información de entorno**: Variables importantes expuestas de forma segura
+
+### 📊 Cambios de Archivos
+
+#### API (kars-api)
+- `package.json` - Versión actualizada a 0.2.0
+- `src/index.ts` - Versión actualizada en endpoint status
+- `src/routes/system.ts` - Nuevo endpoint con información completa del sistema
+
+#### Frontend (kars-react)
+- `package.json` - Versión actualizada a 0.2.0
+- `src/config/version.ts` - Versión actualizada a 0.2.0
+- `src/pages/Admin/SystemInfo.tsx` - Integración completa con API real
+- `src/pages/Admin/AdminDashboard.tsx` - Widget de sistema mejorado con versiones separadas
+
+### 🎯 Estado del Sistema
+
+- ✅ **Versionado unificado**: Ambos proyectos sincronizados en v0.2.0
+- ✅ **System info endpoint**: API funcional con información completa
+- ✅ **UI actualizada**: Interfaces muestran datos reales de la API
+- ✅ **Dashboard mejorado**: Información del sistema con versiones separadas
+- ✅ **Error handling**: Manejo robusto de errores y fallbacks
+
+### 📝 Notas de Implementación
+
+Esta versión introduce un sistema robusto de seguimiento de versiones que permite:
+- Monitoreo independiente de versiones de API y Frontend
+- Información del sistema en tiempo real desde el backend
+- Mejor debugging y diagnóstico de problemas
+- Base sólida para futuras implementaciones de CI/CD
+
+El sistema está preparado para evolucionar con implementaciones futuras de automatic versioning y deployment tracking.
+
 ## [0.1.4] - 2025-07-23
 
 ### 🎉 MAJOR SYSTEM OVERHAUL - Vehicle Management Complete Fix

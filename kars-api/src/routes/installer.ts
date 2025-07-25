@@ -16,6 +16,11 @@ import { exteriorColors } from '../data/initialization/exterior-colors';
 import { upholsteryTypes } from '../data/initialization/upholstery-types';
 import { upholsteryColors } from '../data/initialization/upholstery-colors';
 import { transmissionTypes } from '../data/initialization/transmission-types';
+import { batteryTypes } from '../data/initialization/battery-types';
+import { chargingCables } from '../data/initialization/charging-cables';
+import { electricConnectors } from '../data/initialization/electric-connectors';
+import { chargingSpeeds } from '../data/initialization/charging-speeds';
+import { emissionTypes } from '../data/initialization/emission-types';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -53,7 +58,12 @@ router.get('/status', async (req, res) => {
       exteriorColorsCount,
       upholsteryTypesCount,
       upholsteryColorsCount,
-      transmissionTypesCount
+      transmissionTypesCount,
+      batteryTypesCount,
+      chargingCablesCount,
+      electricConnectorsCount,
+      chargingSpeedsCount,
+      emissionTypesCount
     ] = await Promise.all([
       prisma.brand.count(),
       prisma.model.count(),
@@ -72,7 +82,12 @@ router.get('/status', async (req, res) => {
       prisma.exteriorColor.count(),
       prisma.upholsteryType.count(),
       prisma.upholsteryColor.count(),
-      prisma.transmissionType.count()
+      prisma.transmissionType.count(),
+      prisma.batteryType.count(),
+      prisma.chargingCable.count(),
+      prisma.electricConnector.count(),
+      prisma.chargingSpeed.count(),
+      prisma.emissionType.count()
     ]);
 
     const steps: InstallationStep[] = [
@@ -211,6 +226,46 @@ router.get('/status', async (req, res) => {
         status: transmissionTypesCount >= 6 ? 'completed' : 'pending',
         progress: transmissionTypesCount >= 6 ? 100 : Math.round((transmissionTypesCount / 6) * 100),
         count: transmissionTypesCount
+      },
+      {
+        id: 'battery-types',
+        name: 'Tipos de Batería',
+        description: 'Configurar 5 tipos: Li-ion, NiCd, LifeP04, Li-Po, Na-ion',
+        status: batteryTypesCount >= 5 ? 'completed' : 'pending',
+        progress: batteryTypesCount >= 5 ? 100 : Math.round((batteryTypesCount / 5) * 100),
+        count: batteryTypesCount
+      },
+      {
+        id: 'charging-cables',
+        name: 'Cables de Recarga',
+        description: 'Configurar 6 tipos: Mennekes, CSS Combo, Schuko, etc.',
+        status: chargingCablesCount >= 6 ? 'completed' : 'pending',
+        progress: chargingCablesCount >= 6 ? 100 : Math.round((chargingCablesCount / 6) * 100),
+        count: chargingCablesCount
+      },
+      {
+        id: 'electric-connectors',
+        name: 'Conectores Eléctricos',
+        description: 'Configurar 6 tipos: Shuko, Mennekes, CSS Combo, etc.',
+        status: electricConnectorsCount >= 6 ? 'completed' : 'pending',
+        progress: electricConnectorsCount >= 6 ? 100 : Math.round((electricConnectorsCount / 6) * 100),
+        count: electricConnectorsCount
+      },
+      {
+        id: 'charging-speeds',
+        name: 'Velocidades de Recarga',
+        description: 'Configurar 4 tipos: Lenta, Mitjana, Ràpida, Súper ràpida',
+        status: chargingSpeedsCount >= 4 ? 'completed' : 'pending',
+        progress: chargingSpeedsCount >= 4 ? 100 : Math.round((chargingSpeedsCount / 4) * 100),
+        count: chargingSpeedsCount
+      },
+      {
+        id: 'emission-types',
+        name: 'Tipos de Emisiones',
+        description: 'Configurar 7 tipos: Euro1, Euro2, Euro3, ..., Euro6+',
+        status: emissionTypesCount >= 7 ? 'completed' : 'pending',
+        progress: emissionTypesCount >= 7 ? 100 : Math.round((emissionTypesCount / 7) * 100),
+        count: emissionTypesCount
       }
     ];
 
@@ -265,7 +320,12 @@ router.post('/install', async (req, res) => {
       exteriorColors: { imported: 0, skipped: 0, errors: 0 },
       upholsteryTypes: { imported: 0, skipped: 0, errors: 0 },
       upholsteryColors: { imported: 0, skipped: 0, errors: 0 },
-      transmissionTypes: { imported: 0, skipped: 0, errors: 0 }
+      transmissionTypes: { imported: 0, skipped: 0, errors: 0 },
+      batteryTypes: { imported: 0, skipped: 0, errors: 0 },
+      chargingCables: { imported: 0, skipped: 0, errors: 0 },
+      electricConnectors: { imported: 0, skipped: 0, errors: 0 },
+      chargingSpeeds: { imported: 0, skipped: 0, errors: 0 },
+      emissionTypes: { imported: 0, skipped: 0, errors: 0 }
     };
 
     // Paso 1: Instalar marcas
@@ -855,6 +915,176 @@ router.post('/install', async (req, res) => {
       throw error;
     }
 
+    // Paso 15: Configurar tipos de batería
+    console.log('📦 Step 15: Installing battery types...');
+    try {
+      for (const batteryType of batteryTypes) {
+        try {
+          const existingBatteryType = await prisma.batteryType.findUnique({
+            where: { value: batteryType.value }
+          });
+          
+          if (existingBatteryType) {
+            results.batteryTypes.skipped++;
+            console.log(`⏭️ Battery type already exists: ${batteryType.catalan}`);
+          } else {
+            await prisma.batteryType.create({
+              data: {
+                name: batteryType.catalan, // Usar catalán como nombre principal
+                value: batteryType.value
+              }
+            });
+            results.batteryTypes.imported++;
+            console.log(`✅ Imported battery type: ${batteryType.catalan} (${batteryType.value})`);
+          }
+        } catch (error) {
+          console.error(`❌ Error importing battery type ${batteryType.catalan}:`, error);
+          results.batteryTypes.errors++;
+        }
+      }
+      
+      console.log(`✅ Battery types installed: ${results.batteryTypes.imported} imported, ${results.batteryTypes.skipped} skipped`);
+    } catch (error) {
+      console.error('❌ Error installing battery types:', error);
+      throw error;
+    }
+
+    // Paso 16: Configurar cables de recarga
+    console.log('📦 Step 16: Installing charging cables...');
+    try {
+      for (const chargingCable of chargingCables) {
+        try {
+          const existingChargingCable = await prisma.chargingCable.findUnique({
+            where: { value: chargingCable.value }
+          });
+          
+          if (existingChargingCable) {
+            results.chargingCables.skipped++;
+            console.log(`⏭️ Charging cable already exists: ${chargingCable.catalan}`);
+          } else {
+            await prisma.chargingCable.create({
+              data: {
+                name: chargingCable.catalan, // Usar catalán como nombre principal
+                value: chargingCable.value
+              }
+            });
+            results.chargingCables.imported++;
+            console.log(`✅ Imported charging cable: ${chargingCable.catalan} (${chargingCable.value})`);
+          }
+        } catch (error) {
+          console.error(`❌ Error importing charging cable ${chargingCable.catalan}:`, error);
+          results.chargingCables.errors++;
+        }
+      }
+      
+      console.log(`✅ Charging cables installed: ${results.chargingCables.imported} imported, ${results.chargingCables.skipped} skipped`);
+    } catch (error) {
+      console.error('❌ Error installing charging cables:', error);
+      throw error;
+    }
+
+    // Paso 17: Configurar conectores eléctricos
+    console.log('📦 Step 17: Installing electric connectors...');
+    try {
+      for (const electricConnector of electricConnectors) {
+        try {
+          const existingElectricConnector = await prisma.electricConnector.findUnique({
+            where: { value: electricConnector.value }
+          });
+          
+          if (existingElectricConnector) {
+            results.electricConnectors.skipped++;
+            console.log(`⏭️ Electric connector already exists: ${electricConnector.catalan}`);
+          } else {
+            await prisma.electricConnector.create({
+              data: {
+                name: electricConnector.catalan, // Usar catalán como nombre principal
+                value: electricConnector.value
+              }
+            });
+            results.electricConnectors.imported++;
+            console.log(`✅ Imported electric connector: ${electricConnector.catalan} (${electricConnector.value})`);
+          }
+        } catch (error) {
+          console.error(`❌ Error importing electric connector ${electricConnector.catalan}:`, error);
+          results.electricConnectors.errors++;
+        }
+      }
+      
+      console.log(`✅ Electric connectors installed: ${results.electricConnectors.imported} imported, ${results.electricConnectors.skipped} skipped`);
+    } catch (error) {
+      console.error('❌ Error installing electric connectors:', error);
+      throw error;
+    }
+
+    // Paso 18: Configurar velocidades de recarga
+    console.log('📦 Step 18: Installing charging speeds...');
+    try {
+      for (const chargingSpeed of chargingSpeeds) {
+        try {
+          const existingChargingSpeed = await prisma.chargingSpeed.findUnique({
+            where: { value: chargingSpeed.value }
+          });
+          
+          if (existingChargingSpeed) {
+            results.chargingSpeeds.skipped++;
+            console.log(`⏭️ Charging speed already exists: ${chargingSpeed.catalan}`);
+          } else {
+            await prisma.chargingSpeed.create({
+              data: {
+                name: chargingSpeed.catalan, // Usar catalán como nombre principal
+                value: chargingSpeed.value
+              }
+            });
+            results.chargingSpeeds.imported++;
+            console.log(`✅ Imported charging speed: ${chargingSpeed.catalan} (${chargingSpeed.value})`);
+          }
+        } catch (error) {
+          console.error(`❌ Error importing charging speed ${chargingSpeed.catalan}:`, error);
+          results.chargingSpeeds.errors++;
+        }
+      }
+      
+      console.log(`✅ Charging speeds installed: ${results.chargingSpeeds.imported} imported, ${results.chargingSpeeds.skipped} skipped`);
+    } catch (error) {
+      console.error('❌ Error installing charging speeds:', error);
+      throw error;
+    }
+
+    // Paso 19: Configurar tipos de emisiones
+    console.log('📦 Step 19: Installing emission types...');
+    try {
+      for (const emissionType of emissionTypes) {
+        try {
+          const existingEmissionType = await prisma.emissionType.findUnique({
+            where: { value: emissionType.value }
+          });
+          
+          if (existingEmissionType) {
+            results.emissionTypes.skipped++;
+            console.log(`⏭️ Emission type already exists: ${emissionType.catalan}`);
+          } else {
+            await prisma.emissionType.create({
+              data: {
+                name: emissionType.catalan, // Usar catalán como nombre principal
+                value: emissionType.value
+              }
+            });
+            results.emissionTypes.imported++;
+            console.log(`✅ Imported emission type: ${emissionType.catalan} (${emissionType.value})`);
+          }
+        } catch (error) {
+          console.error(`❌ Error importing emission type ${emissionType.catalan}:`, error);
+          results.emissionTypes.errors++;
+        }
+      }
+      
+      console.log(`✅ Emission types installed: ${results.emissionTypes.imported} imported, ${results.emissionTypes.skipped} skipped`);
+    } catch (error) {
+      console.error('❌ Error installing emission types:', error);
+      throw error;
+    }
+
     const totalBrands = await prisma.brand.count();
     const totalModels = await prisma.model.count();
 
@@ -1269,6 +1499,131 @@ router.post('/step/:stepId', async (req, res) => {
             }
           } catch (error) {
             console.error(`Error importing motorcycle extra ${motorcycleExtra.catalan}:`, error);
+            result.errors++;
+          }
+        }
+        break;
+      case 'battery-types':
+        // Instalar tipos de batería
+        for (const batteryType of batteryTypes) {
+          try {
+            const existingBatteryType = await prisma.batteryType.findUnique({
+              where: { value: batteryType.value }
+            });
+            
+            if (existingBatteryType) {
+              result.skipped++;
+            } else {
+              await prisma.batteryType.create({
+                data: {
+                  name: batteryType.catalan,
+                  value: batteryType.value
+                }
+              });
+              result.imported++;
+            }
+          } catch (error) {
+            console.error(`Error importing battery type ${batteryType.catalan}:`, error);
+            result.errors++;
+          }
+        }
+        break;
+      case 'charging-cables':
+        // Instalar cables de recarga
+        for (const chargingCable of chargingCables) {
+          try {
+            const existingChargingCable = await prisma.chargingCable.findUnique({
+              where: { value: chargingCable.value }
+            });
+            
+            if (existingChargingCable) {
+              result.skipped++;
+            } else {
+              await prisma.chargingCable.create({
+                data: {
+                  name: chargingCable.catalan,
+                  value: chargingCable.value
+                }
+              });
+              result.imported++;
+            }
+          } catch (error) {
+            console.error(`Error importing charging cable ${chargingCable.catalan}:`, error);
+            result.errors++;
+          }
+        }
+        break;
+      case 'electric-connectors':
+        // Instalar conectores eléctricos
+        for (const electricConnector of electricConnectors) {
+          try {
+            const existingElectricConnector = await prisma.electricConnector.findUnique({
+              where: { value: electricConnector.value }
+            });
+            
+            if (existingElectricConnector) {
+              result.skipped++;
+            } else {
+              await prisma.electricConnector.create({
+                data: {
+                  name: electricConnector.catalan,
+                  value: electricConnector.value
+                }
+              });
+              result.imported++;
+            }
+          } catch (error) {
+            console.error(`Error importing electric connector ${electricConnector.catalan}:`, error);
+            result.errors++;
+          }
+        }
+        break;
+      case 'charging-speeds':
+        // Instalar velocidades de recarga
+        for (const chargingSpeed of chargingSpeeds) {
+          try {
+            const existingChargingSpeed = await prisma.chargingSpeed.findUnique({
+              where: { value: chargingSpeed.value }
+            });
+            
+            if (existingChargingSpeed) {
+              result.skipped++;
+            } else {
+              await prisma.chargingSpeed.create({
+                data: {
+                  name: chargingSpeed.catalan,
+                  value: chargingSpeed.value
+                }
+              });
+              result.imported++;
+            }
+          } catch (error) {
+            console.error(`Error importing charging speed ${chargingSpeed.catalan}:`, error);
+            result.errors++;
+          }
+        }
+        break;
+      case 'emission-types':
+        // Instalar tipos de emisiones
+        for (const emissionType of emissionTypes) {
+          try {
+            const existingEmissionType = await prisma.emissionType.findUnique({
+              where: { value: emissionType.value }
+            });
+            
+            if (existingEmissionType) {
+              result.skipped++;
+            } else {
+              await prisma.emissionType.create({
+                data: {
+                  name: emissionType.catalan,
+                  value: emissionType.value
+                }
+              });
+              result.imported++;
+            }
+          } catch (error) {
+            console.error(`Error importing emission type ${emissionType.catalan}:`, error);
             result.errors++;
           }
         }

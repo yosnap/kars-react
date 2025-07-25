@@ -2,7 +2,14 @@
 import carExtras from './car-extras.js';
 import motorhomeExtras from './motorhome-extras.js';
 import motorcycleExtras from './motorcycle-extras.js';
-import { vehicleStates } from './vehicle-states.js';
+import { vehicleStates } from './vehicle-states';
+import { exteriorColors } from './exterior-colors';
+import { fuelTypes } from './fuel-types';
+import { batteryTypes } from './battery-types';
+import { chargingCables } from './charging-cables';
+import { electricConnectors } from './electric-connectors';
+import { chargingSpeeds } from './charging-speeds';
+import { emissionTypes } from './emission-types';
 
 export interface ExtraTranslation {
   catalan: string;
@@ -24,6 +31,13 @@ export interface InitializationData {
   motorhomeExtras: ExtraTranslation[];
   motorcycleExtras: ExtraTranslation[];
   vehicleStates: VehicleStateTranslation[];
+  exteriorColors: any[];
+  fuelTypes: any[];
+  batteryTypes: any[];
+  chargingCables: any[];
+  electricConnectors: any[];
+  chargingSpeeds: any[];
+  emissionTypes: any[];
 }
 
 // Función para obtener todos los datos de inicialización
@@ -32,7 +46,14 @@ export const getInitializationData = (): InitializationData => {
     carExtras,
     motorhomeExtras,
     motorcycleExtras,
-    vehicleStates
+    vehicleStates,
+    exteriorColors,
+    fuelTypes,
+    batteryTypes,
+    chargingCables,
+    electricConnectors,
+    chargingSpeeds,
+    emissionTypes
   };
 };
 

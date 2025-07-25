@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"value":{"$numberInt":"1"}},"name":"PropulsionType_value_key","unique":true}],"uuid":"b7cc49f697c94e049371b0df38fb5ee4","collectionName":"PropulsionType","type":"collection"}

@@ -72,8 +72,11 @@ router.get('/', async (req, res) => {
     }
     
     // Filtro por vehículos destacados
-    if (anunciDestacat === 'true') {
-      where.anunciDestacat = { gt: 0 };
+    if (anunciDestacat !== undefined) {
+      const destacatValue = parseInt(anunciDestacat as string);
+      if (!isNaN(destacatValue)) {
+        where.anunciDestacat = destacatValue;
+      }
     }
     
     // Filtro por vehículos vendidos
@@ -175,10 +178,10 @@ router.get('/', async (req, res) => {
     ]);
 
 
-    // Calcular facets si se solicitan
+    // Calcular facets si se solicitan (sin filtros aplicados para mostrar todas las opciones disponibles)
     let facets = {};
     if (req.query.facets === 'true') {
-      facets = await calculateFacets(where);
+      facets = await calculateFacets({});
     }
 
     const totalPages = Math.ceil(total / perPage);
@@ -237,6 +240,8 @@ router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
     
+    console.log('🔄 PUT /api/vehicles/:id - Datos recibidos:', JSON.stringify(updateData, null, 2));
+    
     // Verificar que el vehículo existe
     const existingVehicle = await prisma.vehicle.findUnique({
       where: { id }
@@ -249,19 +254,82 @@ router.put('/:id', async (req, res) => {
       });
     }
     
+    // Lista de campos válidos según el schema de Prisma
+    const validFields = [
+      'id', 'originalId', 'authorId', 'status', 'slug', 'titolAnunci', 'descripcioAnunci',
+      'descripcioAnunciCA', 'descripcioAnunciEN', 'descripcioAnunciFR', 'descripcioAnunciES',
+      'anunciActiu', 'anunciDestacat', 'venut', 'diesCaducitat', 'tipusVehicle',
+      'marquesAutocaravana', 'modelsAutocaravana', 'marcaCotxe', 'marcaMoto', 'modelsCotxe', 'modelsMoto',
+      'estatVehicle', 'tipusPropulsor', 'tipusCombustible', 'tipusCanvi', 'carrosseriaCotxe',
+      'carrosseriaMoto', 'carrosseriaCaravana', 'versio', 'any', 'quilometratge', 'cilindrada',
+      'traccio', 'potenciaCv', 'numeroMotors', 'cvMotorDavant', 'kwMotorDavant', 'potenciaKw',
+      'emissionsVehicle', 'cvMotorDarrere', 'kwMotorDarrere', 'potenciaCombinada',
+      'autonomiaWltp', 'autonomiaUrbanaWltp', 'autonomiaExtraurbanaWltp', 'autonomiaElectrica',
+      'bateria', 'cablesRecarrega', 'connectors', 'velocitatRecarrega', 'frenadaRegenerativa',
+      'onePedal', 'tempsRecarregaTotal', 'tempsRecarregaFins80', 'colorVehicle', 'placesCotxe',
+      'placesMoto', 'aireAcondicionat', 'tipusTapisseria', 'portesCotxe', 'climatitzacio',
+      'colorTapisseria', 'numeroMaletersCotxe', 'capacitatMaletersCotxe', 'capacitatTotalL',
+      'vehicleFumador', 'rodaRecanvi', 'acceleracio060', 'acceleracio0100Cotxe', 'velocitatMaxima',
+      'tipusCanviMoto', 'preuMensual', 'preuDiari', 'preuAntic', 'videoVehicle', 'cvMotor3',
+      'kwMotor3', 'cvMotor4', 'kwMotor4', 'extresCotxe', 'extresMoto', 'extresAutocaravana',
+      'extresHabitacle', 'emissionsCo2', 'consumUrba', 'consumCarretera', 'consumMixt',
+      'categoriaEcologica', 'origen', 'iva', 'finacament', 'garantia', 'vehicleAccidentat',
+      'llibreManteniment', 'revisionsOficials', 'impostosDeduibles', 'vehicleACanvi', 'nombrePropietaris',
+      'preu', 'imatgeDestacadaUrl', 'galeriaVehicleUrls', 'dataCreacio', 'userId', 'professionalId',
+      'lastSyncAt', 'syncedToMotoraldiaAt', 'motoraldiaVehicleId', 'needsSync', 'syncError',
+      'createdAt', 'updatedAt'
+    ];
+    
+    // Filtrar campos inválidos y registrar cuáles se eliminan
+    const filteredData: any = {};
+    const invalidFields: string[] = [];
+    
+    Object.keys(updateData).forEach(key => {
+      if (validFields.includes(key)) {
+        filteredData[key] = updateData[key];
+      } else {
+        invalidFields.push(key);
+        console.log(`🗑️ Campo inválido eliminado en PUT: ${key} = ${updateData[key]}`);
+      }
+    });
+    
+    if (invalidFields.length > 0) {
+      console.log(`⚠️ Campos inválidos encontrados: ${invalidFields.join(', ')}`);
+    }
+    
     // Normalizar campos antes de actualizar
-    if (updateData.tipusVehicle) {
-      updateData.tipusVehicle = updateData.tipusVehicle.toLowerCase();
+    if (filteredData.tipusVehicle) {
+      filteredData.tipusVehicle = filteredData.tipusVehicle.toLowerCase();
     }
-    if (updateData.estatVehicle) {
-      updateData.estatVehicle = updateData.estatVehicle.toLowerCase();
+    if (filteredData.estatVehicle) {
+      filteredData.estatVehicle = filteredData.estatVehicle.toLowerCase();
     }
+    
+    // Convertir tipos de datos igual que en POST
+    if (filteredData.preu !== undefined) {
+      filteredData.preu = parseFloat(filteredData.preu) || 0;
+    }
+    if (filteredData.anunciDestacat !== undefined) {
+      filteredData.anunciDestacat = parseInt(filteredData.anunciDestacat) || 0;
+    }
+    if (filteredData.anunciActiu !== undefined) {
+      filteredData.anunciActiu = Boolean(filteredData.anunciActiu);
+    }
+    if (filteredData.venut !== undefined) {
+      filteredData.venut = Boolean(filteredData.venut);
+    }
+    // Convertir garantia a String como en producción
+    if (filteredData.garantia !== undefined) {
+      filteredData.garantia = filteredData.garantia !== null ? String(filteredData.garantia) : null;
+    }
+    
+    console.log('✅ Datos filtrados y convertidos para actualización:', JSON.stringify(filteredData, null, 2));
     
     // Actualizar vehículo
     const updatedVehicle = await prisma.vehicle.update({
       where: { id },
       data: {
-        ...updateData,
+        ...filteredData,
         updatedAt: new Date()
       }
     });
@@ -600,92 +668,8 @@ async function calculateFacets(baseWhere: any) {
 
 // Transformar vehículo para el frontend (mantener compatibilidad)
 function transformVehicleForFrontend(vehicle: any) {
-  return {
-    ...vehicle,
-    // Mantener nombres originales para compatibilidad
-    'titol-anunci': vehicle.titolAnunci,
-    'descripcio-anunci': vehicle.descripcioAnunci,
-    'tipus-vehicle': vehicle.tipusVehicle,
-    'marca-cotxe': vehicle.marcaCotxe,
-    'marca-moto': vehicle.marcaMoto,
-    'models-cotxe': vehicle.modelsCotxe,
-    'models-moto': vehicle.modelsMoto,
-    'any-fabricacio': vehicle.any,
-    'anunci-actiu': String(vehicle.anunciActiu),
-    'anunci-destacat': String(vehicle.anunciDestacat),
-    'venut': String(vehicle.venut || false),
-    'data-creacio': vehicle.dataCreacio,
-    'data-modificacio': vehicle.dataModificacio,
-    'num-portes': vehicle.numPortes,
-    // Campos técnicos
-    'estat-vehicle': vehicle.estatVehicle,
-    'tipus-combustible': vehicle.tipusCombustible,
-    'potencia-cv': vehicle.potenciaCv,
-    // Campos de imagen para el frontend
-    'imatge-destacada-url': vehicle.imatgeDestacadaUrl,
-    'galeria-vehicle-urls': vehicle.galeriaVehicleUrls,
-    // Extras arrays - mantener como arrays
-    'extres-cotxe': vehicle.extresCotxe || [],
-    'extres-moto': vehicle.extresMoto || [],
-    'extres-autocaravana': vehicle.extresAutocaravana || [],
-    'extres-habitacle': vehicle.extresHabitacle || [],
-    // Electric vehicle specs
-    'frenada-regenerativa': vehicle.frenadaRegenerativa,
-    'one-pedal': vehicle.onePedal,
-    // Additional fields
-    'color-vehicle': vehicle.colorVehicle,
-    'tipus-canvi': vehicle.tipusCanvi,
-    'preu-anterior': vehicle.preuAntic,
-    'nombre-propietaris': vehicle.nombrePropietaris,
-    // Technical specs
-    'numero-motors': vehicle.numeroMotors,
-    'cv-motor-davant': vehicle.cvMotorDavant,
-    'kw-motor-davant': vehicle.kwMotorDavant,
-    'cv-motor-darrere': vehicle.cvMotorDarrere,
-    'kw-motor-darrere': vehicle.kwMotorDarrere,
-    versio: vehicle.versio,
-    traccio: vehicle.traccio,
-    'emissions-vehicle': vehicle.emissionsVehicle,
-    // Electric vehicle fields
-    'autonomia-wltp': vehicle.autonomiaWltp,
-    'autonomia-urbana-wltp': vehicle.autonomiaUrbanaWltp,
-    'autonomia-extraurbana-wltp': vehicle.autonomiaExtraurbanaWltp,
-    'autonomia-electrica': vehicle.autonomiaElectrica,
-    bateria: vehicle.bateria,
-    'cables-recarrega': vehicle.cablesRecarrega,
-    connectors: vehicle.connectors,
-    'velocitat-recarrega': vehicle.velocitatRecarrega,
-    'temps-recarrega-total': vehicle.tempsRecarregaTotal,
-    'temps-recarrega-fins-80': vehicle.tempsRecarregaFins80,
-    // Physical characteristics
-    'places-cotxe': vehicle.placesCotxe,
-    'places-moto': vehicle.placesMoto,
-    'aire-acondicionat': vehicle.aireAcondicionat,
-    'tipus-tapisseria': vehicle.tipusTapisseria,
-    'portes-cotxe': vehicle.portesCotxe,
-    climatitzacio: vehicle.climatitzacio,
-    'color-tapisseria': vehicle.colorTapisseria,
-    'numero-maleters-cotxe': vehicle.numeroMaletersCotxe,
-    'capacitat-maleters-cotxe': vehicle.capacitatMaletersCotxe,
-    'capacitat-total-l': vehicle.capacitatTotalL,
-    'vehicle-fumador': vehicle.vehicleFumador,
-    'roda-recanvi': vehicle.rodaRecanvi,
-    // Performance
-    'acceleracio-0-60': vehicle.acceleracio060,
-    'acceleracio-0-100-cotxe': vehicle.acceleracio0100Cotxe,
-    'velocitat-maxima': vehicle.velocitatMaxima,
-    // Motorcycle specific
-    'tipus-canvi-moto': vehicle.tipusCanviMoto,
-    // Video
-    'video-vehicle': vehicle.videoVehicle,
-    // Guarantees and state
-    garantia: vehicle.garantia,
-    'vehicle-accidentat': vehicle.vehicleAccidentat,
-    'llibre-manteniment': vehicle.llibreManteniment,
-    'revisions-oficials': vehicle.revisionsOficials,
-    'impostos-deduibles': vehicle.impostosDeduibles,
-    'vehicle-a-canvi': vehicle.vehicleACanvi
-  };
+  // Retornar solo el formato camelCase, eliminando duplicación
+  return vehicle;
 }
 
 // POST /api/vehicles - Crear nuevo vehículo
@@ -859,7 +843,19 @@ router.post('/import-json', async (req, res) => {
     return res.json({
       success: true,
       message: `JSON Import completed: ${results.imported} imported, ${results.skipped} skipped`,
-      data: results
+      data: results,
+      // Incluir informe detallado para debugging
+      detailedReport: results.detailedReport,
+      summary: {
+        total: results.detailedReport.totalVehicles,
+        successful: results.detailedReport.successfulImports.length,
+        failed: results.detailedReport.failedImports.length,
+        failedVehicles: results.detailedReport.failedImports.map(f => ({
+          title: f.title,
+          slug: f.slug,
+          error: f.error
+        }))
+      }
     });
 
   } catch (error) {

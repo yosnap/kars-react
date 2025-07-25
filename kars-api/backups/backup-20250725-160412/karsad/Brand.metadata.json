@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"slug":{"$numberInt":"1"}},"name":"Brand_slug_key","unique":true},{"v":{"$numberInt":"2"},"key":{"vehicle_types":{"$numberInt":"1"}},"name":"Brand_vehicle_types_idx"}],"uuid":"07cc54345387408e9281fb11edf33e5a","collectionName":"Brand","type":"collection"}
