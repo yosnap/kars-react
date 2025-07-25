@@ -54,7 +54,7 @@ export default function AdminSettings() {
   const [apiSyncConfig, setApiSyncConfig] = useState<ApiSyncConfig>({
     apiUrl: 'https://motoraldia.net/wp-json/api-motor/v1/vehicles',
     username: 'Paulo',
-    password: '',
+    password: 'U^q^i2l49rZrX72#Ln!Xe5k0',
     userId: '113',
     importSold: true,
     importNotSold: true,
