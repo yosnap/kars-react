@@ -2415,18 +2415,148 @@ router.post('/import-production-data-native', async (req, res) => {
       const vehicleCollection = db.collection('Vehicle');
       await vehicleCollection.deleteMany({}); // Limpiar
       
-      for (const vehicle of data.vehicles) {
+      // Mapear campos correctamente
+      const mappedVehicles = data.vehicles.map(vehicle => {
+        const mapped: any = {};
+        
+        // Mapeo de campos con guiones
+        const fieldMap = {
+          'titolAnunci': 'titol-anunci',
+          'descripcioAnunci': 'descripcio-anunci',
+          'descripcioAnunciCA': 'descripcio-anunci-ca',
+          'descripcioAnunciEN': 'descripcio-anunci-en',
+          'descripcioAnunciFR': 'descripcio-anunci-fr',
+          'descripcioAnunciES': 'descripcio-anunci-es',
+          'anunciActiu': 'anunci-actiu',
+          'anunciDestacat': 'anunci-destacat',
+          'diesCaducitat': 'dies-caducitat',
+          'tipusVehicle': 'tipus-vehicle',
+          'marquesAutocaravana': 'marques-autocaravana',
+          'modelsAutocaravana': 'models-autocaravana',
+          'marcaCotxe': 'marca-cotxe',
+          'marcaMoto': 'marca-moto',
+          'modelsCotxe': 'models-cotxe',
+          'modelsMoto': 'models-moto',
+          'estatVehicle': 'estat-vehicle',
+          'tipusPropulsor': 'tipus-propulsor',
+          'tipusCombustible': 'tipus-combustible',
+          'tipusCanvi': 'tipus-canvi',
+          'carrosseriaCotxe': 'carrosseria-cotxe',
+          'carrosseriaMoto': 'carrosseria-moto',
+          'carrosseriaCaravana': 'carrosseria-caravana',
+          'potenciaCv': 'potencia-cv',
+          'numeroMotors': 'numero-motors',
+          'cvMotorDavant': 'cv-motor-davant',
+          'kwMotorDavant': 'kw-motor-davant',
+          'potenciaKw': 'potencia-kw',
+          'emissionsVehicle': 'emissions-vehicle',
+          'cvMotorDarrere': 'cv-motor-darrere',
+          'kwMotorDarrere': 'kw-motor-darrere',
+          'potenciaCombinada': 'potencia-combinada',
+          'autonomiaWltp': 'autonomia-wltp',
+          'autonomiaUrbanaWltp': 'autonomia-urbana-wltp',
+          'autonomiaExtraurbanaWltp': 'autonomia-extraurbana-wltp',
+          'autonomiaElectrica': 'autonomia-electrica',
+          'cablesRecarrega': 'cables-recarrega',
+          'velocitatRecarrega': 'velocitat-recarrega',
+          'frenadaRegenerativa': 'frenada-regenerativa',
+          'onePedal': 'one-pedal',
+          'tempsRecarregaTotal': 'temps-recarrega-total',
+          'tempsRecarregaFins80': 'temps-recarrega-fins-80',
+          'colorVehicle': 'color-vehicle',
+          'placesCotxe': 'places-cotxe',
+          'placesMoto': 'places-moto',
+          'aireAcondicionat': 'aire-acondicionat',
+          'tipusTapisseria': 'tipus-tapisseria',
+          'portesCotxe': 'portes-cotxe',
+          'colorTapisseria': 'color-tapisseria',
+          'numeroMaletersCotxe': 'numero-maleters-cotxe',
+          'capacitatMaletersCotxe': 'capacitat-maleters-cotxe',
+          'capacitatTotalL': 'capacitat-total-l',
+          'vehicleFumador': 'vehicle-fumador',
+          'rodaRecanvi': 'roda-recanvi',
+          'acceleracio060': 'acceleracio-0-60',
+          'acceleracio0100Cotxe': 'acceleracio-0-100-cotxe',
+          'velocitatMaxima': 'velocitat-maxima',
+          'tipusCanviMoto': 'tipus-de-canvi-moto',
+          'preuMensual': 'preu-mensual',
+          'preuDiari': 'preu-diari',
+          'preuAntic': 'preu-antic',
+          'videoVehicle': 'video-vehicle',
+          'cvMotor3': 'cv-motor-3',
+          'kwMotor3': 'kw-motor-3',
+          'cvMotor4': 'cv-motor-4',
+          'kwMotor4': 'kw-motor-4',
+          'extresCotxe': 'extres-cotxe',
+          'extresMoto': 'extres-moto',
+          'extresAutocaravana': 'extres-autocaravana',
+          'extresHabitacle': 'extres-habitacle',
+          'emissionsCo2': 'emissions-co2',
+          'consumUrba': 'consum-urba',
+          'consumCarretera': 'consum-carretera',
+          'consumMixt': 'consum-mixt',
+          'categoriaEcologica': 'categoria-ecologica',
+          'vehicleAccidentat': 'vehicle-accidentat',
+          'llibreManteniment': 'llibre-manteniment',
+          'revisionsOficials': 'revisions-oficials',
+          'impostosDeduibles': 'impostos-deduibles',
+          'vehicleACanvi': 'vehicle-a-canvi',
+          'nombrePropietaris': 'nombre-propietaris',
+          'imatgeDestacadaUrl': 'imatge-destacada-url',
+          'galeriaVehicleUrls': 'galeria-vehicle-urls',
+          'notesInternes': 'notes-internes',
+          'dataCreacio': 'data-creacio',
+          'dataModificacio': 'data-modificacio'
+        };
+        
+        // Mapear cada campo
+        for (const [key, value] of Object.entries(vehicle)) {
+          const mappedKey = fieldMap[key] || key;
+          
+          // Valores por defecto para campos requeridos
+          if (mappedKey === 'anunci-actiu' && value === null) {
+            mapped[mappedKey] = true;
+          } else if (mappedKey === 'anunci-destacat' && value === null) {
+            mapped[mappedKey] = 0;
+          } else if (mappedKey === 'tipus-vehicle' && !value) {
+            mapped[mappedKey] = 'cotxe';
+          } else if (mappedKey === 'titol-anunci' && !value) {
+            mapped[mappedKey] = 'Vehicle';
+          } else if (mappedKey === 'slug' && !value) {
+            mapped[mappedKey] = 'vehicle-default';
+          } else if (mappedKey === 'venut' && value === null) {
+            mapped[mappedKey] = false;
+          } else if (mappedKey === 'estat' && !value) {
+            mapped[mappedKey] = 'nou';
+          } else if (mappedKey === 'preu' && (value === null || value === undefined)) {
+            mapped[mappedKey] = 0;
+          } else {
+            mapped[mappedKey] = value;
+          }
+        }
+        
         // Convertir fechas
-        vehicle['data-creacio'] = new Date(vehicle['data-creacio']);
-        vehicle['data-modificacio'] = vehicle['data-modificacio'] ? new Date(vehicle['data-modificacio']) : null;
-        vehicle.dataCreacio = new Date(vehicle.dataCreacio);
-        vehicle.dataModificacio = vehicle.dataModificacio ? new Date(vehicle.dataModificacio) : null;
-        vehicle.createdAt = new Date(vehicle.createdAt);
-        vehicle.updatedAt = new Date(vehicle.updatedAt);
-        vehicle.lastSyncAt = vehicle.lastSyncAt ? new Date(vehicle.lastSyncAt) : null;
-      }
+        if (mapped['data-creacio']) mapped['data-creacio'] = new Date(mapped['data-creacio']);
+        if (mapped['data-modificacio']) mapped['data-modificacio'] = new Date(mapped['data-modificacio']);
+        if (mapped.dataCreacio) mapped.dataCreacio = new Date(mapped.dataCreacio);
+        if (mapped.dataModificacio) mapped.dataModificacio = new Date(mapped.dataModificacio);
+        if (mapped.createdAt) mapped.createdAt = new Date(mapped.createdAt);
+        if (mapped.updatedAt) mapped.updatedAt = new Date(mapped.updatedAt);
+        if (mapped.lastSyncAt) mapped.lastSyncAt = new Date(mapped.lastSyncAt);
+        
+        // Asegurar arrays
+        if (!Array.isArray(mapped.imatges)) mapped.imatges = [];
+        if (!Array.isArray(mapped.extras)) mapped.extras = [];
+        if (!Array.isArray(mapped['extres-cotxe'])) mapped['extres-cotxe'] = [];
+        if (!Array.isArray(mapped['extres-moto'])) mapped['extres-moto'] = [];
+        if (!Array.isArray(mapped['extres-autocaravana'])) mapped['extres-autocaravana'] = [];
+        if (!Array.isArray(mapped['extres-habitacle'])) mapped['extres-habitacle'] = [];
+        if (!Array.isArray(mapped['galeria-vehicle-urls'])) mapped['galeria-vehicle-urls'] = [];
+        
+        return mapped;
+      });
       
-      const vehicleResult = await vehicleCollection.insertMany(data.vehicles);
+      const vehicleResult = await vehicleCollection.insertMany(mappedVehicles);
       results.vehicles.imported = vehicleResult.insertedCount;
     } catch (error) {
       console.error('Vehicle import error:', error);
