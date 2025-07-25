@@ -4,8 +4,37 @@ import AdminLayout from '../../components/Admin/AdminLayout';
 import { VERSION_INFO } from '../../config/version';
 import { axiosAdmin } from '../../api/axiosClient';
 
+interface SystemData {
+  version: string;
+  environment: string;
+  uptime: string;
+  platform: string;
+  nodeVersion: string;
+  host: string;
+  mongodb: string;
+  dbSize: string;
+  collections: number;
+  memory: {
+    used: number;
+    total: number;
+    percentage: number;
+  };
+  cpu: {
+    model: string;
+    cores: number;
+    load: number[];
+  };
+  technologies: {
+    name: string;
+    version: string;
+    icon: string;
+  }[];
+  apiVersion?: string;
+  databaseStatus?: string;
+}
+
 const SystemInfo = () => {
-  const [systemData, setSystemData] = useState({
+  const [systemData, setSystemData] = useState<SystemData>({
     version: VERSION_INFO.version,
     environment: VERSION_INFO.environment,
     uptime: '0d 0h 0m',
@@ -34,7 +63,9 @@ const SystemInfo = () => {
       { name: 'Vite', version: '^6.0.0', icon: '⚡' },
       { name: 'Tailwind CSS', version: '^3.4.0', icon: '🎨' },
       { name: 'Prisma', version: '^6.0.0', icon: '🔺' }
-    ]
+    ],
+    apiVersion: 'unknown',
+    databaseStatus: 'unknown'
   });
 
   const [vehicleStats, setVehicleStats] = useState({
@@ -49,6 +80,40 @@ const SystemInfo = () => {
 
   const [activeTab, setActiveTab] = useState('info');
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Función para obtener información del sistema desde la API
+  const fetchSystemInfo = async () => {
+    try {
+      console.log('🔍 Fetching system info from API...');
+      const response = await axiosAdmin.get('/system/info');
+      const apiData = response.data;
+      
+      console.log('📊 System info received:', apiData);
+      
+      // Update system data with real API data
+      setSystemData(prev => ({
+        ...prev,
+        apiVersion: apiData.api?.version || 'unknown',
+        nodeVersion: apiData.system?.nodeVersion || prev.nodeVersion,
+        platform: apiData.system?.platform || prev.platform,
+        mongodb: `Connected (${apiData.database?.vehicleCount} vehicles)`,
+        dbSize: `${apiData.system?.memory?.rss || 0} MB RAM`,
+        collections: Object.keys(apiData.database?.collectionsInitialized || {}).length,
+        databaseStatus: apiData.database?.status || 'unknown',
+        memory: {
+          used: apiData.system?.memory?.heapUsed || prev.memory.used,
+          total: apiData.system?.memory?.heapTotal || prev.memory.total,
+          percentage: apiData.system?.memory?.heapUsed && apiData.system?.memory?.heapTotal 
+            ? Math.round((apiData.system.memory.heapUsed / apiData.system.memory.heapTotal) * 100)
+            : prev.memory.percentage
+        },
+        uptime: formatUptime(apiData.api?.uptime || 0)
+      }));
+      
+    } catch (error) {
+      console.error('❌ Error fetching system info:', error);
+    }
+  };
 
   // Función para obtener estadísticas reales de vehículos
   const fetchVehicleStats = async () => {
@@ -94,33 +159,27 @@ const SystemInfo = () => {
     }
   };
 
-  useEffect(() => {
-    fetchVehicleStats();
-    // Simular uptime counter
-    const startTime = Date.now() - (24 * 60 * 60 * 1000); // 1 día atrás
-    const updateUptime = () => {
-      const now = Date.now();
-      const diff = now - startTime;
-      const days = Math.floor(diff / (24 * 60 * 60 * 1000));
-      const hours = Math.floor((diff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-      const minutes = Math.floor((diff % (60 * 60 * 1000)) / (60 * 1000));
-      
-      setSystemData(prev => ({
-        ...prev,
-        uptime: `${days}d ${hours}h ${minutes}m`
-      }));
-    };
+  // Función para formatear el uptime en días, horas, minutos
+  const formatUptime = (seconds: number): string => {
+    const days = Math.floor(seconds / (24 * 60 * 60));
+    const hours = Math.floor((seconds % (24 * 60 * 60)) / (60 * 60));
+    const minutes = Math.floor((seconds % (60 * 60)) / 60);
+    return `${days}d ${hours}h ${minutes}m`;
+  };
 
-    updateUptime();
-    const interval = setInterval(updateUptime, 60000); // Actualizar cada minuto
-    
-    return () => clearInterval(interval);
+  useEffect(() => {
+    // Fetch both system info and vehicle stats on component mount
+    fetchSystemInfo();
+    fetchVehicleStats();
   }, []);
 
   const refreshData = async () => {
     setIsRefreshing(true);
-    // Actualizar estadísticas de vehículos reales
-    await fetchVehicleStats();
+    // Actualizar tanto información del sistema como estadísticas de vehículos
+    await Promise.all([
+      fetchSystemInfo(),
+      fetchVehicleStats()
+    ]);
     setIsRefreshing(false);
   };
 
@@ -188,9 +247,15 @@ const SystemInfo = () => {
                 </div>
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Versió:</span>
+                    <span className="text-gray-600 dark:text-gray-400">Frontend:</span>
                     <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-medium">
-                      {systemData.version}
+                      v{systemData.version}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">API:</span>
+                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm font-medium">
+                      v{systemData.apiVersion}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -251,7 +316,11 @@ const SystemInfo = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">MongoDB:</span>
-                    <span className="text-gray-900 dark:text-white font-medium">
+                    <span className={`font-medium ${
+                      systemData.databaseStatus === 'connected' 
+                        ? 'text-green-600 dark:text-green-400' 
+                        : 'text-red-600 dark:text-red-400'
+                    }`}>
                       {systemData.mongodb}
                     </span>
                   </div>

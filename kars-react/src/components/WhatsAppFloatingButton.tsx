@@ -13,8 +13,8 @@ export default function WhatsAppFloatingButton() {
   const { currentVehicle, isVehicleDetailPage } = useVehicleContext();
   const [isVisible, setIsVisible] = useState(false);
   const [config, setConfig] = useState<WhatsAppConfig>({
-    number: '34604128777',
-    contactName: 'Elisabeth',
+    number: '34612345678',
+    contactName: 'Kars',
     messageTemplate: `Hola {contactName}, m'interessa el vehicle "{vehicleName}" que he vist a la vostra web: {vehicleUrl}.
 Podríeu donar-me més informació per fer la compra?`,
     enabled: true
@@ -22,11 +22,11 @@ Podríeu donar-me més informació per fer la compra?`,
 
   const generateWhatsAppMessage = (): string => {
     const currentUrl = window.location.href;
-    
+
     if (currentVehicle && isVehicleDetailPage) {
       // Generar nombre del vehículo usando la función del contexto
       const vehicleName = generateVehicleName(currentVehicle);
-      
+
       // Reemplazar variables en la plantilla
       return config.messageTemplate
         .replace(/{contactName}/g, config.contactName)
@@ -42,7 +42,7 @@ Podríeu donar-me més informació per fer la compra?`,
     const message = generateWhatsAppMessage();
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${config.number}?text=${encodedMessage}`;
-    
+
     // Abrir WhatsApp en una nueva ventana
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
   };
@@ -86,7 +86,7 @@ Podríeu donar-me més informació per fer la compra?`,
           aria-label="Contactar per WhatsApp"
         >
           <MessageCircle className="w-6 h-6" />
-          
+
           {/* Tooltip */}
           <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block">
             <div className="bg-black text-white text-xs rounded py-1 px-2 whitespace-nowrap">

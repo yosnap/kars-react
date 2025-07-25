@@ -62,69 +62,90 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
       tipusVehicle: tipusVehicleFromApi,
       
       // Step 2: Basic Info  
-      marcaCotxe: apiData.marcaCotxe || apiData['marques-cotxe'] || '',
-      marcaMoto: apiData.marcaMoto || apiData['marques-moto'] || '',
-      marquesAutocaravana: apiData.marquesAutocaravana || apiData['marques-autocaravana'] || '',
-      marquesComercial: apiData.marquesComercial || apiData['marques-comercial'] || '',
-      modelsCotxe: apiData.modelsCotxe || apiData['models-cotxe'] || '',
-      modelsMoto: apiData.modelsMoto || apiData['models-moto'] || '',
-      modelsAutocaravana: apiData.modelsAutocaravana || apiData['models-autocaravana'] || '',
-      modelsComercial: apiData.modelsComercial || apiData['models-comercial'] || '',
+      marcaCotxe: apiData.marcaCotxe || '',
+      marcaMoto: apiData.marcaMoto || '',
+      marquesAutocaravana: apiData.marquesAutocaravana || '',
+      marquesComercial: apiData.marquesComercial || '',
+      modelsCotxe: apiData.modelsCotxe || '',
+      modelsMoto: apiData.modelsMoto || '',
+      modelsAutocaravana: apiData.modelsAutocaravana || '',
+      modelsComercial: apiData.modelsComercial || '',
       versio: apiData.versio || '',
-      any: apiData.any || apiData['any-fabricacio'] || '',
+      any: apiData.any || '',
       preu: String(apiData.preu || ''),
       quilometratge: String(apiData.quilometratge || ''),
       
       // Auto-generated title
-      titolAnunci: apiData.titolAnunci || apiData['titol-anunci'] || '',
+      titolAnunci: apiData.titolAnunci || '',
       
       // Step 3: Technical Specs
-      tipusCombustible: apiData.tipusCombustible || apiData['tipus-combustible'] || '',
-      tipusCanvi: apiData.tipusCanvi || apiData['tipus-canvi'] || '',
-      tipusPropulsor: apiData.tipusPropulsor || apiData['tipus-propulsor'] || '',
-      potenciaCv: String(apiData.potenciaCv || apiData['potencia-cv'] || ''),
-      potenciaKw: String(apiData.potenciaKw || apiData['potencia-kw'] || ''),
+      tipusCombustible: apiData.tipusCombustible || '',
+      tipusCanvi: apiData.tipusCanvi || '',
+      tipusPropulsor: apiData.tipusPropulsor || '',
+      potenciaCv: String(apiData.potenciaCv || ''),
+      potenciaKw: String(apiData.potenciaKw || ''),
       cilindrada: String(apiData.cilindrada || ''),
-      colorVehicle: apiData.colorVehicle || apiData['color-vehicle'] || '',
-      portesCotxe: String(apiData.portesCotxe || apiData['portes-cotxe'] || ''),
-      placesCotxe: String(apiData.placesCotxe || apiData['places-cotxe'] || ''),
-      estatVehicle: apiData.estatVehicle || apiData['estat-vehicle'] || '',
+      colorVehicle: apiData.colorVehicle || '',
+      portesCotxe: String(apiData.portesCotxe || ''),
+      placesCotxe: String(apiData.placesCotxe || ''),
+      estatVehicle: apiData.estatVehicle || '',
+      traccio: apiData.traccio || '',
+      
+      // Carrocería por tipo de vehículo
+      carrosseriaCotxe: apiData.carrosseriaCotxe || '',
+      carrosseriaMoto: apiData.carrosseriaMoto || '',
+      carrosseriaCaravana: apiData.carrosseriaCaravana || '',
       
       // Additional technical fields
-      emissionsVehicle: apiData.emissionsVehicle || apiData['emissions-vehicle'] || '',
-      consumUrba: apiData.consumUrba || apiData['consum-urba'] || '',
-      consumCarretera: apiData.consumCarretera || apiData['consum-carretera'] || '',
-      consumMixt: apiData.consumMixt || apiData['consum-mixt'] || '',
-      emissionsCo2: apiData.emissionsCo2 || apiData['emissions-co2'] || '',
-      tipusTapisseria: apiData.tipusTapisseria || apiData['tipus-tapisseria'] || '',
+      emissionsVehicle: apiData.emissionsVehicle || '',
+      consumUrba: apiData.consumUrba || '',
+      consumCarretera: apiData.consumCarretera || '',
+      consumMixt: apiData.consumMixt || '',
+      emissionsCo2: apiData.emissionsCo2 || '',
+      tipusTapisseria: apiData.tipusTapisseria || '',
+      colorTapisseria: apiData.colorTapisseria || '',
       
       // Step 4: Equipment and Extras - Mapear todos los tipos según el vehículo
-      extresCotxe: Array.isArray(apiData.extresCotxe) ? apiData.extresCotxe : 
-                   Array.isArray(apiData['extres-cotxe']) ? apiData['extres-cotxe'] : [],
-      extresMoto: Array.isArray(apiData.extresMoto) ? apiData.extresMoto : 
-                  Array.isArray(apiData['extres-moto']) ? apiData['extres-moto'] : [],
-      extresAutocaravana: Array.isArray(apiData.extresAutocaravana) ? apiData.extresAutocaravana : 
-                          Array.isArray(apiData['extres-autocaravana']) ? apiData['extres-autocaravana'] : [],
-      extresHabitacle: Array.isArray(apiData.extresHabitacle) ? apiData.extresHabitacle : 
-                       Array.isArray(apiData['extres-habitacle']) ? apiData['extres-habitacle'] : [],
+      extresCotxe: Array.isArray(apiData.extresCotxe) ? apiData.extresCotxe : [],
+      extresMoto: Array.isArray(apiData.extresMoto) ? apiData.extresMoto : [],
+      extresAutocaravana: Array.isArray(apiData.extresAutocaravana) ? apiData.extresAutocaravana : [],
+      extresHabitacle: Array.isArray(apiData.extresHabitacle) ? apiData.extresHabitacle : [],
+      
+      // Comfort features
+      aireAcondicionat: apiData.aireAcondicionat || '',
+      climatitzacio: apiData.climatitzacio === true || apiData.climatitzacio === 'true',
+      vehicleFumador: apiData.vehicleFumador === true || apiData.vehicleFumador === 'true',
       
       // Step 5: Commercial Information
       garantia: apiData.garantia || '',
-      vehicleAccidentat: apiData.vehicleAccidentat || apiData['vehicle-accidentat'] || '',
+      vehicleAccidentat: apiData.vehicleAccidentat || '',
       origen: apiData.origen || '',
+      iva: apiData.iva || '',
+      finacament: apiData.finacament || '',
+      
+      // Precios adicionales
+      preuAntic: apiData.preuAntic || '',
+      preuMensual: apiData.preuMensual || '',
+      preuDiari: apiData.preuDiari || '',
+      
+      // Propietarios y mantenimiento
+      nombrePropietaris: apiData.nombrePropietaris || '',
+      llibreManteniment: apiData.llibreManteniment === true || apiData.llibreManteniment === 'true',
+      revisionsOficials: apiData.revisionsOficials === true || apiData.revisionsOficials === 'true',
+      impostosDeduibles: apiData.impostosDeduibles === true || apiData.impostosDeduibles === 'true',
+      vehicleACanvi: apiData.vehicleACanvi === true || apiData.vehicleACanvi === 'true',
       
       // Step 6: Descriptions (multilingual support)
-      descripcioAnunciCA: apiData.descripcioAnunciCA || apiData['descripcio-anunci-ca'] || apiData.descripcioAnunci || apiData['descripcio-anunci'] || '',
-      descripcioAnunciEN: apiData.descripcioAnunciEN || apiData['descripcio-anunci-en'] || '',
-      descripcioAnunciFR: apiData.descripcioAnunciFR || apiData['descripcio-anunci-fr'] || '',
-      descripcioAnunciES: apiData.descripcioAnunciES || apiData['descripcio-anunci-es'] || '',
+      descripcioAnunciCA: apiData.descripcioAnunciCA || apiData.descripcioAnunci || '',
+      descripcioAnunciEN: apiData.descripcioAnunciEN || '',
+      descripcioAnunciFR: apiData.descripcioAnunciFR || '',
+      descripcioAnunciES: apiData.descripcioAnunciES || '',
       
       // Step 7: Images and Status
-      imatgeDestacadaUrl: apiData.imatgeDestacadaUrl || apiData['imatge-destacada-url'] || '',
-      galeriaVehicleUrls: Array.isArray(apiData.galeriaVehicleUrls) ? apiData.galeriaVehicleUrls :
-                         Array.isArray(apiData['galeria-vehicle-urls']) ? apiData['galeria-vehicle-urls'] : [],
-      anunciActiu: apiData.anunciActiu === true || apiData['anunci-actiu'] === 'true' || apiData['anunci-actiu'] === true,
-      anunciDestacat: parseInt(apiData.anunciDestacat || apiData['anunci-destacat'] || '0'),
+      imatgeDestacadaUrl: apiData.imatgeDestacadaUrl || '',
+      galeriaVehicleUrls: Array.isArray(apiData.galeriaVehicleUrls) ? apiData.galeriaVehicleUrls : [],
+      anunciActiu: apiData.anunciActiu === true || apiData.anunciActiu === 'true',
+      anunciDestacat: parseInt(apiData.anunciDestacat || '0'),
       venut: apiData.venut === true || apiData.venut === 'true',
       
       // Additional fields that might be missing

@@ -43,6 +43,12 @@ interface VehicleFormData {
   portesCotxe?: string;
   placesCotxe?: string;
   estatVehicle?: string;
+  traccio?: string;
+  
+  // Carrocería por tipo de vehículo
+  carrosseriaCotxe?: string;
+  carrosseriaMoto?: string;
+  carrosseriaCaravana?: string;
   
   // Additional technical fields from payload
   emissionsVehicle?: string;
@@ -52,6 +58,7 @@ interface VehicleFormData {
   emissionsCo2?: string;
   categoriaEcologica?: string;
   tipusTapisseria?: string;
+  colorTapisseria?: string;
   
   // Step 4: Equipment and Extras
   extresCotxe?: string[]; // Array of extras for cars
@@ -60,12 +67,29 @@ interface VehicleFormData {
   extresHabitacle?: string[]; // Array of habitacle extras
   // Note: seguretat, confort, multimedia fields removed - not in Prisma schema
   
+  // Comfort features
+  aireAcondicionat?: string | boolean; // Support both for backward compatibility
+  climatitzacio?: boolean;
+  vehicleFumador?: boolean;
+  
   // Step 5: Commercial Information
   garantia?: string;
   vehicleAccidentat?: string;
   origen?: string;
   iva?: string;
   finacament?: string;
+  
+  // Precios adicionales
+  preuAntic?: string;
+  preuMensual?: string;
+  preuDiari?: string;
+  
+  // Propietarios y mantenimiento
+  nombrePropietaris?: string;
+  llibreManteniment?: boolean;
+  revisionsOficials?: boolean;
+  impostosDeduibles?: boolean;
+  vehicleACanvi?: boolean;
   
   // Step 6: Multilingual Descriptions
   descripcioAnunciCA?: string; // Catalan (primary)
@@ -123,6 +147,15 @@ export default function MultiStepVehicleForm({
     extresAutocaravana: [],
     extresHabitacle: [],
     notesInternes: '',
+    
+    // Initialize new fields with default values
+    climatitzacio: false,
+    vehicleFumador: false,
+    llibreManteniment: false,
+    revisionsOficials: false,
+    impostosDeduibles: false,
+    vehicleACanvi: false,
+    
     ...initialData // Load existing vehicle data if editing
   });
 

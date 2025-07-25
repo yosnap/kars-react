@@ -18,8 +18,21 @@ import { VERSION_INFO } from '../../config/version';
 import AdminLayout from '../../components/Admin/AdminLayout';
 import { axiosAdmin } from '../../api/axiosClient';
 
+interface SystemInfo {
+  apiVersion: string;
+  frontendVersion: string;
+  environment: string;
+  databaseStatus: string;
+}
+
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('overview');
+  const [systemInfo, setSystemInfo] = useState<SystemInfo>({
+    apiVersion: 'unknown',
+    frontendVersion: VERSION_INFO.version,
+    environment: VERSION_INFO.environment,
+    databaseStatus: 'unknown'
+  });
   const [vehicleStats, setVehicleStats] = useState({
     total: 0,
     sold: 0,
@@ -56,6 +69,27 @@ export default function AdminDashboard() {
     },
     loading: true
   });
+
+  // Función para obtener información del sistema desde la API
+  const fetchSystemInfo = async () => {
+    try {
+      console.log('🔍 Fetching system info from API...');
+      const response = await axiosAdmin.get('/system/info');
+      const apiData = response.data;
+      
+      console.log('📊 System info received:', apiData);
+      
+      setSystemInfo({
+        apiVersion: apiData.api?.version || 'unknown',
+        frontendVersion: VERSION_INFO.version,
+        environment: apiData.environment?.nodeEnv || VERSION_INFO.environment,
+        databaseStatus: apiData.database?.status || 'unknown'
+      });
+      
+    } catch (error) {
+      console.error('❌ Error fetching system info:', error);
+    }
+  };
 
   // Función para obtener estadísticas de vehículos
   const fetchVehicleStats = async () => {
@@ -235,6 +269,7 @@ export default function AdminDashboard() {
 
   // Cargar estadísticas al montar el componente
   useEffect(() => {
+    fetchSystemInfo();
     fetchVehicleStats();
     fetchDetailedStats();
   }, []);
@@ -566,18 +601,28 @@ export default function AdminDashboard() {
                   Veure detalls
                 </Link>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{VERSION_INFO.version}</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Versió</div>
+                  <div className="text-lg font-bold text-blue-600">v{systemInfo.frontendVersion}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Frontend</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{VERSION_INFO.environment}</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Entorn</div>
+                  <div className="text-lg font-bold text-green-600">v{systemInfo.apiVersion}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">API</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">MongoDB</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Base de Dades</div>
+                  <div className="text-lg font-bold text-orange-600">{systemInfo.environment}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Entorn</div>
+                </div>
+                <div className="text-center">
+                  <div className={`text-lg font-bold ${
+                    systemInfo.databaseStatus === 'connected' 
+                      ? 'text-green-600' 
+                      : 'text-red-600'
+                  }`}>
+                    MongoDB
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Base de Dades</div>
                 </div>
               </div>
             </div>

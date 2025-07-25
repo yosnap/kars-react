@@ -496,11 +496,11 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
               </label>
               <SearchableSelect
                 options={[
-                  { value: 'Davant', label: 'Tracció davant' },
-                  { value: 'Darrere', label: 'Tracció darrere' },
-                  { value: 'Integral', label: 'Tracció integral (4x4)' },
+                  { value: 'davant', label: 'Tracció davant' },
+                  { value: 'darrere', label: 'Tracció darrere' },
+                  { value: 'integral', label: 'Tracció integral (4x4)' },
                   { value: '4x4', label: '4x4' },
-                  { value: 'AWD', label: 'AWD (All Wheel Drive)' }
+                  { value: 'awd', label: 'AWD (All Wheel Drive)' }
                 ]}
                 value={formData.traccio || ''}
                 onValueChange={(value) => updateFormData({ traccio: value })}
@@ -528,17 +528,17 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                 }
                 value={
                   formData.tipusVehicle === 'cotxe' ? (formData.carrosseriaCotxe || '') :
-                  formData.tipusVehicle === 'moto' ? (formData.tipusDeMoto || '') :
+                  formData.tipusVehicle === 'moto' ? (formData.carrosseriaMoto || '') :
                   formData.tipusVehicle === 'autocaravana' ? (formData.carrosseriaCaravana || '') :
-                  formData.tipusVehicle === 'vehicle-comercial' ? (formData.carrosseriaComercial || '') :
+                  formData.tipusVehicle === 'vehicle-comercial' ? (formData.carrosseriaCotxe || '') :
                   ''
                 }
                 onValueChange={(value) => {
                   const fieldName = 
                     formData.tipusVehicle === 'cotxe' ? 'carrosseriaCotxe' :
-                    formData.tipusVehicle === 'moto' ? 'tipusDeMoto' :
+                    formData.tipusVehicle === 'moto' ? 'carrosseriaMoto' :
                     formData.tipusVehicle === 'autocaravana' ? 'carrosseriaCaravana' :
-                    formData.tipusVehicle === 'vehicle-comercial' ? 'carrosseriaComercial' :
+                    formData.tipusVehicle === 'vehicle-comercial' ? 'carrosseriaCotxe' :
                     null;
                   if (fieldName) {
                     updateFormData({ [fieldName]: value });

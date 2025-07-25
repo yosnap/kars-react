@@ -178,7 +178,7 @@ const EquipmentExtrasStep: React.FC<EquipmentExtrasStepProps> = ({ formData, upd
               </div>
               <div className="scale-75">
                 <Switch
-                  checked={formData.aireAcondicionat === 'true' || formData.aireAcondicionat === true}
+                  checked={formData.aireAcondicionat === 'true' || formData.aireAcondicionat === true || formData.aireAcondicionat === 'si'}
                   onCheckedChange={(checked) => updateFormData({ aireAcondicionat: checked ? 'true' : 'false' })}
                   className="data-[state=checked]:bg-blue-400 data-[state=unchecked]:bg-gray-300"
                 />

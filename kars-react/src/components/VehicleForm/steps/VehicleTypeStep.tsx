@@ -1,5 +1,5 @@
 import React from 'react';
-import { Car, Zap, Truck, Home } from 'lucide-react';
+import { Car, Bike, Truck, Home } from 'lucide-react';
 
 interface VehicleTypeStepProps {
   formData: any;
@@ -9,7 +9,7 @@ interface VehicleTypeStepProps {
 const VehicleTypeStep: React.FC<VehicleTypeStepProps> = ({ formData, updateFormData }) => {
   const vehicleTypes = [
     { value: 'cotxe', label: 'Cotxe', icon: Car, description: 'Vehicles de turisme' },
-    { value: 'moto', label: 'Motocicleta', icon: Zap, description: 'Motos i ciclomotors' },
+    { value: 'moto', label: 'Motocicleta', icon: Bike, description: 'Motos i ciclomotors' },
     { value: 'autocaravana', label: 'Autocaravana', icon: Home, description: 'Autocaravanes i campers' },
     { value: 'vehicle-comercial', label: 'Vehicle Comercial', icon: Truck, description: 'Furgonetes i camions' }
   ];

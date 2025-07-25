@@ -34,25 +34,31 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../../components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 
 interface Vehicle {
   id: string;
   slug: string;
-  'titol-anunci': string;
-  'tipus-vehicle': string;
-  'marca-cotxe'?: string;
-  'marca-moto'?: string;
-  'models-cotxe'?: string;
-  'models-moto'?: string;
+  titolAnunci: string;
+  tipusVehicle: string;
+  marcaCotxe?: string;
+  marcaMoto?: string;
+  modelsCotxe?: string;
+  modelsMoto?: string;
   preu: number | string;
   any: string;
   quilometratge: string;
-  'anunci-actiu': string;
-  venut: string;
-  'anunci-destacat': string;
-  'data-creacio': string;
-  'imatge-destacada-url'?: string;
-  'estat-vehicle'?: string;
+  anunciActiu: boolean;
+  venut: boolean;
+  anunciDestacat: number;
+  dataCreacio: string;
+  imatgeDestacadaUrl?: string;
+  estatVehicle?: string;
 }
 
 
@@ -107,6 +113,13 @@ const KarsVehicles = () => {
   const [modelMap, setModelMap] = useState<Record<string, string>>({});
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [vehicleToDelete, setVehicleToDelete] = useState<{id: string, title: string} | null>(null);
+  const [importReportOpen, setImportReportOpen] = useState(false);
+  const [importReport, setImportReport] = useState<{
+    total: number;
+    successful: number;
+    failed: number;
+    failedVehicles: Array<{title: string, slug: string, error: string}>;
+  } | null>(null);
   const isInitialMount = useRef(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -121,7 +134,7 @@ const KarsVehicles = () => {
         facets: true  // Solicitar facets con los resultados
       };
 
-      // Aplicar filtros
+      // Aplicar filtros - usar nombres de campo de la API
       if (typeFilter !== 'all') {
         params['tipus-vehicle'] = typeFilter;
       }
@@ -139,7 +152,7 @@ const KarsVehicles = () => {
       }
 
       if (anunciDestacatFilter !== 'all') {
-        params['anunci-destacat'] = anunciDestacatFilter;
+        params['anunci-destacat'] = parseInt(anunciDestacatFilter);
       }
 
       if (searchTerm) {
@@ -225,7 +238,7 @@ const KarsVehicles = () => {
   const toggleVehicleDestacado = async (vehicleId: string, currentDestacado: string) => {
     console.log('toggleVehicleDestacado called:', { vehicleId, currentDestacado });
     try {
-      const newValue = currentDestacado === '1' ? 0 : 1;
+      const newValue = parseInt(currentDestacado) === 1 ? 0 : 1;
       console.log('Sending put with value:', newValue);
       await axiosAdmin.put(`/vehicles/${vehicleId}`, {
         'anunciDestacat': newValue
@@ -275,6 +288,18 @@ const KarsVehicles = () => {
 
       if (response.data.success) {
         setImportStatus('success');
+        
+        // Configurar el informe para el modal
+        setImportReport({
+          total: response.data.summary?.total || response.data.data.imported + response.data.data.skipped,
+          successful: response.data.summary?.successful || response.data.data.imported,
+          failed: response.data.summary?.failed || response.data.data.skipped,
+          failedVehicles: response.data.summary?.failedVehicles || []
+        });
+        
+        // Mostrar el modal con el informe detallado
+        setImportReportOpen(true);
+        
         toast.success(`✅ Importació completada: ${response.data.data.imported} importats, ${response.data.data.skipped} omesos`);
         await loadVehicles(currentPage); // Recargar vehículos
       } else {
@@ -426,8 +451,39 @@ const KarsVehicles = () => {
     }).replace(/\//g, '/');
   };
 
+  // Función para decodificar entidades HTML usando DOMParser (más robusta)
+  const decodeHtmlEntities = (text: string) => {
+    if (!text) return text;
+    
+    try {
+      // Usar DOMParser para decodificar entidades HTML de forma nativa
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, 'text/html');
+      return doc.documentElement.textContent || text;
+    } catch (error) {
+      // Fallback manual si DOMParser falla
+      const entityMap: Record<string, string> = {
+        '&amp;': '&',
+        '&lt;': '<',
+        '&gt;': '>',
+        '&quot;': '"',
+        '&#8211;': '–', // guión largo
+        '&#8212;': '—', // guión más largo  
+        '&#8217;': "'", // comilla simple derecha
+        '&#8216;': "'", // comilla simple izquierda
+        '&#8220;': '"', // comilla doble izquierda
+        '&#8221;': '"', // comilla doble derecha
+        '&nbsp;': ' '
+      };
+      
+      return text.replace(/&[#\w]+;/g, (entity) => {
+        return entityMap[entity] || entity;
+      });
+    }
+  };
+
   const getBrandName = (vehicle: Vehicle) => {
-    const brandSlug = vehicle['marca-cotxe'] || vehicle['marca-moto'];
+    const brandSlug = vehicle.marcaCotxe || vehicle.marcaMoto;
     if (!brandSlug) return 'N/A';
     
     // Intentar varias variaciones de mapeo
@@ -440,7 +496,7 @@ const KarsVehicles = () => {
   };
 
   const getModelName = (vehicle: Vehicle) => {
-    const modelSlug = vehicle['models-cotxe'] || vehicle['models-moto'];
+    const modelSlug = vehicle.modelsCotxe || vehicle.modelsMoto;
     if (!modelSlug) return 'N/A';
     
     // Intentar varias variaciones de mapeo
@@ -454,17 +510,31 @@ const KarsVehicles = () => {
 
   // Helper para obtener conteo de un filtro
   const getFilterCount = (filterKey: string, value: string) => {
-    if (!filterCounts[filterKey]) return 0;
+    // Mapear nombres de campo del frontend a la API
+    const fieldMap: Record<string, string> = {
+      'tipusVehicle': 'tipus-vehicle',
+      'estatVehicle': 'estat-vehicle', 
+      'anunciActiu': 'anunci-actiu',
+      'anunciDestacat': 'anunci-destacat',
+      'venut': 'venut' // Este campo ya coincide pero lo incluimos para consistencia
+    };
     
-    // Para campos booleanos, el backend puede devolver "true"/"false" como strings
-    // mientras que nuestros valores de filtro son strings
-    let count = filterCounts[filterKey][value];
+    const apiFieldName = fieldMap[filterKey] || filterKey;
     
-    // Si no encontramos el valor directamente y es un valor booleano, intentar alternativas
-    if (count === undefined && (value === 'true' || value === 'false')) {
-      // Intentar con el valor booleano
-      const boolValue = value === 'true';
-      count = filterCounts[filterKey][boolValue.toString()];
+    if (!filterCounts[apiFieldName]) return 0;
+    
+    let count = filterCounts[apiFieldName][value];
+    
+    // Si no encontramos el valor directamente, intentar alternativas según el tipo de campo
+    if (count === undefined) {
+      if (value === 'true' || value === 'false') {
+        // Para campos booleanos, intentar con valor booleano y string
+        const boolValue = value === 'true';
+        count = filterCounts[apiFieldName][boolValue.toString()];
+      } else if (value === '0' || value === '1') {
+        // Para campos numéricos como destacat
+        count = filterCounts[apiFieldName][value];
+      }
     }
     
     return count !== undefined ? count : 0;
@@ -636,7 +706,7 @@ const KarsVehicles = () => {
             <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
               {/* Vehicle Type Filter */}
               <SearchableSelect
-                options={createSelectOptions('tipus-vehicle', [
+                options={createSelectOptions('tipusVehicle', [
                   { value: 'all', label: 'Tots els tipus' },
                   { value: 'cotxe', label: 'Cotxes' },
                   { value: 'moto', label: 'Motos' },
@@ -666,7 +736,7 @@ const KarsVehicles = () => {
 
               {/* Estat Vehicle Filter */}
               <SearchableSelect
-                options={createSelectOptions('estat-vehicle', [
+                options={createSelectOptions('estatVehicle', [
                   { value: 'all', label: 'Estat - Tots' },
                   { value: 'nou', label: 'Nou' },
                   { value: 'seminou', label: 'Seminou' },
@@ -682,7 +752,7 @@ const KarsVehicles = () => {
 
               {/* Anunci Actiu Filter */}
               <SearchableSelect
-                options={createSelectOptions('anunci-actiu', [
+                options={createSelectOptions('anunciActiu', [
                   { value: 'all', label: 'Actiu - Tots' },
                   { value: 'true', label: 'Actiu' },
                   { value: 'false', label: 'Inactiu' }
@@ -696,7 +766,7 @@ const KarsVehicles = () => {
 
               {/* Anunci Destacat Filter */}
               <SearchableSelect
-                options={createSelectOptions('anunci-destacat', [
+                options={createSelectOptions('anunciDestacat', [
                   { value: 'all', label: 'Destacat - Tots' },
                   { value: '0', label: 'No destacat' },
                   { value: '1', label: 'Destacat' }
@@ -762,10 +832,10 @@ const KarsVehicles = () => {
                   {/* Vehicle Info */}
                   <div className="col-span-3 flex gap-3">
                     <div className="w-16 h-12 bg-gray-200 rounded overflow-hidden flex-shrink-0">
-                      {vehicle['imatge-destacada-url'] ? (
+                      {vehicle.imatgeDestacadaUrl ? (
                         <img 
-                          src={vehicle['imatge-destacada-url']} 
-                          alt={vehicle['titol-anunci']}
+                          src={vehicle.imatgeDestacadaUrl} 
+                          alt={vehicle.titolAnunci}
                           className="w-full h-full object-cover"
                         />
                       ) : (
@@ -776,10 +846,10 @@ const KarsVehicles = () => {
                     </div>
                     <div className="min-w-0">
                       <h3 className="font-medium text-gray-900 dark:text-white truncate">
-                        {vehicle['titol-anunci']}
+                        {decodeHtmlEntities(vehicle.titolAnunci)}
                       </h3>
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 capitalize mt-1">
-                        {vehicle['tipus-vehicle']}
+                        {vehicle.tipusVehicle}
                       </span>
                       <p className="text-xs text-gray-400 mt-1">
                         {vehicle.any} • {vehicle.quilometratge} km
@@ -797,7 +867,7 @@ const KarsVehicles = () => {
                   {/* Date */}
                   <div className="col-span-1 flex items-center">
                     <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {formatDate(vehicle['data-creacio'])}
+                      {formatDate(vehicle.dataCreacio)}
                     </span>
                   </div>
 
@@ -816,7 +886,7 @@ const KarsVehicles = () => {
                   {/* Estat Vehicle */}
                   <div className="col-span-1 flex items-center">
                     <span className="text-sm text-gray-900 dark:text-white capitalize">
-                      {vehicle['estat-vehicle'] || 'N/A'}
+                      {vehicle.estatVehicle || 'N/A'}
                     </span>
                   </div>
 
@@ -824,8 +894,8 @@ const KarsVehicles = () => {
                   <div className="col-span-1 flex items-center justify-center">
                     <div className="scale-75">
                       <Switch
-                        checked={vehicle['anunci-destacat'] === '1'}
-                        onCheckedChange={() => toggleVehicleDestacado(vehicle.id, vehicle['anunci-destacat'])}
+                        checked={vehicle.anunciDestacat === 1}
+                        onCheckedChange={() => toggleVehicleDestacado(vehicle.id, vehicle.anunciDestacat.toString())}
                         className="data-[state=checked]:bg-blue-400 data-[state=unchecked]:bg-gray-300"
                       />
                     </div>
@@ -835,8 +905,8 @@ const KarsVehicles = () => {
                   <div className="col-span-1 flex items-center justify-center">
                     <div className="scale-75">
                       <Switch
-                        checked={vehicle['anunci-actiu'] === 'true'}
-                        onCheckedChange={() => toggleVehicleStatus(vehicle.id, vehicle['anunci-actiu'] === 'true')}
+                        checked={vehicle.anunciActiu === true}
+                        onCheckedChange={() => toggleVehicleStatus(vehicle.id, vehicle.anunciActiu)}
                         className="data-[state=checked]:bg-blue-400 data-[state=unchecked]:bg-gray-300"
                       />
                     </div>
@@ -846,8 +916,8 @@ const KarsVehicles = () => {
                   <div className="col-span-1 flex items-center justify-center">
                     <div className="scale-75">
                       <Switch
-                        checked={vehicle.venut === 'true'}
-                        onCheckedChange={() => toggleVehicleVenut(vehicle.id, vehicle.venut === 'true')}
+                        checked={vehicle.venut === true}
+                        onCheckedChange={() => toggleVehicleVenut(vehicle.id, vehicle.venut)}
                         className="data-[state=checked]:bg-blue-400 data-[state=unchecked]:bg-gray-300"
                       />
                     </div>
@@ -872,7 +942,7 @@ const KarsVehicles = () => {
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => openDeleteModal(vehicle.id, vehicle['titol-anunci'])}
+                        onClick={() => openDeleteModal(vehicle.id, vehicle.titolAnunci)}
                         className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
                         title="Eliminar vehicle"
                       >
@@ -933,7 +1003,7 @@ const KarsVehicles = () => {
             <AlertDialogTitle>Confirmar eliminació</AlertDialogTitle>
             <AlertDialogDescription>
               Estàs segur que vols eliminar el vehicle{' '}
-              <span className="font-semibold">"{vehicleToDelete?.title}"</span>?
+              <span className="font-semibold">"{decodeHtmlEntities(vehicleToDelete?.title || '')}"</span>?
               <br />
               <span className="text-red-600 font-medium">
                 Aquesta acció no es pot desfer.
@@ -953,6 +1023,78 @@ const KarsVehicles = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Import Report Modal */}
+      <Dialog open={importReportOpen} onOpenChange={setImportReportOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Informe d'Importació JSON
+            </DialogTitle>
+          </DialogHeader>
+          
+          {importReport && (
+            <div className="flex-1 overflow-y-auto space-y-4">
+              {/* Summary */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-blue-50 p-4 rounded-lg text-center">
+                  <div className="text-2xl font-bold text-blue-600">{importReport.total}</div>
+                  <div className="text-sm text-blue-800">Total Vehicles</div>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg text-center">
+                  <div className="text-2xl font-bold text-green-600">{importReport.successful}</div>
+                  <div className="text-sm text-green-800">Importats</div>
+                </div>
+                <div className="bg-red-50 p-4 rounded-lg text-center">
+                  <div className="text-2xl font-bold text-red-600">{importReport.failed}</div>
+                  <div className="text-sm text-red-800">Fallits</div>
+                </div>
+              </div>
+
+              {/* Failed Vehicles Details */}
+              {importReport.failed > 0 && (
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-red-700 flex items-center gap-2">
+                    <XCircle className="w-4 h-4" />
+                    Vehicles que han fallat ({importReport.failed})
+                  </h3>
+                  <div className="max-h-60 overflow-y-auto border rounded-lg">
+                    {importReport.failedVehicles.map((failed, index) => (
+                      <div key={index} className="p-3 border-b last:border-b-0 bg-red-50">
+                        <div className="font-medium text-red-900">{failed.title}</div>
+                        <div className="text-sm text-red-700 font-mono">{failed.slug}</div>
+                        <div className="text-sm text-red-600 mt-1 bg-red-100 p-2 rounded">
+                          <strong>Error:</strong> {failed.error}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Success Message */}
+              {importReport.failed === 0 && (
+                <div className="bg-green-50 p-4 rounded-lg text-center">
+                  <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                  <div className="text-green-800 font-medium">
+                    ✅ Tots els vehicles s'han importat correctament!
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <div className="flex justify-end pt-4 border-t">
+            <button
+              onClick={() => setImportReportOpen(false)}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+            >
+              Tancar
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 };
