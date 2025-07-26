@@ -1,343 +1,411 @@
-// Función helper para generar slug desde texto catalán
-const generateSlug = (text: string): string => {
-  return text
-    .toLowerCase()
-    .replace(/[àáâäã]/g, 'a')
-    .replace(/[èéêë]/g, 'e')
-    .replace(/[ìíîï]/g, 'i')
-    .replace(/[òóôöõ]/g, 'o')
-    .replace(/[ùúûü]/g, 'u')
-    .replace(/[ñ]/g, 'n')
-    .replace(/[ç]/g, 'c')
-    .replace(/[·]/g, '')
-    .replace(/[^a-z0-9]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-};
-
-// Extras para autocaravanas con traducciones en 4 idiomas
+// Motorhome extras with complete data from user - EXACTLY 51 elements as requested
 export const motorhomeExtras = [
   {
-    catalan: "Nevera trimix",
-    spanish: "Nevera trimix",
-    french: "Réfrigérateur trimix",
-    english: "Trimix refrigerator"
+    value: "abs",
+    name: "Abs",
+    catalan: "Abs",
+    spanish: "ABS",
+    french: "ABS",
+    english: "ABS"
   },
   {
-    catalan: "Nevera compressor",
-    spanish: "Nevera compresor",
-    french: "Réfrigérateur compresseur",
-    english: "Compressor refrigerator"
+    value: "aire-condicionat-cabina",
+    name: "Aire condicionat cabina",
+    catalan: "Aire condicionat cabina",
+    spanish: "Aire acondicionado cabina",
+    french: "Climatisation cabine",
+    english: "Cabin air conditioning"
   },
   {
-    catalan: "Forn",
-    spanish: "Horno",
-    french: "Four",
-    english: "Oven"
+    value: "aire-condicionat-habitacle",
+    name: "Aire condicionat habitacle",
+    catalan: "Aire condicionat habitacle",
+    spanish: "Aire acondicionado habitáculo",
+    french: "Climatisation habitacle",
+    english: "Living area air conditioning"
   },
   {
-    catalan: "Microones",
-    spanish: "Microondas",
-    french: "Micro-ondes",
-    english: "Microwave"
+    value: "airbag-acompanyant",
+    name: "Airbag acompanyant",
+    catalan: "Airbag acompanyant",
+    spanish: "Airbag acompañante",
+    french: "Airbag passager",
+    english: "Passenger airbag"
   },
   {
-    catalan: "Fogons a gas",
-    spanish: "Fogones a gas",
-    french: "Cuisinière à gaz",
-    english: "Gas stove"
+    value: "airbag-conductor",
+    name: "Airbag conductor",
+    catalan: "Airbag conductor",
+    spanish: "Airbag conductor",
+    french: "Airbag conducteur",
+    english: "Driver airbag"
   },
   {
-    catalan: "Aigua calenta",
-    spanish: "Agua caliente",
-    french: "Eau chaude",
-    english: "Hot water"
+    value: "alarma",
+    name: "Alarma",
+    catalan: "Alarma",
+    spanish: "Alarma",
+    french: "Alarme",
+    english: "Alarm"
   },
   {
-    catalan: "Calefacció Truma",
-    spanish: "Calefacción Truma",
-    french: "Chauffage Truma",
-    english: "Truma heating"
+    value: "antena-parabolica",
+    name: "Antena parabòlica",
+    catalan: "Antena parabòlica",
+    spanish: "Antena parabólica",
+    french: "Antenne parabolique",
+    english: "Satellite dish"
   },
   {
-    catalan: "Calefacció Eberspacher",
-    spanish: "Calefacción Eberspacher",
-    french: "Chauffage Eberspacher",
-    english: "Eberspacher heating"
+    value: "arara-remolc",
+    name: "Arara remolc",
+    catalan: "Arara remolc",
+    spanish: "Enganche remolque",
+    french: "Attelage remorque",
+    english: "Tow hitch"
   },
   {
-    catalan: "Aire condicionat sostre",
-    spanish: "Aire acondicionado techo",
-    french: "Climatisation de toit",
-    english: "Roof air conditioning"
+    value: "baca",
+    name: "Baca",
+    catalan: "Baca",
+    spanish: "Baca",
+    french: "Galerie",
+    english: "Roof rack"
   },
   {
-    catalan: "Panells solars",
-    spanish: "Paneles solares",
-    french: "Panneaux solaires",
-    english: "Solar panels"
+    value: "banys-armaris",
+    name: "Banys armaris",
+    catalan: "Banys armaris",
+    spanish: "Baños armarios",
+    french: "Salles de bain placards",
+    english: "Bathroom cabinets"
   },
   {
-    catalan: "Inversor 12V-220V",
-    spanish: "Inversor 12V-220V",
-    french: "Convertisseur 12V-220V",
-    english: "12V-220V inverter"
+    value: "bluetooth",
+    name: "Bluetooth",
+    catalan: "Bluetooth",
+    spanish: "Bluetooth",
+    french: "Bluetooth",
+    english: "Bluetooth"
   },
   {
-    catalan: "Bateria AGM",
-    spanish: "Batería AGM",
-    french: "Batterie AGM",
-    english: "AGM battery"
+    value: "boiler",
+    name: "Boiler",
+    catalan: "Boiler",
+    spanish: "Calentador",
+    french: "Chauffe-eau",
+    english: "Water heater"
   },
   {
-    catalan: "Bateria Litio",
-    spanish: "Batería Litio",
-    french: "Batterie Lithium",
-    english: "Lithium battery"
+    value: "calefaccio-estacionaria",
+    name: "Calefacció estacionària",
+    catalan: "Calefacció estacionària",
+    spanish: "Calefacción estacionaria",
+    french: "Chauffage stationnaire",
+    english: "Stationary heating"
   },
   {
-    catalan: "Carregador de bateries",
-    spanish: "Cargador de baterías",
-    french: "Chargeur de batteries",
-    english: "Battery charger"
+    value: "calefaccio-gas",
+    name: "Calefacció gas",
+    catalan: "Calefacció gas",
+    spanish: "Calefacción gas",
+    french: "Chauffage gaz",
+    english: "Gas heating"
   },
   {
-    catalan: "Presa exterior 220V",
-    spanish: "Toma exterior 220V",
-    french: "Prise extérieure 220V",
-    english: "External 220V outlet"
+    value: "calefaccio-gasoil",
+    name: "Calefacció gasoil",
+    catalan: "Calefacció gasoil",
+    spanish: "Calefacción gasóleo",
+    french: "Chauffage diesel",
+    english: "Diesel heating"
   },
   {
-    catalan: "Presa TVE",
-    spanish: "Toma TVE",
-    french: "Prise TV extérieure",
-    english: "External TV outlet"
+    value: "camera-marxa-enrere",
+    name: "Càmera marxa enrere",
+    catalan: "Càmera marxa enrere",
+    spanish: "Cámara marcha atrás",
+    french: "Caméra de recul",
+    english: "Reverse camera"
   },
   {
-    catalan: "Antena TV",
-    spanish: "Antena TV",
-    french: "Antenne TV",
-    english: "TV antenna"
+    value: "canvi-automatic",
+    name: "Canvi automàtic",
+    catalan: "Canvi automàtic",
+    spanish: "Cambio automático",
+    french: "Boîte automatique",
+    english: "Automatic transmission"
   },
   {
-    catalan: "Antena satèl·lit",
-    spanish: "Antena satélite",
-    french: "Antenne satellite",
-    english: "Satellite antenna"
+    value: "clausor-centralitzat",
+    name: "Clausor centralitzat",
+    catalan: "Clausor centralitzat",
+    spanish: "Cierre centralizado",
+    french: "Verrouillage centralisé",
+    english: "Central locking"
   },
   {
-    catalan: "TV 12V",
-    spanish: "TV 12V",
-    french: "TV 12V",
-    english: "12V TV"
+    value: "consola-central",
+    name: "Consola central",
+    catalan: "Consola central",
+    spanish: "Consola central",
+    french: "Console centrale",
+    english: "Center console"
   },
   {
+    value: "control-estabilitat",
+    name: "Control estabilitat",
+    catalan: "Control estabilitat",
+    spanish: "Control estabilidad",
+    french: "Contrôle stabilité",
+    english: "Stability control"
+  },
+  {
+    value: "control-traccio",
+    name: "Control tracció",
+    catalan: "Control tracció",
+    spanish: "Control tracción",
+    french: "Contrôle traction",
+    english: "Traction control"
+  },
+  {
+    value: "convertidor-corrent",
+    name: "Convertidor corrent",
+    catalan: "Convertidor corrent",
+    spanish: "Convertidor corriente",
+    french: "Convertisseur courant",
+    english: "Power converter"
+  },
+  {
+    value: "cruise-control",
+    name: "Cruise control",
+    catalan: "Cruise control",
+    spanish: "Control crucero",
+    french: "Régulateur vitesse",
+    english: "Cruise control"
+  },
+  {
+    value: "direccio-assistida",
+    name: "Direcció assistida",
+    catalan: "Direcció assistida",
+    spanish: "Dirección asistida",
+    french: "Direction assistée",
+    english: "Power steering"
+  },
+  {
+    value: "dutxa",
+    name: "Dutxa",
     catalan: "Dutxa",
     spanish: "Ducha",
     french: "Douche",
     english: "Shower"
   },
   {
-    catalan: "WC químic",
-    spanish: "WC químico",
-    french: "WC chimique",
-    english: "Chemical toilet"
+    value: "escalfa-plats",
+    name: "Escalfa plats",
+    catalan: "Escalfa plats",
+    spanish: "Calienta platos",
+    french: "Chauffe-plats",
+    english: "Plate warmer"
   },
   {
-    catalan: "WC cassette",
-    spanish: "WC cassette",
-    french: "WC à cassette",
-    english: "Cassette toilet"
+    value: "finestres-dobles",
+    name: "Finestres dobles",
+    catalan: "Finestres dobles",
+    spanish: "Ventanas dobles",
+    french: "Fenêtres doubles",
+    english: "Double windows"
   },
   {
-    catalan: "Aigües brutes",
-    spanish: "Aguas grises",
-    french: "Eaux grises",
-    english: "Grey water"
+    value: "forn",
+    name: "Forn",
+    catalan: "Forn",
+    spanish: "Horno",
+    french: "Four",
+    english: "Oven"
   },
   {
-    catalan: "Dipòsit aigua neta",
-    spanish: "Depósito agua limpia",
-    french: "Réservoir eau propre",
-    english: "Fresh water tank"
+    value: "garatge",
+    name: "Garatge",
+    catalan: "Garatge",
+    spanish: "Garaje",
+    french: "Garage",
+    english: "Garage"
   },
   {
-    catalan: "Bomba d'aigua",
-    spanish: "Bomba de agua",
-    french: "Pompe à eau",
-    english: "Water pump"
+    value: "generador",
+    name: "Generador",
+    catalan: "Generador",
+    spanish: "Generador",
+    french: "Générateur",
+    english: "Generator"
   },
   {
-    catalan: "Filtre d'aigua",
-    spanish: "Filtro de agua",
-    french: "Filtre à eau",
-    english: "Water filter"
+    value: "gps",
+    name: "GPS",
+    catalan: "GPS",
+    spanish: "GPS",
+    french: "GPS",
+    english: "GPS"
   },
   {
-    catalan: "Tendal",
-    spanish: "Toldo",
-    french: "Auvent",
-    english: "Awning"
+    value: "lavabo",
+    name: "Lavabo",
+    catalan: "Lavabo",
+    spanish: "Lavabo",
+    french: "Lavabo",
+    english: "Sink"
   },
   {
-    catalan: "Tendal elèctric",
-    spanish: "Toldo eléctrico",
-    french: "Auvent électrique",
-    english: "Electric awning"
+    value: "llit-capcer",
+    name: "Llit capcer",
+    catalan: "Llit capcer",
+    spanish: "Cama capuchina",
+    french: "Lit capucine",
+    english: "Overcab bed"
   },
   {
-    catalan: "Porta mosquitera",
-    spanish: "Puerta mosquitera",
-    french: "Porte moustiquaire",
-    english: "Fly screen door"
-  },
-  {
-    catalan: "Finestres mosquitera",
-    spanish: "Ventanas mosquitera",
-    french: "Fenêtres moustiquaire",
-    english: "Fly screen windows"
-  },
-  {
-    catalan: "Claraboia",
-    spanish: "Claraboya",
-    french: "Lanterneau",
-    english: "Skylight"
-  },
-  {
-    catalan: "Claraboia ventiladora",
-    spanish: "Claraboya ventiladora",
-    french: "Lanterneau ventilateur",
-    english: "Roof vent"
-  },
-  {
-    catalan: "Llit articulat",
-    spanish: "Cama articulada",
-    french: "Lit articulé",
-    english: "Adjustable bed"
-  },
-  {
-    catalan: "Llit basculant",
-    spanish: "Cama basculante",
-    french: "Lit basculant",
+    value: "llit-elevable",
+    name: "Llit elevable",
+    catalan: "Llit elevable",
+    spanish: "Cama elevable",
+    french: "Lit relevable",
     english: "Drop-down bed"
   },
   {
-    catalan: "Llit central",
-    spanish: "Cama central",
-    french: "Lit central",
-    english: "Central bed"
+    value: "microones",
+    name: "Microones",
+    catalan: "Microones",
+    spanish: "Microondas",
+    french: "Micro-ondes",
+    english: "Microwave"
   },
   {
-    catalan: "Llit isla",
-    spanish: "Cama isla",
-    french: "Lit îlot",
-    english: "Island bed"
+    value: "mosquiters",
+    name: "Mosquiters",
+    catalan: "Mosquiters",
+    spanish: "Mosquiteras",
+    french: "Moustiquaires",
+    english: "Mosquito nets"
   },
   {
-    catalan: "Sofà llit",
-    spanish: "Sofá cama",
-    french: "Canapé-lit",
-    english: "Sofa bed"
+    value: "nevera",
+    name: "Nevera",
+    catalan: "Nevera",
+    spanish: "Nevera",
+    french: "Réfrigérateur",
+    english: "Refrigerator"
   },
   {
-    catalan: "Taula extraïble",
-    spanish: "Mesa extraíble",
-    french: "Table amovible",
-    english: "Removable table"
+    value: "panells-solars",
+    name: "Panells solars",
+    catalan: "Panells solars",
+    spanish: "Paneles solares",
+    french: "Panneaux solaires",
+    english: "Solar panels"
   },
   {
+    value: "portabicicletes",
+    name: "Portabicicletes",
+    catalan: "Portabicicletes",
+    spanish: "Portabicicletas",
+    french: "Porte-vélos",
+    english: "Bike rack"
+  },
+  {
+    value: "porta-esquis",
+    name: "Porta esquís",
+    catalan: "Porta esquís",
+    spanish: "Porta esquís",
+    french: "Porte-skis",
+    english: "Ski rack"
+  },
+  {
+    value: "radio-cd",
+    name: "Ràdio CD",
+    catalan: "Ràdio CD",
+    spanish: "Radio CD",
+    french: "Radio CD",
+    english: "CD radio"
+  },
+  {
+    value: "seients-giratoris",
+    name: "Seients giratoris",
     catalan: "Seients giratoris",
     spanish: "Asientos giratorios",
     french: "Sièges pivotants",
     english: "Swivel seats"
   },
   {
-    catalan: "Armaris",
-    spanish: "Armarios",
-    french: "Placards",
-    english: "Wardrobes"
+    value: "sostre-elevable",
+    name: "Sostre elevable",
+    catalan: "Sostre elevable",
+    spanish: "Techo elevable",
+    french: "Toit relevable",
+    english: "Pop-up roof"
   },
   {
-    catalan: "Prestatges",
-    spanish: "Estanterías",
-    french: "Étagères",
-    english: "Shelves"
+    value: "suport-tv",
+    name: "Suport TV",
+    catalan: "Suport TV",
+    spanish: "Soporte TV",
+    french: "Support TV",
+    english: "TV mount"
   },
   {
-    catalan: "Caixa forta",
-    spanish: "Caja fuerte",
-    french: "Coffre-fort",
-    english: "Safe"
+    value: "taulell-extraible",
+    name: "Taulell extraïble",
+    catalan: "Taulell extraïble",
+    spanish: "Encimera extraíble",
+    french: "Plan de travail extractible",
+    english: "Pull-out counter"
   },
   {
-    catalan: "Garatge",
-    spanish: "Garaje",
-    french: "Soute",
-    english: "Garage"
+    value: "tenda",
+    name: "Tenda",
+    catalan: "Tenda",
+    spanish: "Toldo",
+    french: "Auvent",
+    english: "Awning"
   },
   {
-    catalan: "Portabicis",
-    spanish: "Portabicicletas",
-    french: "Porte-vélos",
-    english: "Bike rack"
+    value: "tv",
+    name: "TV",
+    catalan: "TV",
+    spanish: "TV",
+    french: "TV",
+    english: "TV"
   },
   {
-    catalan: "Escala exterior",
-    spanish: "Escalera exterior",
-    french: "Échelle extérieure",
-    english: "External ladder"
+    value: "wc",
+    name: "WC",
+    catalan: "WC",
+    spanish: "WC",
+    french: "WC",
+    english: "Toilet"
   },
   {
-    catalan: "Ganxo de remolc",
-    spanish: "Enganche de remolque",
-    french: "Attelage",
-    english: "Tow hitch"
+    value: "wc-quimic",
+    name: "WC químic",
+    catalan: "WC químic",
+    spanish: "WC químico",
+    french: "WC chimique",
+    english: "Chemical toilet"
   },
   {
-    catalan: "Sistema d'alarma",
-    spanish: "Sistema de alarma",
-    french: "Système d'alarme",
-    english: "Alarm system"
+    value: "vidres-electrics",
+    name: "Vidres elèctrics",
+    catalan: "Vidres elèctrics",
+    spanish: "Cristales eléctricos",
+    french: "Vitres électriques",
+    english: "Electric windows"
   },
   {
-    catalan: "Trackers GPS",
-    spanish: "Localizador GPS",
-    french: "Traceur GPS",
-    english: "GPS tracker"
-  },
-  {
-    catalan: "Caixa d'eines",
-    spanish: "Caja de herramientas",
-    french: "Boîte à outils",
-    english: "Tool box"
-  },
-  {
-    catalan: "Extintor",
-    spanish: "Extintor",
-    french: "Extincteur",
-    english: "Fire extinguisher"
-  },
-  {
-    catalan: "Detector de gas",
-    spanish: "Detector de gas",
-    french: "Détecteur de gaz",
-    english: "Gas detector"
-  },
-  {
-    catalan: "Detector de fum",
-    spanish: "Detector de humo",
-    french: "Détecteur de fumée",
-    english: "Smoke detector"
-  },
-  {
-    catalan: "Detector de monòxid",
-    spanish: "Detector de monóxido",
-    french: "Détecteur de monoxyde",
-    english: "Carbon monoxide detector"
+    value: "volant-multifuncio",
+    name: "Volant multifunció",
+    catalan: "Volant multifunció",
+    spanish: "Volante multifunción",
+    french: "Volant multifonction",
+    english: "Multifunction steering wheel"
   }
-].map(extra => ({
-  ...extra,
-  value: generateSlug(extra.catalan)
-}));
-
-export default motorhomeExtras;
+];

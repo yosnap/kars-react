@@ -40,27 +40,54 @@ const getCurrentLanguage = () => {
   return "ca";
 };
 
+// Mapeo condicional para valores de BD que no coinciden exactamente con el instalador
+const EXTRA_VALUE_MAPPING: Record<string, string> = {
+  'gps': 'navegador-gps',
+  'llandes-alliatge': 'kit-carrosseria', // Temporal hasta tener llandes en instalador
+  'llums-led': 'fars-xeno', // Temporal hasta tener LED en instalador  
+  'pintura-metallitzada': 'garantia-fabricant' // Temporal hasta tener pintura en instalador
+};
+
+// Función para mapear valores de BD y obtener el label correcto
+const getExtraLabelFromDB = (dbValue: string, extrasLabels: Record<string, string>): string => {
+  // Primero intentar mapear el valor
+  const mappedValue = EXTRA_VALUE_MAPPING[dbValue] || dbValue;
+  
+  // Buscar en los labels cargados
+  if (extrasLabels[mappedValue]) {
+    return extrasLabels[mappedValue];
+  }
+  
+  // Si no se encuentra, intentar con el valor original
+  if (extrasLabels[dbValue]) {
+    return extrasLabels[dbValue];
+  }
+  
+  // Si no se encuentra, devolver el valor original formateado
+  return dbValue.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
+
 // Function to get the description in the current language
 const getVehicleDescription = (vehicle: Vehicle) => {
   const currentLang = getCurrentLanguage();
   
-  // Map language codes to field names (using kebab-case as in the API)
+  // Map language codes to field names (using camelCase as in the API)
   const descriptionFields = {
-    'ca': 'descripcio-anunci-ca',
-    'es': 'descripcio-anunci-es', 
-    'en': 'descripcio-anunci-en',
-    'fr': 'descripcio-anunci-fr'
+    'ca': 'descripcioAnunciCa',
+    'es': 'descripcioAnunciEs', 
+    'en': 'descripcioAnunciEn',
+    'fr': 'descripcioAnunciFr'
   };
   
   const fieldName = descriptionFields[currentLang as keyof typeof descriptionFields];
-  let description = vehicle[fieldName] as string;
+  let description = (vehicle as any)[fieldName] as string;
   
   // Fallback hierarchy: current language -> Catalan -> Spanish -> English -> legacy field
   if (!description || description.trim() === '') {
-    description = vehicle['descripcio-anunci-ca'] as string ||
-                 vehicle['descripcio-anunci-es'] as string ||
-                 vehicle['descripcio-anunci-en'] as string ||
-                 vehicle['descripcio-anunci'] as string || '';
+    description = (vehicle as any).descripcioAnunciCa ||
+                 (vehicle as any).descripcioAnunciEs ||
+                 (vehicle as any).descripcioAnunciEn ||
+                 (vehicle as any).descripcioAnunci || '';
   }
   
   return description;
@@ -78,6 +105,7 @@ const VehicleDetail = () => {
   const [loadingProfessional, setLoadingProfessional] = useState(true);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [brands, setBrands] = useState<{ value: string; label: string }[]>([]);
+  const [extrasLabels, setExtrasLabels] = useState<Record<string, string>>({});
 
   // Favorites logic
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -89,6 +117,18 @@ const VehicleDetail = () => {
       .get(`/vehicles/${slug}`)
       .then((res: { data: Vehicle }) => {
         const veh = res.data;
+        console.log("VehicleDetail - all vehicle fields:", Object.keys(veh));
+        console.log("VehicleDetail - images fields:", {
+          imatgeDestacadaUrl: (veh as any).imatgeDestacadaUrl,
+          galeriaVehicleUrls: (veh as any).galeriaVehicleUrls
+        });
+        console.log("VehicleDetail - description fields:", {
+          descripcioAnunciCa: (veh as any).descripcioAnunciCa,
+          descripcioAnunciEs: (veh as any).descripcioAnunciEs,
+          descripcioAnunciEn: (veh as any).descripcioAnunciEn,
+          descripcioAnunciFr: (veh as any).descripcioAnunciFr
+        });
+        
         if (veh) {
           setVehicle(veh);
           setCurrentVehicle(veh); // Actualizar el contexto
@@ -105,6 +145,51 @@ const VehicleDetail = () => {
       })
       .finally(() => setLoading(false));
   }, [slug, user]);
+
+  // Cargar extras labels cuando se carga el vehículo
+  useEffect(() => {
+    console.log("Extras useEffect triggered, vehicle:", !!vehicle, "tipusVehicle:", (vehicle as any)?.tipusVehicle);
+    if (vehicle && (vehicle as any).tipusVehicle) {
+      const tipus = String((vehicle as any).tipusVehicle).toLowerCase();
+      console.log("Loading extras for vehicle type:", tipus);
+      
+      // Determinar qué endpoints de extras cargar
+      const endpoints: string[] = [];
+      if (tipus === "moto" || tipus === "moto-quad-atv") {
+        endpoints.push("/motorcycle-extras");
+      } else if (tipus === "autocaravana-camper") {
+        endpoints.push("/caravan-extras", "/habitacle-extras");
+      } else {
+        endpoints.push("/car-extras");
+      }
+      
+      // Cargar todos los extras en paralelo
+      Promise.all(
+        endpoints.map(endpoint => 
+          axiosAdmin.get(endpoint)
+            .then(res => res.data.data || [])
+            .catch(() => [])
+        )
+      ).then(results => {
+        const allExtras = results.flat();
+        const labelsMap: Record<string, string> = {};
+        
+        allExtras.forEach((extra: any) => {
+          // El endpoint devuelve { id, name, slug } donde slug es el value
+          const value = extra.slug || extra.value || extra.id;
+          const name = extra.name || extra.label || extra.title;
+          if (value && name) {
+            labelsMap[value] = name;
+          }
+        });
+        
+        console.log("API endpoints responses:", results);
+        console.log("All extras parsed:", allExtras.slice(0, 5));
+        console.log("Loaded extras labels:", labelsMap);
+        setExtrasLabels(labelsMap);
+      });
+    }
+  }, [vehicle]);
 
   useEffect(() => {
     if (vehicle && vehicle.author_id) {
@@ -131,9 +216,9 @@ const VehicleDetail = () => {
 
   // Cargar marcas
   useEffect(() => {
-    if (!vehicle || !vehicle["tipus-vehicle"]) return;
+    if (!vehicle || !(vehicle as any).tipusVehicle) return;
     import("../api/axiosClient").then(({ axiosAdmin }) => {
-      const tipus = String(vehicle["tipus-vehicle"]).toLowerCase();
+      const tipus = String((vehicle as any).tipusVehicle).toLowerCase();
       const endpointMarcas = tipus === "moto" || tipus === "moto-quad-atv"
         ? "/marques-moto"
         : "/marques-cotxe";
@@ -172,12 +257,12 @@ const VehicleDetail = () => {
   };
 
   // Extract data
-  const images = Array.isArray(vehicle["galeria-vehicle-urls"]) ? vehicle["galeria-vehicle-urls"] : [];
-  const mainImageUrl = typeof vehicle["imatge-destacada-url"] === "string" ? vehicle["imatge-destacada-url"] : "";
+  const images = Array.isArray((vehicle as any).galeriaVehicleUrls) ? (vehicle as any).galeriaVehicleUrls : [];
+  const mainImageUrl = typeof (vehicle as any).imatgeDestacadaUrl === "string" ? (vehicle as any).imatgeDestacadaUrl : "";
   const allImages = [mainImageUrl, ...images].filter(Boolean);
   const mainImage = allImages[selectedImageIndex] || mainImageUrl;
-  const priceValue = typeof vehicle.preu === "string" || typeof vehicle.preu === "number" 
-    ? parseFloat(String(vehicle.preu)) 
+  const priceValue = typeof (vehicle as any).preu === "string" || typeof (vehicle as any).preu === "number" 
+    ? parseFloat(String((vehicle as any).preu)) 
     : 0;
   
   const formatPrice = (price: number) => {
@@ -198,13 +283,13 @@ const VehicleDetail = () => {
 
   // Obtener el campo de extras según el tipo de vehículo
   const getExtrasField = () => {
-    const tipus = String(vehicle["tipus-vehicle"]).toLowerCase();
+    const tipus = String((vehicle as any).tipusVehicle).toLowerCase();
     if (tipus === "moto" || tipus === "moto-quad-atv") {
-      return vehicle["extres-moto"];
+      return (vehicle as any).extresMoto;
     } else if (tipus === "autocaravana-camper") {
-      return vehicle["extres-autocaravana"];
+      return (vehicle as any).extresAutocaravana;
     } else {
-      return vehicle["extres-cotxe"];
+      return (vehicle as any).extresCotxe;
     }
   };
 
@@ -231,8 +316,8 @@ const VehicleDetail = () => {
   
 
   // Breadcrumbs
-  const tipusVehicleSlug = vehicle["tipus-vehicle"] ? String(vehicle["tipus-vehicle"]).toLowerCase() : "";
-  const marcaLabel = vehicle["marques-cotxe"] ? String(vehicle["marques-cotxe"]) : "";
+  const tipusVehicleSlug = (vehicle as any).tipusVehicle ? String((vehicle as any).tipusVehicle).toLowerCase() : "";
+  const marcaLabel = (vehicle as any).marcaCotxe ? String((vehicle as any).marcaCotxe) : "";
   const brandObj = brands.find(b => b.label.toLowerCase() === marcaLabel.toLowerCase());
   const marcaSlug = brandObj ? brandObj.value : marcaLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   
@@ -257,10 +342,10 @@ const VehicleDetail = () => {
     } : null,
     {
       label: {
-        es: typeof vehicle["titol-anunci"] === "string" ? decodeHtmlEntities(vehicle["titol-anunci"]) : "Detalle",
-        ca: typeof vehicle["titol-anunci"] === "string" ? decodeHtmlEntities(vehicle["titol-anunci"]) : "Detall",
-        en: typeof vehicle["titol-anunci"] === "string" ? decodeHtmlEntities(vehicle["titol-anunci"]) : "Detail",
-        fr: typeof vehicle["titol-anunci"] === "string" ? decodeHtmlEntities(vehicle["titol-anunci"]) : "Détail"
+        es: typeof (vehicle as any).titolAnunci === "string" ? decodeHtmlEntities((vehicle as any).titolAnunci) : "Detalle",
+        ca: typeof (vehicle as any).titolAnunci === "string" ? decodeHtmlEntities((vehicle as any).titolAnunci) : "Detall",
+        en: typeof (vehicle as any).titolAnunci === "string" ? decodeHtmlEntities((vehicle as any).titolAnunci) : "Detail",
+        fr: typeof (vehicle as any).titolAnunci === "string" ? decodeHtmlEntities((vehicle as any).titolAnunci) : "Détail"
       }
     }
   ].filter(Boolean) as { label: { es: string; ca: string; en: string; fr: string }; href?: string }[];
@@ -343,7 +428,7 @@ const VehicleDetail = () => {
 
             <div>
               <h1 className="text-3xl font-bold text-white mb-6">
-                {decodeHtmlEntities(String(vehicle["titol-anunci"] || ""))}
+                {decodeHtmlEntities(String((vehicle as any).titolAnunci || ""))}
               </h1>
             </div>
 
@@ -389,12 +474,16 @@ const VehicleDetail = () => {
                 <h2 className="text-2xl font-bold text-white mb-4">Extras</h2>
                 <div className="bg-gray-900 rounded-lg p-6">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {extrasArray.map((extra, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <CheckCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-                        <span className="text-white">{extra}</span>
-                      </div>
-                    ))}
+                    {extrasArray.map((extra, idx) => {
+                      // Usar la función de mapeo para obtener el label correcto
+                      const extraLabel = getExtraLabelFromDB(extra, extrasLabels);
+                      return (
+                        <div key={idx} className="flex items-center gap-2">
+                          <CheckCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                          <span className="text-white">{extraLabel}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -408,10 +497,10 @@ const VehicleDetail = () => {
               <div className="space-y-4">
                 {/* Price section */}
                 <div className="border-b border-gray-700 pb-4">
-                  {Boolean(vehicle["preu-anterior"]) && (
+                  {Boolean((vehicle as any).preuAnterior) && (
                     <p className="text-gray-400 text-lg line-through text-center mb-1">
-                      {formatPrice(typeof vehicle["preu-anterior"] === "string" || typeof vehicle["preu-anterior"] === "number" 
-                        ? parseFloat(String(vehicle["preu-anterior"])) 
+                      {formatPrice(typeof (vehicle as any).preuAnterior === "string" || typeof (vehicle as any).preuAnterior === "number" 
+                        ? parseFloat(String((vehicle as any).preuAnterior)) 
                         : 0)}
                     </p>
                   )}
@@ -422,64 +511,58 @@ const VehicleDetail = () => {
 
                 {/* Vehicle details */}
                 <div className="space-y-3 text-white">
-                  {Boolean(vehicle.any) && (
+                  {Boolean((vehicle as any).any) && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Any:</span>
-                      <span className="font-medium">{String(vehicle.any)}</span>
+                      <span className="font-medium">{String((vehicle as any).any)}</span>
                     </div>
                   )}
-                  {Boolean(vehicle["motor"]) && (
+                  {Boolean((vehicle as any).motor) && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Motor:</span>
-                      <span className="font-medium">{String(vehicle["motor"])}</span>
+                      <span className="font-medium">{String((vehicle as any).motor)}</span>
                     </div>
                   )}
-                  {Boolean(vehicle["potencia-cv"]) && (
+                  {Boolean((vehicle as any).potenciaCv) && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Potència:</span>
-                      <span className="font-medium">{String(vehicle["potencia-cv"])} CV</span>
+                      <span className="font-medium">{String((vehicle as any).potenciaCv)} CV</span>
                     </div>
                   )}
-                  {Boolean(vehicle["models-cotxe"]) && (
+                  {Boolean((vehicle as any).modelsCotxe) && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Model:</span>
-                      <span className="font-medium">{String(vehicle["models-cotxe"])}</span>
+                      <span className="font-medium">{String((vehicle as any).modelsCotxe)}</span>
                     </div>
                   )}
-                  {Boolean(vehicle.quilometratge) && (
+                  {Boolean((vehicle as any).quilometratge) && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Quilometratge:</span>
-                      <span className="font-medium">{formatKilometers(String(vehicle.quilometratge))}</span>
+                      <span className="font-medium">{formatKilometers((vehicle as any).quilometratge)}</span>
                     </div>
                   )}
-                  {Boolean(vehicle["tipus-cotxe"]) && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Tipus:</span>
-                      <span className="font-medium">{String(vehicle["tipus-cotxe"])}</span>
-                    </div>
-                  )}
-                  {Boolean(vehicle["tipus-combustible"]) && (
+                  {Boolean((vehicle as any).tipusCombustible) && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Combustible:</span>
-                      <span className="font-medium">{String(vehicle["tipus-combustible"])}</span>
+                      <span className="font-medium">{String((vehicle as any).tipusCombustible)}</span>
                     </div>
                   )}
-                  {Boolean(vehicle["estat-vehicle"]) && (
+                  {Boolean((vehicle as any).estatVehicle) && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Estat:</span>
-                      <span className="font-medium capitalize">{String(vehicle["estat-vehicle"])}</span>
+                      <span className="font-medium capitalize">{String((vehicle as any).estatVehicle)}</span>
                     </div>
                   )}
-                  {Boolean(vehicle["nombre-de-portes"]) && (
+                  {Boolean((vehicle as any).portesCotxe) && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Núm. de portes:</span>
-                      <span className="font-medium">{String(vehicle["nombre-de-portes"])}</span>
+                      <span className="font-medium">{String((vehicle as any).portesCotxe)}</span>
                     </div>
                   )}
                 </div>
 
                 {/* Venut button for sold vehicles or Favorite button */}
-                {vehicle.venut === "true" || vehicle.venut === true ? (
+                {(vehicle as any).venut === "true" || (vehicle as any).venut === true ? (
                   <button
                     disabled
                     className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium bg-red-600 text-white cursor-not-allowed opacity-90"

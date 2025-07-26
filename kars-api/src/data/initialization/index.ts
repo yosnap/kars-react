@@ -117,10 +117,44 @@ export const getExtraNameInLanguage = (
   return extra ? extra[language] : extraName;
 };
 
+// Mapeo condicional para valores de BD que no coinciden exactamente con el instalador
+const EXTRA_VALUE_MAPPING: Record<string, Record<string, string>> = {
+  'cotxe': {
+    'gps': 'navegador-gps',
+    'llandes-alliatge': 'kit-carrosseria', // Temporal hasta tener llandes en instalador
+    'llums-led': 'fars-xeno', // Temporal hasta tener LED en instalador  
+    'pintura-metallitzada': 'garantia-fabricant' // Temporal hasta tener pintura en instalador
+  }
+};
+
+// Función para obtener el label de un extra desde la BD
+export const getExtraLabelFromDB = (
+  dbValue: string, 
+  vehicleType: string, 
+  language: 'catalan' | 'spanish' | 'french' | 'english' = 'catalan'
+): string => {
+  const extras = getExtrasByVehicleType(vehicleType);
+  const mapping = EXTRA_VALUE_MAPPING[vehicleType.toLowerCase()] || {};
+  
+  // Intentar mapear el valor
+  const mappedValue = mapping[dbValue] || dbValue;
+  
+  // Buscar en el instalador
+  const extra = extras.find((e: any) => e.value === mappedValue);
+  
+  if (extra) {
+    return extra[language];
+  }
+  
+  // Si no se encuentra, devolver el valor original formateado
+  return dbValue.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
+
 export default {
   getInitializationData,
   getExtrasByVehicleType,
   getExtraTranslations,
   normalizeExtraName,
-  getExtraNameInLanguage
+  getExtraNameInLanguage,
+  getExtraLabelFromDB
 };
