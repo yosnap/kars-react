@@ -116,7 +116,6 @@ const KarsVehicles = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalVehicles, setTotalVehicles] = useState(0);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [importStatus, setImportStatus] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
   const [filterCounts, setFilterCounts] = useState<any>({});
   const [brandMap, setBrandMap] = useState<Record<string, string>>({});
@@ -187,17 +186,10 @@ const KarsVehicles = () => {
     }
   };
 
-  const refreshData = async () => {
-    setIsRefreshing(true);
-    await loadVehicles(currentPage);
-    setIsRefreshing(false);
-  };
 
   const toggleVehicleStatus = async (vehicleId: string, currentStatus: boolean) => {
-    console.log('toggleVehicleStatus called:', { vehicleId, currentStatus });
     try {
       const newValue = !currentStatus;
-      console.log('Sending put with value:', newValue);
       await axiosAdmin.put(`/vehicles/${vehicleId}`, {
         'anunciActiu': newValue
       });
@@ -210,10 +202,8 @@ const KarsVehicles = () => {
   };
 
   const toggleVehicleVenut = async (vehicleId: string, currentStatus: boolean) => {
-    console.log('toggleVehicleVenut called:', { vehicleId, currentStatus });
     try {
       const newValue = !currentStatus;
-      console.log('Sending put with value:', newValue);
       await axiosAdmin.put(`/vehicles/${vehicleId}`, {
         'venut': newValue
       });
@@ -246,10 +236,8 @@ const KarsVehicles = () => {
   };
 
   const toggleVehicleDestacado = async (vehicleId: string, currentDestacado: string) => {
-    console.log('toggleVehicleDestacado called:', { vehicleId, currentDestacado });
     try {
       const newValue = parseInt(currentDestacado) === 1 ? 0 : 1;
-      console.log('Sending put with value:', newValue);
       await axiosAdmin.put(`/vehicles/${vehicleId}`, {
         'anunciDestacat': newValue
       });
@@ -267,7 +255,6 @@ const KarsVehicles = () => {
   };
 
   const handleEditVehicle = (vehicleId: string) => {
-    console.log('Navigating to edit vehicle with ID:', vehicleId);
     navigate(`/admin/vehicles/edit/${vehicleId}`);
   };
 
@@ -406,7 +393,6 @@ const KarsVehicles = () => {
         // TODO: Implementar endpoint de modelos generales - por ahora usar mapping vacío
         setModelMap({});
       } catch (modelError) {
-        console.log('Models endpoints not available, using fallback');
         setModelMap({});
       }
       
@@ -585,14 +571,6 @@ const KarsVehicles = () => {
           </div>
           {activeTab === 'vehicles' && (
             <div className="flex gap-3">
-              <button
-                onClick={refreshData}
-                disabled={isRefreshing}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
-              >
-                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                Actualitzar
-              </button>
               <button
                 onClick={handleDownloadJson}
                 className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"

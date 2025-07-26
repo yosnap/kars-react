@@ -131,7 +131,6 @@ export function useCreateVehicle() {
         anunciDestacat: parseInt(vehicleData.anunciDestacat) || 0,
       };
 
-      console.log('📤 Sending normalized vehicle data:', JSON.stringify(normalizedData, null, 2));
       
       try {
         const response = await axiosClient.post('/vehicles', normalizedData);

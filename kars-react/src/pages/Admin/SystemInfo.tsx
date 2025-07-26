@@ -84,11 +84,9 @@ const SystemInfo = () => {
   // Función para obtener información del sistema desde la API
   const fetchSystemInfo = async () => {
     try {
-      console.log('🔍 Fetching system info from API...');
       const response = await axiosAdmin.get('/system/info');
       const apiData = response.data;
       
-      console.log('📊 System info received:', apiData);
       
       // Update system data with real API data
       setSystemData(prev => ({
@@ -118,7 +116,6 @@ const SystemInfo = () => {
   // Función para obtener estadísticas reales de vehículos
   const fetchVehicleStats = async () => {
     try {
-      console.log('🔍 Fetching vehicle stats...');
       setVehicleStats(prev => ({ ...prev, loading: true }));
       
       // Hacer múltiples llamadas en paralelo para obtener todas las estadísticas
@@ -151,7 +148,6 @@ const SystemInfo = () => {
       };
       
       setVehicleStats(stats);
-      console.log('📊 Vehicle stats calculated:', stats);
       
     } catch (error) {
       console.error('❌ Error fetching vehicle stats:', error);

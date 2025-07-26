@@ -18,6 +18,8 @@ export interface VehicleUI {
   any?: string;
   quilometratge?: string;
   preu?: string;
+  "preu-antic"?: string;
+  "preu-anterior"?: string;
   "color-vehicle"?: string;
   "tipus-combustible"?: string;
   "potencia-cv"?: string;
@@ -178,11 +180,21 @@ const VehicleCard = ({ vehicle, onUserAction, searchQuery, showSoldButton = fals
           {highlightText(decodeHtmlEntities(vehicle["titol-anunci"] ?? ""), searchQuery ?? "")}
         </h3>
         
-        {/* Precio anterior tachado - siempre mantener espacio */}
+        {/* Precio anterior tachado - solo si existe */}
         <div className="mb-1 h-5">
-          <span className="text-gray-400 line-through text-sm">
-            {Number(vehicle["preu"]) > 0 ? formatPrice(Number(vehicle["preu"]) + 2000) : ""}
-          </span>
+          {(() => {
+            // Buscar precio anterior en diferentes campos posibles
+            const oldPrice = (vehicle as any)["preu-antic"] || 
+                           (vehicle as any)["preu-anterior"] || 
+                           (vehicle as any).preuAntic || 
+                           (vehicle as any).preuAnterior;
+            
+            return oldPrice && Number(oldPrice) > 0 ? (
+              <span className="text-gray-400 line-through text-sm">
+                {formatPrice(oldPrice)}
+              </span>
+            ) : null;
+          })()}
         </div>
         
         {/* Precio actual */}

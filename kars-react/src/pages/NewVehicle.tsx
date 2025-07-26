@@ -61,7 +61,6 @@ const NewVehicle = () => {
         dataCreacio: new Date().toISOString()
       };
 
-      console.log('Saving vehicle data:', apiData);
 
       const response = await axiosAdmin.post('/vehicles', apiData);
       

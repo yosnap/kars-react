@@ -230,10 +230,7 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
         
         // Debug logging para autocaravanas
         if (formData.tipusVehicle === 'autocaravana-camper') {
-          console.log('🔍 Debug autocaravana - Modelos cargados:', transformedModels);
-          console.log('🔍 Debug autocaravana - Modelo actual formData.modelsCotxe:', formData.modelsCotxe);
           const foundModel = transformedModels.find(m => m.value === formData.modelsCotxe);
-          console.log('🔍 Debug autocaravana - Modelo encontrado:', foundModel);
         }
         
         setModels(transformedModels);
@@ -259,15 +256,9 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
     
     // Debug logging para autocaravanas y vehículos comerciales
     if (formData.tipusVehicle === 'autocaravana-camper') {
-      console.log('🔍 Debug autocaravana - selectedBrand:', selectedBrand);
-      console.log('🔍 Debug autocaravana - formData.marcaCotxe:', formData.marcaCotxe);
-      console.log('🔍 Debug autocaravana - formData.modelsCotxe:', formData.modelsCotxe);
     }
     
     if (formData.tipusVehicle === 'vehicle-comercial') {
-      console.log('🔍 Debug vehículo comercial - selectedBrand:', selectedBrand);
-      console.log('🔍 Debug vehículo comercial - formData.marcaCotxe:', formData.marcaCotxe);
-      console.log('🔍 Debug vehículo comercial - formData.modelsCotxe:', formData.modelsCotxe);
     }
     
     if (selectedBrand) {

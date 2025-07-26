@@ -151,28 +151,23 @@ export default function SyncManager() {
       return
     }
 
-    console.log('📁 Archivo seleccionado:', file.name, 'Tamaño:', file.size)
     setActionLoading('import')
     setImportResult(null)
 
     try {
       const fileText = await file.text()
-      console.log('📄 Contenido del archivo leído, primeros 200 caracteres:', fileText.substring(0, 200))
       
       const vehiclesData = JSON.parse(fileText)
-      console.log('🚗 Vehículos encontrados en el archivo:', vehiclesData.length)
 
       if (!Array.isArray(vehiclesData)) {
         throw new Error('El JSON debe contener un array de vehículos')
       }
 
-      console.log('📡 Enviando datos a la API...')
       const response = await axiosAdmin.post('/vehicles/import-json', {
         vehiclesData,
         clearDatabase: false
       })
 
-      console.log('📨 Respuesta de la API:', response.data)
 
       if (response.data.success) {
         setImportResult(response.data.data)

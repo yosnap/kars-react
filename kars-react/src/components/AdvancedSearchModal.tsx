@@ -314,7 +314,6 @@ const AdvancedSearchModal = ({ isOpen, onOpenChange, facets = {}, onFacetsUpdate
   }, [priceRange, yearRange, mileageMax, powerRange]);
 
   const handleFilterChange = (key: keyof FilterState, value: string | boolean) => {
-    console.log("Filter change:", key, "=", value);
     
     let updatedFilters = { ...filters, [key]: value };
     let updatedDirtyFields = new Set(dirtyFields).add(key);

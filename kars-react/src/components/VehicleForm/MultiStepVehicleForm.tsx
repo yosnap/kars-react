@@ -277,10 +277,8 @@ export default function MultiStepVehicleForm({
   }, [currentStep]);
 
   const updateFormData = (updates: Partial<VehicleFormData>) => {
-    console.log('🔄 updateFormData called with:', updates);
     setFormData(prev => {
       const newData = { ...prev, ...updates };
-      console.log('📝 New formData state:', newData);
       return newData;
     });
   };

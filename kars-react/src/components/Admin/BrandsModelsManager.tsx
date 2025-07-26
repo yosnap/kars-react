@@ -227,11 +227,8 @@ const BrandsModelsManager = () => {
         
         if (summary.brandsWithoutModels > 0) {
           toast.error(`⚠️ ${summary.brandsWithoutModels} marcas sin modelos`);
-          console.log('🚗 Marcas de coches sin modelos:', carBrandsWithoutModels);
-          console.log('🏍️ Marcas de motos sin modelos:', motorcycleBrandsWithoutModels);
         }
         
-        console.log('📊 Resumen completo:', summary);
       }
       
     } catch (error: any) {
@@ -267,7 +264,6 @@ const BrandsModelsManager = () => {
       
       for (const brand of allBrandsWithoutModels) {
         try {
-          console.log(`🔄 Sincronizando modelos para: ${brand.name}`);
           await axiosAdmin.post(`/brands/${brand.slug}/sync-models`);
           syncedCount++;
         } catch (error) {

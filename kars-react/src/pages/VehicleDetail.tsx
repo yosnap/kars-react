@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useVehicleContext } from "../context/VehicleContext";
+import { useVehicleTypes } from "../hooks/useVehicleTypes";
 import { axiosAdmin } from "../api/axiosClient";
 import { ChevronLeft, ChevronRight, Phone, MessageCircle, Star, Mail, CheckCircle, MapPin } from "lucide-react";
 import Footer from "../components/Footer";
@@ -97,6 +98,7 @@ const VehicleDetail = () => {
   const { slug } = useParams();
   const { user } = useAuth();
   const { setCurrentVehicle, setIsVehicleDetailPage } = useVehicleContext();
+  const { emissions, upholsteryColors } = useVehicleTypes();
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -117,17 +119,6 @@ const VehicleDetail = () => {
       .get(`/vehicles/${slug}`)
       .then((res: { data: Vehicle }) => {
         const veh = res.data;
-        console.log("VehicleDetail - all vehicle fields:", Object.keys(veh));
-        console.log("VehicleDetail - images fields:", {
-          imatgeDestacadaUrl: (veh as any).imatgeDestacadaUrl,
-          galeriaVehicleUrls: (veh as any).galeriaVehicleUrls
-        });
-        console.log("VehicleDetail - description fields:", {
-          descripcioAnunciCa: (veh as any).descripcioAnunciCa,
-          descripcioAnunciEs: (veh as any).descripcioAnunciEs,
-          descripcioAnunciEn: (veh as any).descripcioAnunciEn,
-          descripcioAnunciFr: (veh as any).descripcioAnunciFr
-        });
         
         if (veh) {
           setVehicle(veh);
@@ -136,6 +127,8 @@ const VehicleDetail = () => {
           if (!user && veh["anunci-actiu"] === false) {
             setError("Aquest vehicle no està disponible públicament.");
           }
+          // Scroll al inicio de la página
+          window.scrollTo(0, 0);
         } else {
           setError("No s'ha trobat el vehicle");
         }
@@ -148,10 +141,8 @@ const VehicleDetail = () => {
 
   // Cargar extras labels cuando se carga el vehículo
   useEffect(() => {
-    console.log("Extras useEffect triggered, vehicle:", !!vehicle, "tipusVehicle:", (vehicle as any)?.tipusVehicle);
     if (vehicle && (vehicle as any).tipusVehicle) {
       const tipus = String((vehicle as any).tipusVehicle).toLowerCase();
-      console.log("Loading extras for vehicle type:", tipus);
       
       // Determinar qué endpoints de extras cargar
       const endpoints: string[] = [];
@@ -183,9 +174,6 @@ const VehicleDetail = () => {
           }
         });
         
-        console.log("API endpoints responses:", results);
-        console.log("All extras parsed:", allExtras.slice(0, 5));
-        console.log("Loaded extras labels:", labelsMap);
         setExtrasLabels(labelsMap);
       });
     }
@@ -317,9 +305,18 @@ const VehicleDetail = () => {
 
   // Breadcrumbs
   const tipusVehicleSlug = (vehicle as any).tipusVehicle ? String((vehicle as any).tipusVehicle).toLowerCase() : "";
-  const marcaLabel = (vehicle as any).marcaCotxe ? String((vehicle as any).marcaCotxe) : "";
+  
+  // Obtener la marca según el tipo de vehículo
+  const isMoto = tipusVehicleSlug === "moto" || tipusVehicleSlug === "moto-quad-atv";
+  const marcaLabel = isMoto 
+    ? ((vehicle as any).marcaMoto ? String((vehicle as any).marcaMoto) : "")
+    : ((vehicle as any).marcaCotxe ? String((vehicle as any).marcaCotxe) : "");
+  
   const brandObj = brands.find(b => b.label.toLowerCase() === marcaLabel.toLowerCase());
   const marcaSlug = brandObj ? brandObj.value : marcaLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  
+  // Construir el parámetro de filtro de marca correcto
+  const marcaParam = isMoto ? `marques-moto=${marcaSlug}` : `marques-cotxe=${marcaSlug}`;
   
   const breadcrumbItems = [
     tipusVehicleSlug ? {
@@ -338,7 +335,7 @@ const VehicleDetail = () => {
         en: marcaLabel.charAt(0).toUpperCase() + marcaLabel.slice(1),
         fr: marcaLabel.charAt(0).toUpperCase() + marcaLabel.slice(1)
       },
-      href: `/vehicles`
+      href: `/vehicles?${marcaParam}${tipusVehicleSlug ? `&tipus-vehicle=${tipusVehicleSlug}` : ''}`
     } : null,
     {
       label: {
@@ -447,6 +444,433 @@ const VehicleDetail = () => {
               );
             })()}
 
+            {/* Fixa tècnica */}
+            <div className="bg-gray-900 rounded-lg p-6">
+              <h2 className="text-xl font-semibold text-gray-300 mb-6">Fitxa tècnica</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                {/* Versió */}
+                {Boolean((vehicle as any).versio) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Versió</span>
+                    <span className="font-medium text-white">{String((vehicle as any).versio)}</span>
+                  </div>
+                )}
+                
+                {/* Any */}
+                {Boolean((vehicle as any).any) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Any</span>
+                    <span className="font-medium text-white">{String((vehicle as any).any)}</span>
+                  </div>
+                )}
+
+                {/* Tracció */}
+                {Boolean((vehicle as any).traccio) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Tracció</span>
+                    <span className="font-medium text-white capitalize">{String((vehicle as any).traccio)}</span>
+                  </div>
+                )}
+
+                {/* Cilindrada */}
+                {Boolean((vehicle as any).cilindrada) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Cilindrada</span>
+                    <span className="font-medium text-white">{String((vehicle as any).cilindrada)}</span>
+                  </div>
+                )}
+
+                {/* Potència (CV) */}
+                {Boolean((vehicle as any).potenciaCv) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Potència (CV)</span>
+                    <span className="font-medium text-white">{String((vehicle as any).potenciaCv)}</span>
+                  </div>
+                )}
+
+                {/* Potència (kW) */}
+                {Boolean((vehicle as any).potenciaKw) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Potència (kW)</span>
+                    <span className="font-medium text-white">{String((vehicle as any).potenciaKw)}</span>
+                  </div>
+                )}
+
+                {/* Tipus combustible */}
+                {Boolean((vehicle as any).tipusCombustible) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Combustible</span>
+                    <span className="font-medium text-white capitalize">{String((vehicle as any).tipusCombustible)}</span>
+                  </div>
+                )}
+
+                {/* Tipus canvi */}
+                {Boolean((vehicle as any).tipusCanvi) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Tipus canvi</span>
+                    <span className="font-medium text-white capitalize">{String((vehicle as any).tipusCanvi)}</span>
+                  </div>
+                )}
+
+                {/* Tipus propulsor */}
+                {Boolean((vehicle as any).tipusPropulsor) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Propulsor</span>
+                    <span className="font-medium text-white capitalize">{String((vehicle as any).tipusPropulsor)}</span>
+                  </div>
+                )}
+
+                {/* Carrosseria */}
+                {Boolean((vehicle as any).carrosseriaCotxe || (vehicle as any).carrosseriaMoto || (vehicle as any).carrosseriaCaravana) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Carrosseria</span>
+                    <span className="font-medium text-white">{
+                      (() => {
+                        const carroceria = String((vehicle as any).carrosseriaCotxe || (vehicle as any).carrosseriaMoto || (vehicle as any).carrosseriaCaravana);
+                        // Mapear valores comunes a etiquetas legibles
+                        const carroceriaMap: Record<string, string> = {
+                          'familiar': 'Familiar',
+                          'sedan': 'Sedán',
+                          'hatchback': 'Hatchback',
+                          'coupe': 'Cupé',
+                          'suv': 'SUV',
+                          'cabriolet': 'Cabriolet',
+                          'monovolumen': 'Monovolum',
+                          'pick-up': 'Pick-up',
+                          'roadster': 'Roadster'
+                        };
+                        return carroceriaMap[carroceria.toLowerCase()] || carroceria;
+                      })()
+                    }</span>
+                  </div>
+                )}
+
+                {/* Emissions vehicle */}
+                {Boolean((vehicle as any).emissionsVehicle) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Emissions</span>
+                    <span className="font-medium text-white">{
+                      (() => {
+                        const emissionValue = String((vehicle as any).emissionsVehicle);
+                        // Buscar el label correspondiente en los datos del hook
+                        const emissionOption = emissions.find(e => e.value === emissionValue);
+                        return emissionOption ? emissionOption.label : emissionValue;
+                      })()
+                    }</span>
+                  </div>
+                )}
+
+                {/* Consum urbà */}
+                {Boolean((vehicle as any).consumUrba) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Consum urbà</span>
+                    <span className="font-medium text-white">{String((vehicle as any).consumUrba)} l/100km</span>
+                  </div>
+                )}
+
+                {/* Consum carretera */}
+                {Boolean((vehicle as any).consumCarretera) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Consum carretera</span>
+                    <span className="font-medium text-white">{String((vehicle as any).consumCarretera)} l/100km</span>
+                  </div>
+                )}
+
+                {/* Consum mixt */}
+                {Boolean((vehicle as any).consumMixt) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Consum mixt</span>
+                    <span className="font-medium text-white">{String((vehicle as any).consumMixt)} l/100km</span>
+                  </div>
+                )}
+
+                {/* Emissions CO2 */}
+                {Boolean((vehicle as any).emissionsCo2) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Emissions CO2</span>
+                    <span className="font-medium text-white">{String((vehicle as any).emissionsCo2)} g/km</span>
+                  </div>
+                )}
+
+                {/* Nombre propietaris */}
+                {Boolean((vehicle as any).nombrePropietaris) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Nombre propietaris</span>
+                    <span className="font-medium text-white">{String((vehicle as any).nombrePropietaris)}</span>
+                  </div>
+                )}
+
+                {/* Dies caducitat */}
+                {Boolean((vehicle as any).diesCaducitat) && (
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-gray-400">Dies caducitat</span>
+                    <span className="font-medium text-white">{String((vehicle as any).diesCaducitat)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Característiques */}
+            <div className="bg-gray-900 rounded-lg p-6">
+              <h2 className="text-xl font-semibold text-gray-300 mb-6">Característiques</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                {/* Portes */}
+                {Boolean((vehicle as any).portesCotxe) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Portes</span>
+                    <span className="font-medium text-white">{String((vehicle as any).portesCotxe)}</span>
+                  </div>
+                )}
+
+                {/* Places */}
+                {Boolean((vehicle as any).placesCotxe) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Places</span>
+                    <span className="font-medium text-white">{String((vehicle as any).placesCotxe)}</span>
+                  </div>
+                )}
+
+                {/* Color exterior */}
+                {Boolean((vehicle as any).colorVehicle) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Color exterior</span>
+                    <span className="font-medium text-white capitalize">{String((vehicle as any).colorVehicle)}</span>
+                  </div>
+                )}
+
+                {/* Color tapisseria */}
+                {Boolean((vehicle as any).colorTapisseria) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Color tapisseria</span>
+                    <span className="font-medium text-white">{
+                      (() => {
+                        const colorValue = String((vehicle as any).colorTapisseria);
+                        // Buscar el label correspondiente en los datos del hook
+                        const colorOption = upholsteryColors.find(c => c.value === colorValue);
+                        return colorOption ? colorOption.label : colorValue;
+                      })()
+                    }</span>
+                  </div>
+                )}
+
+                {/* Tipus tapisseria */}
+                {Boolean((vehicle as any).tipusTapisseria) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Tipus tapisseria</span>
+                    <span className="font-medium text-white capitalize">{String((vehicle as any).tipusTapisseria)}</span>
+                  </div>
+                )}
+
+                {/* Climatització */}
+                {((vehicle as any).climatitzacio === true || (vehicle as any).climatitzacio === 'true') && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Climatització</span>
+                    <span className="font-medium text-white">Sí</span>
+                  </div>
+                )}
+
+                {/* Aire acondicionat */}
+                {Boolean((vehicle as any).aireAcondicionat) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Aire acondicionat</span>
+                    <span className="font-medium text-white">
+                      {(vehicle as any).aireAcondicionat === 'true' || (vehicle as any).aireAcondicionat === true ? 'Sí' : 'No'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Vehicle fumador */}
+                {((vehicle as any).vehicleFumador === true || (vehicle as any).vehicleFumador === 'true') && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Vehicle fumador</span>
+                    <span className="font-medium text-white">Sí</span>
+                  </div>
+                )}
+
+                {/* Estat vehicle */}
+                {Boolean((vehicle as any).estatVehicle) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Estat</span>
+                    <span className="font-medium text-white capitalize">{String((vehicle as any).estatVehicle)}</span>
+                  </div>
+                )}
+
+                {/* Capacitat total */}
+                {Boolean((vehicle as any).capacitatTotal) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Capacitat total</span>
+                    <span className="font-medium text-white">{String((vehicle as any).capacitatTotal)} kg</span>
+                  </div>
+                )}
+
+                {/* Número maleters */}
+                {Boolean((vehicle as any).numeroMaleters) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Núm. maleters</span>
+                    <span className="font-medium text-white">{String((vehicle as any).numeroMaleters)}</span>
+                  </div>
+                )}
+
+                {/* Roda recanvi */}
+                {Boolean((vehicle as any).rodaRecanvi) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Roda recanvi</span>
+                    <span className="font-medium text-white">{
+                      (() => {
+                        const rodaRecanviValue = String((vehicle as any).rodaRecanvi);
+                        // Mapear valores específicos según el formulario
+                        const rodaRecanviMap: Record<string, string> = {
+                          'roda_substitucio': 'Roda Substitució',
+                          'r_kit_reparacio': 'Kit reparació'
+                        };
+                        return rodaRecanviMap[rodaRecanviValue] || rodaRecanviValue;
+                      })()
+                    }</span>
+                  </div>
+                )}
+
+                {/* Velocitat màxima */}
+                {Boolean((vehicle as any).velocitatMaxima) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Velocitat màxima</span>
+                    <span className="font-medium text-white">{String((vehicle as any).velocitatMaxima)} km/h</span>
+                  </div>
+                )}
+
+                {/* Acceleració 0-100 */}
+                {Boolean((vehicle as any).acceleracio0100) && (
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-gray-400">Acceleració 0-100</span>
+                    <span className="font-medium text-white">{String((vehicle as any).acceleracio0100)} s</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Informació comercial */}
+            <div className="bg-gray-900 rounded-lg p-6">
+              <h2 className="text-xl font-semibold text-gray-300 mb-6">Informació comercial</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                {/* Garantia */}
+                {Boolean((vehicle as any).garantia) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Garantia</span>
+                    <span className="font-medium text-white">{
+                      (() => {
+                        const garantia = String((vehicle as any).garantia);
+                        // Convertir valores booleanos o textuales a Sí/No en catalán
+                        if (garantia === 'true' || garantia === '1' || garantia === 'si' || garantia === 'sí' || garantia === 'yes') {
+                          return 'Sí';
+                        } else if (garantia === 'false' || garantia === '0' || garantia === 'no') {
+                          return 'No';
+                        }
+                        // Si es otro valor, intentar capitalizar
+                        return garantia.charAt(0).toUpperCase() + garantia.slice(1).toLowerCase();
+                      })()
+                    }</span>
+                  </div>
+                )}
+
+                {/* Origen */}
+                {Boolean((vehicle as any).origen) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Origen</span>
+                    <span className="font-medium text-white capitalize">{String((vehicle as any).origen)}</span>
+                  </div>
+                )}
+
+                {/* IVA */}
+                {Boolean((vehicle as any).iva) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">IVA</span>
+                    <span className="font-medium text-white">{String((vehicle as any).iva)}</span>
+                  </div>
+                )}
+
+                {/* Finançament */}
+                {Boolean((vehicle as any).finacament) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Finançament</span>
+                    <span className="font-medium text-white">{String((vehicle as any).finacament)}</span>
+                  </div>
+                )}
+
+                {/* Vehicle accidentat */}
+                {Boolean((vehicle as any).vehicleAccidentat) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Vehicle accidentat</span>
+                    <span className="font-medium text-white">
+                      {(vehicle as any).vehicleAccidentat === 'true' || (vehicle as any).vehicleAccidentat === true ? 'Sí' : 'No'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Llibre manteniment */}
+                {((vehicle as any).llibreManteniment === true || (vehicle as any).llibreManteniment === 'true') && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Llibre manteniment</span>
+                    <span className="font-medium text-white">Sí</span>
+                  </div>
+                )}
+
+                {/* Revisions oficials */}
+                {((vehicle as any).revisionsOficials === true || (vehicle as any).revisionsOficials === 'true') && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Revisions oficials</span>
+                    <span className="font-medium text-white">Sí</span>
+                  </div>
+                )}
+
+                {/* Preu antic */}
+                {Boolean((vehicle as any).preuAntic) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Preu anterior</span>
+                    <span className="font-medium text-white">{String((vehicle as any).preuAntic)} €</span>
+                  </div>
+                )}
+
+                {/* Preu mensual */}
+                {Boolean((vehicle as any).preuMensual) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Preu mensual</span>
+                    <span className="font-medium text-white">{String((vehicle as any).preuMensual)} €/mes</span>
+                  </div>
+                )}
+
+                {/* Preu diari */}
+                {Boolean((vehicle as any).preuDiari) && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Preu diari</span>
+                    <span className="font-medium text-white">{String((vehicle as any).preuDiari)} €/dia</span>
+                  </div>
+                )}
+
+                {/* Impostos deduïbles */}
+                {((vehicle as any).impostosDeduibles === true || (vehicle as any).impostosDeduibles === 'true') && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Impostos deduïbles</span>
+                    <span className="font-medium text-white">Sí</span>
+                  </div>
+                )}
+
+                {/* Vehicle a canvi */}
+                {((vehicle as any).vehicleACanvi === true || (vehicle as any).vehicleACanvi === 'true') && (
+                  <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                    <span className="text-gray-400">Vehicle a canvi</span>
+                    <span className="font-medium text-white">Accepta</span>
+                  </div>
+                )}
+
+                {/* Quilometratge */}
+                {Boolean((vehicle as any).quilometratge) && (
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-gray-400">Quilometratge</span>
+                    <span className="font-medium text-white">{formatKilometers((vehicle as any).quilometratge)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Specifications */}
             {(vehicle["one-pedal"] || vehicle["frenada-regenerativa"]) && (
               <div>
@@ -497,16 +921,40 @@ const VehicleDetail = () => {
               <div className="space-y-4">
                 {/* Price section */}
                 <div className="border-b border-gray-700 pb-4">
-                  {Boolean((vehicle as any).preuAnterior) && (
-                    <p className="text-gray-400 text-lg line-through text-center mb-1">
-                      {formatPrice(typeof (vehicle as any).preuAnterior === "string" || typeof (vehicle as any).preuAnterior === "number" 
-                        ? parseFloat(String((vehicle as any).preuAnterior)) 
-                        : 0)}
-                    </p>
-                  )}
-                  <p className="text-3xl font-bold text-red-500 text-center">
-                    {formatPrice(priceValue)}
-                  </p>
+                  {(() => {
+                    // Verificar múltiples campos para precio anterior
+                    const preuAnteriorValue = (vehicle as any).preuAnterior || 
+                                             (vehicle as any).preuAntic || 
+                                             (vehicle as any)['preu-anterior'] ||
+                                             (vehicle as any)['preu-antic'] ||
+                                             (vehicle as any).preuOriginal ||
+                                             (vehicle as any).previousPrice;
+                    const hasOldPrice = Boolean(preuAnteriorValue);
+                    const oldPriceNumber = hasOldPrice 
+                      ? (typeof preuAnteriorValue === "string" || typeof preuAnteriorValue === "number" 
+                          ? parseFloat(String(preuAnteriorValue)) 
+                          : 0)
+                      : 0;
+                    
+                    return hasOldPrice ? (
+                      // Layout ecommerce con precio anterior tachado
+                      <div className="text-center space-y-1">
+                        <div className="text-center">
+                          <span className="text-gray-400 text-xl line-through">
+                            {formatPrice(oldPriceNumber)}
+                          </span>
+                        </div>
+                        <p className="text-3xl font-bold text-red-500">
+                          {formatPrice(priceValue)}
+                        </p>
+                      </div>
+                    ) : (
+                      // Layout normal sin precio anterior
+                      <p className="text-3xl font-bold text-red-500 text-center">
+                        {formatPrice(priceValue)}
+                      </p>
+                    );
+                  })()}
                 </div>
 
                 {/* Vehicle details */}
@@ -517,10 +965,10 @@ const VehicleDetail = () => {
                       <span className="font-medium">{String((vehicle as any).any)}</span>
                     </div>
                   )}
-                  {Boolean((vehicle as any).motor) && (
+                  {Boolean((vehicle as any).cilindrada) && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Motor:</span>
-                      <span className="font-medium">{String((vehicle as any).motor)}</span>
+                      <span className="font-medium">{String((vehicle as any).cilindrada)} cc</span>
                     </div>
                   )}
                   {Boolean((vehicle as any).potenciaCv) && (
@@ -529,10 +977,39 @@ const VehicleDetail = () => {
                       <span className="font-medium">{String((vehicle as any).potenciaCv)} CV</span>
                     </div>
                   )}
+                  {Boolean((vehicle as any).carrosseriaCotxe) && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Carrocería:</span>
+                      <span className="font-medium capitalize">{
+                        (() => {
+                          const carroceria = String((vehicle as any).carrosseriaCotxe);
+                          // Mapear valores comunes a etiquetas legibles
+                          const carroceriaMap: Record<string, string> = {
+                            'familiar': 'Familiar',
+                            'sedan': 'Sedán',
+                            'hatchback': 'Hatchback',
+                            'coupe': 'Cupé',
+                            'suv': 'SUV',
+                            'cabriolet': 'Cabriolet',
+                            'monovolumen': 'Monovolum',
+                            'pick-up': 'Pick-up',
+                            'roadster': 'Roadster'
+                          };
+                          return carroceriaMap[carroceria.toLowerCase()] || carroceria;
+                        })()
+                      }</span>
+                    </div>
+                  )}
+                  {Boolean((vehicle as any).marcaCotxe) && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Marca:</span>
+                      <span className="font-medium capitalize">{String((vehicle as any).marcaCotxe)}</span>
+                    </div>
+                  )}
                   {Boolean((vehicle as any).modelsCotxe) && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Model:</span>
-                      <span className="font-medium">{String((vehicle as any).modelsCotxe)}</span>
+                      <span className="font-medium capitalize">{String((vehicle as any).modelsCotxe)}</span>
                     </div>
                   )}
                   {Boolean((vehicle as any).quilometratge) && (
@@ -544,19 +1021,28 @@ const VehicleDetail = () => {
                   {Boolean((vehicle as any).tipusCombustible) && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Combustible:</span>
-                      <span className="font-medium">{String((vehicle as any).tipusCombustible)}</span>
+                      <span className="font-medium capitalize">{
+                        (() => {
+                          const combustible = String((vehicle as any).tipusCombustible);
+                          // Mapear valores comunes a etiquetas legibles
+                          const combustibleMap: Record<string, string> = {
+                            'benzina': 'Benzina',
+                            'gasoil': 'Gasoil',
+                            'diesel': 'Dièsel',
+                            'electric': 'Elèctric',
+                            'hibrido': 'Híbrid',
+                            'gas': 'Gas',
+                            'gasolina': 'Gasolina'
+                          };
+                          return combustibleMap[combustible.toLowerCase()] || combustible;
+                        })()
+                      }</span>
                     </div>
                   )}
                   {Boolean((vehicle as any).estatVehicle) && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Estat:</span>
                       <span className="font-medium capitalize">{String((vehicle as any).estatVehicle)}</span>
-                    </div>
-                  )}
-                  {Boolean((vehicle as any).portesCotxe) && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Núm. de portes:</span>
-                      <span className="font-medium">{String((vehicle as any).portesCotxe)}</span>
                     </div>
                   )}
                 </div>
@@ -706,16 +1192,6 @@ const VehicleDetail = () => {
 };
 
 // Helper functions
-function getVehicleTypeLabel(slug: string): string {
-  switch (slug.toLowerCase()) {
-    case "cotxe": return "Cotxe";
-    case "moto": return "Moto";
-    case "moto-quad-atv": return "Moto";
-    case "autocaravana-camper": return "Autocaravana";
-    case "vehicle-comercial": return "Vehicle Comercial";
-    default: return slug.charAt(0).toUpperCase() + slug.slice(1).toLowerCase();
-  }
-}
 
 // Skeleton component
 const VehicleDetailSkeleton = () => (

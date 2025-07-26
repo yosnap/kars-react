@@ -205,7 +205,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
 
   // Función para transformar datos del formulario al formato que espera la API
   const transformFormDataToApiData = (formData: any) => {
-    console.log('🔄 Transformando formData:', formData);
     const transformedData = { ...formData };
     
     // Para autocaravanas y vehículos comerciales, sincronizar campos nuevos con campos antiguos para compatibilidad
@@ -262,7 +261,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
     
     fieldsToRemove.forEach(field => {
       if (transformedData.hasOwnProperty(field)) {
-        console.log(`🗑️ Eliminando campo no válido: ${field}`, transformedData[field]);
         delete transformedData[field];
       }
     });
@@ -276,17 +274,12 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
       const apiData = transformFormDataToApiData(formData);
       
       // Debug logging
-      console.log('🔍 FormData original:', formData);
-      console.log('🔍 ApiData transformado:', apiData);
-      console.log('🔍 Modo:', mode, 'ID:', id);
       
       if (mode === 'create') {
         const response = await axiosAdmin.post('/vehicles', apiData);
-        console.log('✅ Respuesta CREATE:', response.data);
         toast.success('🎉 Vehicle creat correctament!');
       } else {
         const response = await axiosAdmin.put(`/vehicles/${id}`, apiData);
-        console.log('✅ Respuesta UPDATE:', response.data);
         toast.success('✅ Vehicle actualitzat correctament!');
       }
       

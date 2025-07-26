@@ -74,11 +74,9 @@ export default function AdminDashboard() {
   // Función para obtener información del sistema desde la API
   const fetchSystemInfo = async () => {
     try {
-      console.log('🔍 Fetching system info from API...');
       const response = await axiosAdmin.get('/system/info');
       const apiData = response.data;
       
-      console.log('📊 System info received:', apiData);
       
       setSystemInfo({
         apiVersion: apiData.api?.version || 'unknown',
@@ -95,7 +93,6 @@ export default function AdminDashboard() {
   // Función para obtener estadísticas de vehículos
   const fetchVehicleStats = async () => {
     try {
-      console.log('🔍 Fetching vehicle stats...');
       setVehicleStats(prev => ({ ...prev, loading: true }));
       
       // Hacer múltiples llamadas en paralelo para obtener todas las estadísticas
@@ -125,13 +122,6 @@ export default function AdminDashboard() {
       };
       
       setVehicleStats(stats);
-      console.log('📊 Vehicle stats calculated:', stats);
-      console.log('🔍 Debug basic stats:');
-      console.log('- Total vehicles:', totalData.total, 'from API call:', '/vehicles?per_page=1');
-      console.log('- Sold vehicles:', soldData.total, 'from API call:', '/vehicles?per_page=1&venut=true');
-      console.log('- Available vehicles:', availableData.total, 'from API call:', '/vehicles?per_page=1&anunci-actiu=true&venut=false');
-      console.log('- Active vehicles:', activeData.total, 'from API call:', '/vehicles?per_page=1&anunci-actiu=true');
-      console.log('- Inactive vehicles:', inactiveData.total, 'from API call:', '/vehicles?per_page=1&anunci-actiu=false');
       
     } catch (error) {
       console.error('❌ Error fetching vehicle stats:', error);
@@ -142,7 +132,6 @@ export default function AdminDashboard() {
   // Función para obtener estadísticas detalladas
   const fetchDetailedStats = async () => {
     try {
-      console.log('🔍 Fetching detailed stats...');
       setDetailedStats(prev => ({ ...prev, loading: true }));
       
       // Llamadas en paralelo para estadísticas por tipo (usando los parámetros correctos)
@@ -166,12 +155,6 @@ export default function AdminDashboard() {
       const cotxeModelsCount = brandStats.cars?.models || 0;
       const motoModelsCount = brandStats.motorcycles?.models || 0;
       
-      console.log('🔍 Debug brands and models from /brands/stats:');
-      console.log('- Brand stats response:', brandStats);
-      console.log('- Cotxe brands:', cotxeBrandsCount);
-      console.log('- Moto brands:', motoBrandsCount);
-      console.log('- Cotxe models total:', cotxeModelsCount);
-      console.log('- Moto models total:', motoModelsCount);
       
       // Si solo tienes coches, usar el total real en lugar del filtrado
       const cotxeActual = cotxeResponse.data.total || 0;
@@ -215,20 +198,10 @@ export default function AdminDashboard() {
       };
       
       setDetailedStats(stats);
-      console.log('📊 Detailed stats calculated:', stats);
-      console.log('🔍 Debug vehicle counts:');
-      console.log('- Total vehicles (no filter):', totalResponse.data.total, 'from API call:', '/vehicles?per_page=1');
-      console.log('- Cotxe total:', cotxeResponse.data.total, 'from API call:', '/vehicles?per_page=1&tipus-vehicle=cotxe');
-      console.log('- Moto total:', motoResponse.data.total, 'from API call:', '/vehicles?per_page=1&tipus-vehicle=moto');
-      console.log('- Autocaravana total:', autocaravanaResponse.data.total, 'from API call:', '/vehicles?per_page=1&tipus-vehicle=autocaravana-camper');
-      console.log('- Comercial total:', comercialResponse.data.total, 'from API call:', '/vehicles?per_page=1&tipus-vehicle=vehicle-comercial');
       
       const sumByType = (cotxeResponse.data.total || 0) + (motoResponse.data.total || 0) + (autocaravanaResponse.data.total || 0) + (comercialResponse.data.total || 0);
-      console.log('🧮 Sum of all types:', sumByType, 'vs Total:', totalResponse.data.total);
       
       if (vehiculosSinTipo > 0) {
-        console.log('⚠️ Vehicles without type:', vehiculosSinTipo, '(adding to coches count)');
-        console.log('✅ Corrected cotxe count:', stats.byType.cotxe, '(was', cotxeActual, ')');
       }
       
     } catch (error) {
@@ -245,7 +218,7 @@ export default function AdminDashboard() {
   }, []);
 
   const handleCreateVehicle = () => {
-    navigate('/admin/kars-vehicles/create');
+    navigate('/admin/vehicles/create');
   };
 
   return (

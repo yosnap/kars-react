@@ -25,7 +25,6 @@ export default function Contacta() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // TODO: Implementar envío del formulario
-    console.log("Formulario enviado:", formData);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

@@ -51,7 +51,6 @@ export const useVehicleExtras = (vehicleType: VehicleType) => {
         
         const response = await axiosAdmin.get(endpoint);
         
-        console.log(`🔍 API Response for ${vehicleType}:`, response.data);
         
         // La API devuelve directamente {data: Array} sin field success
         if (response.data?.data && Array.isArray(response.data.data)) {
@@ -65,7 +64,6 @@ export const useVehicleExtras = (vehicleType: VehicleType) => {
             english: extra.english || extra.name
           }));
           
-          console.log(`✅ Loaded ${transformedExtras.length} extras for ${vehicleType}`);
           setExtras(transformedExtras);
         } else {
           console.error(`No extras found for ${vehicleType}:`, response.data);

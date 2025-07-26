@@ -136,10 +136,6 @@ const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados
       }) 
     : [];
   
-  console.log("BasicVehicleFilters - modelos prop:", modelos);
-  console.log("BasicVehicleFilters - modelosToShow:", modelosToShow);
-  console.log("BasicVehicleFilters - filters.tipusVehicle:", filters.tipusVehicle);
-  console.log("BasicVehicleFilters - filters.marcaCotxe:", filters.marcaCotxe);
   // Preparar combustibles con contadores
   const getCombustiblesWithCount = () => {
     // Usar directamente las listas locales según el tipo de vehículo
@@ -349,11 +345,8 @@ const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados
               </SelectTrigger>
               <SelectContent className="bg-white z-50">
                 {(() => {
-                  console.log("Rendering models select - modelosToShow.length:", modelosToShow.length);
-                  console.log("Rendering models select - condition result:", modelosToShow.length > 0);
                   
                   if (modelosToShow.length > 0) {
-                    console.log("Rendering models items:", modelosToShow);
                     return modelosToShow.map((modelo: string | { nombre: string; count?: number }) => {
                       let key: string;
                       let value: string;
@@ -371,7 +364,6 @@ const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados
                       );
                     });
                   } else {
-                    console.log("Showing empty message for marcaCotxe:", filters.marcaCotxe);
                     return (
                       <div className="px-2 py-1 text-sm text-gray-500 text-center">
                         {filters.marcaCotxe ? "No hay modelos disponibles para esta marca" : "Selecciona una marca primero"}

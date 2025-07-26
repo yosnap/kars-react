@@ -13,11 +13,9 @@ interface ImagesAndStatusStepProps {
 // Helper function for featured image URL
 const getFeaturedImageUrl = (path: string | undefined): string => {
   if (!path) return '';
-  console.log('🔍 getFeaturedImageUrl input:', path);
   
   // If it's already a full URL, return as is
   if (path.startsWith('http://') || path.startsWith('https://')) {
-    console.log('✅ Returning full URL:', path);
     return path;
   }
   
@@ -25,18 +23,15 @@ const getFeaturedImageUrl = (path: string | undefined): string => {
   if (path.startsWith('/media')) {
     // In development, images are saved to public folder and served by Vite
     // Use relative path to work regardless of the domain/port
-    console.log('🔗 Using relative path:', path);
     return path;
   }
   
   // For other relative paths, ensure proper format
   if (!path.startsWith('/')) {
     const formattedPath = `/${path}`;
-    console.log('📝 Formatting path:', formattedPath);
     return formattedPath;
   }
   
-  console.log('↩️ Returning path as-is:', path);
   return path;
 };
 
@@ -161,7 +156,6 @@ const ImagesAndStatusStep: React.FC<ImagesAndStatusStepProps> = ({ formData, upd
     const url = urlInputs[type];
     if (!url) return;
 
-    console.log(`🔄 Subiendo imagen por URL - Tipo: ${type}, URL: ${url}`);
     setUploading(true);
     try {
       // Download image from URL and save to media folder
@@ -172,18 +166,14 @@ const ImagesAndStatusStep: React.FC<ImagesAndStatusStepProps> = ({ formData, upd
         quality: 80
       });
 
-      console.log(`✅ Respuesta upload ${type}:`, response.data);
 
       if (response.data.success) {
         const downloadedUrl = response.data.data.url;
-        console.log(`📸 URL descargada para ${type}: ${downloadedUrl}`);
         
         if (type === 'featured') {
-          console.log('🎯 Actualizando imagen destacada:', downloadedUrl);
           updateFormData({ imatgeDestacadaUrl: downloadedUrl });
         } else {
           const currentUrls = formData.galeriaVehicleUrls || [];
-          console.log('🖼️ Actualizando galería:', [...currentUrls, downloadedUrl]);
           updateFormData({ 
             galeriaVehicleUrls: [...currentUrls, downloadedUrl] 
           });

@@ -125,7 +125,6 @@ export default function AdminSettings() {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       toast.success('Configuración de WhatsApp guardada correctamente');
-      console.log('WhatsApp config saved:', whatsAppConfig);
     } catch (error) {
       console.error('Error saving WhatsApp config:', error);
       toast.error('Error al guardar la configuración');

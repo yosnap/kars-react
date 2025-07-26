@@ -32,7 +32,6 @@ export default function FavoritosPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log("Favoritos encontrados:", favorites);
     if (favorites.length === 0) {
       setVehicles([]);
       return;
@@ -53,13 +52,11 @@ export default function FavoritosPage() {
       return axiosAdmin.get("/vehicles", { params })
         .then(res => {
           const allVehicles = res.data.items || [];
-          console.log("Todos los vehículos:", allVehicles.length);
           
           // Filtrar només els vehicles que estan a favorits
           const favoriteVehicles = allVehicles.filter((vehicle: any) => 
             favorites.includes(String(vehicle.id))
           );
-          console.log("Vehicles favorits trobats:", favoriteVehicles);
           
           setVehicles(favoriteVehicles);
         });

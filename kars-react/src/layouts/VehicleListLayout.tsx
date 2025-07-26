@@ -118,16 +118,9 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
       
       axiosAdmin.get(endpoint, { params })
         .then(res => {
-          console.log('✅ API Response received:', res.status, res.data);
           const items = res.data.items || [];
-          console.log('📦 Items extracted:', items.length, 'items');
           // NO filtrar ya que el backend debería hacerlo
           const activos = items;
-          console.log('Order params:', sortBy, orderParams);
-          console.log('First 3 vehicles dates:', activos.slice(0, 3).map((v: any) => ({
-            title: v['titol-anunci'],
-            date: v['data-creacio'] || v['date'] || 'no date'
-          })));
           setVehicles(activos);
           
           // Usar siempre los valores del backend para consistencia
@@ -274,6 +267,8 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
       any: v.any ?? "",
       quilometratge: v.quilometratge !== undefined && v.quilometratge !== null ? String(v.quilometratge) : "",
       preu: v.preu !== undefined && v.preu !== null ? String(v.preu) : "",
+      ["preu-antic"]: v.preuAntic !== undefined && v.preuAntic !== null ? String(v.preuAntic) : "",
+      ["preu-anterior"]: v.preuAnterior !== undefined && v.preuAnterior !== null ? String(v.preuAnterior) : "",
       ["color-vehicle"]: v.colorVehicle ?? "",
       ["tipus-combustible"]: v.tipusCombustible ?? "",
       ["potencia-cv"]: v.potenciaCv !== undefined && v.potenciaCv !== null ? String(v.potenciaCv) : "",
