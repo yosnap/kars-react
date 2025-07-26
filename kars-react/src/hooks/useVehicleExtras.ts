@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
-import { carExtras } from '../../../kars-api/src/data/initialization/car-extras';
-import { motorcycleExtras } from '../../../kars-api/src/data/initialization/motorcycle-extras';
-import { motorhomeExtras } from '../../../kars-api/src/data/initialization/motorhome-extras';
+import { axiosAdmin } from '../api/axiosClient';
 
-export type VehicleType = 'cotxe' | 'moto' | 'autocaravana' | 'vehicle-comercial' | '';
+export type VehicleType = 'cotxe' | 'moto' | 'autocaravana-camper' | 'vehicle-comercial' | 'habitacle' | null;
 
 export interface VehicleExtra {
   value: string;
@@ -19,27 +17,69 @@ export const useVehicleExtras = (vehicleType: VehicleType) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    
-    let selectedExtras: VehicleExtra[] = [];
-    
-    switch (vehicleType) {
-      case 'cotxe':
-      case 'vehicle-comercial': // Los vehículos comerciales usan los extras de coches
-        selectedExtras = carExtras;
-        break;
-      case 'moto':
-        selectedExtras = motorcycleExtras;
-        break;
-      case 'autocaravana':
-        selectedExtras = motorhomeExtras;
-        break;
-      default:
-        selectedExtras = [];
+    if (!vehicleType) {
+      setExtras([]);
+      setLoading(false);
+      return;
     }
-    
-    setExtras(selectedExtras);
-    setLoading(false);
+
+    const fetchExtras = async () => {
+      setLoading(true);
+      
+      try {
+        let endpoint = '';
+        
+        switch (vehicleType) {
+          case 'cotxe':
+          case 'vehicle-comercial': // Los vehículos comerciales usan los extras de coches
+            endpoint = '/car-extras';
+            break;
+          case 'moto':
+            endpoint = '/motorcycle-extras';
+            break;
+          case 'autocaravana-camper':
+            endpoint = '/caravan-extras';
+            break;
+          case 'habitacle':
+            endpoint = '/habitacle-extras';
+            break;
+          default:
+            setExtras([]);
+            setLoading(false);
+            return;
+        }
+        
+        const response = await axiosAdmin.get(endpoint);
+        
+        console.log(`🔍 API Response for ${vehicleType}:`, response.data);
+        
+        // La API devuelve directamente {data: Array} sin field success
+        if (response.data?.data && Array.isArray(response.data.data)) {
+          // Transformar los datos de la API al formato esperado
+          const transformedExtras: VehicleExtra[] = response.data.data.map((extra: any) => ({
+            value: extra.slug || extra.value,
+            name: extra.name,
+            catalan: extra.catalan || extra.name,
+            spanish: extra.spanish || extra.name,
+            french: extra.french || extra.name,
+            english: extra.english || extra.name
+          }));
+          
+          console.log(`✅ Loaded ${transformedExtras.length} extras for ${vehicleType}`);
+          setExtras(transformedExtras);
+        } else {
+          console.error(`No extras found for ${vehicleType}:`, response.data);
+          setExtras([]);
+        }
+      } catch (error) {
+        console.error(`Error fetching extras for ${vehicleType}:`, error);
+        setExtras([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchExtras();
   }, [vehicleType]);
 
   // Función para obtener el nombre del extra en el idioma especificado

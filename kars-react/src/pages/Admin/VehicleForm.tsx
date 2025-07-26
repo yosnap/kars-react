@@ -43,8 +43,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
         'moto': 'moto',
         'motorcycle': 'moto',
         'motocicleta': 'moto',
-        'autocaravana': 'autocaravana',
-        'camper': 'autocaravana',
+        'autocaravana': 'autocaravana-camper',
+        'autocaravana-camper': 'autocaravana-camper',
+        'camper': 'autocaravana-camper',
         'vehicle-comercial': 'vehicle-comercial',
         'vehicle_comercial': 'vehicle-comercial',
         'comercial': 'vehicle-comercial',
@@ -62,13 +63,28 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
       tipusVehicle: tipusVehicleFromApi,
       
       // Step 2: Basic Info  
-      marcaCotxe: apiData.marcaCotxe || '',
+      // Para autocaravanas y vehículos comerciales, migrar datos de campos específicos a campos de coche
+      marcaCotxe: (() => {
+        if (tipusVehicleFromApi === 'autocaravana-camper') {
+          return apiData.marcaCotxe || apiData.marquesAutocaravana || '';
+        }
+        if (tipusVehicleFromApi === 'vehicle-comercial') {
+          return apiData.marcaCotxe || apiData.marquesComercial || '';
+        }
+        return apiData.marcaCotxe || '';
+      })(),
       marcaMoto: apiData.marcaMoto || '',
-      marquesAutocaravana: apiData.marquesAutocaravana || '',
       marquesComercial: apiData.marquesComercial || '',
-      modelsCotxe: apiData.modelsCotxe || '',
+      modelsCotxe: (() => {
+        if (tipusVehicleFromApi === 'autocaravana-camper') {
+          return apiData.modelsCotxe || apiData.modelsAutocaravana || '';
+        }
+        if (tipusVehicleFromApi === 'vehicle-comercial') {
+          return apiData.modelsCotxe || apiData.modelsComercial || '';
+        }
+        return apiData.modelsCotxe || '';
+      })(),
       modelsMoto: apiData.modelsMoto || '',
-      modelsAutocaravana: apiData.modelsAutocaravana || '',
       modelsComercial: apiData.modelsComercial || '',
       versio: apiData.versio || '',
       any: apiData.any || '',
@@ -191,6 +207,17 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
   const transformFormDataToApiData = (formData: any) => {
     console.log('🔄 Transformando formData:', formData);
     const transformedData = { ...formData };
+    
+    // Para autocaravanas y vehículos comerciales, sincronizar campos nuevos con campos antiguos para compatibilidad
+    if (formData.tipusVehicle === 'autocaravana-camper') {
+      transformedData.marquesAutocaravana = formData.marcaCotxe;
+      transformedData.modelsAutocaravana = formData.modelsCotxe;
+    }
+    
+    if (formData.tipusVehicle === 'vehicle-comercial') {
+      transformedData.marquesComercial = formData.marcaCotxe;
+      transformedData.modelsComercial = formData.modelsCotxe;
+    }
     
     // Campos que son Boolean en el esquema de Prisma
     const booleanFields = [

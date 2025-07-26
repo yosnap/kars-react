@@ -13,16 +13,14 @@ import {
 
 interface VehicleFormData {
   // Step 1: Vehicle Type
-  tipusVehicle: 'cotxe' | 'moto' | 'autocaravana' | 'vehicle-comercial' | '';
+  tipusVehicle: 'cotxe' | 'moto' | 'autocaravana-camper' | 'vehicle-comercial' | '';
   
   // Step 2: Basic Info
   marcaCotxe?: string;
   marcaMoto?: string;
-  marquesAutocaravana?: string;
   marquesComercial?: string;
   modelsCotxe?: string;
   modelsMoto?: string;
-  modelsAutocaravana?: string;
   modelsComercial?: string;
   versio?: string;
   any?: string;
@@ -201,13 +199,13 @@ export default function MultiStepVehicleForm({
         marcaSlug = formData.marcaMoto || '';
         modeloSlug = formData.modelsMoto || '';
         break;
-      case 'autocaravana':
-        marcaSlug = formData.marquesAutocaravana || '';
-        modeloSlug = formData.modelsAutocaravana || '';
+      case 'autocaravana-camper':
+        marcaSlug = formData.marcaCotxe || '';
+        modeloSlug = formData.modelsCotxe || '';
         break;
       case 'vehicle-comercial':
-        marcaSlug = formData.marquesComercial || '';
-        modeloSlug = formData.modelsComercial || '';
+        marcaSlug = formData.marcaCotxe || '';
+        modeloSlug = formData.modelsCotxe || '';
         break;
       default:
         marcaSlug = '';
@@ -240,11 +238,9 @@ export default function MultiStepVehicleForm({
     formData.tipusVehicle,
     formData.marcaCotxe, 
     formData.marcaMoto, 
-    formData.marquesAutocaravana,
     formData.marquesComercial,
     formData.modelsCotxe, 
     formData.modelsMoto, 
-    formData.modelsAutocaravana,
     formData.modelsComercial,
     formData.versio,
     brandsAndModelsData
@@ -258,13 +254,9 @@ export default function MultiStepVehicleForm({
   }, [
     formData.tipusVehicle,
     formData.marcaCotxe, 
-    formData.marcaMoto, 
-    formData.marquesAutocaravana,
-    formData.marquesComercial,
+    formData.marcaMoto,
     formData.modelsCotxe, 
-    formData.modelsMoto, 
-    formData.modelsAutocaravana,
-    formData.modelsComercial,
+    formData.modelsMoto,
     formData.versio,
     brandsAndModelsData.brandsData,
     brandsAndModelsData.modelsData
@@ -321,8 +313,8 @@ export default function MultiStepVehicleForm({
       case 1:
         return formData.tipusVehicle !== '';
       case 2:
-        const hasBrand = formData.marcaCotxe || formData.marcaMoto || formData.marquesAutocaravana;
-        const hasModel = formData.modelsCotxe || formData.modelsMoto || formData.modelsAutocaravana;
+        const hasBrand = formData.marcaCotxe || formData.marcaMoto;
+        const hasModel = formData.modelsCotxe || formData.modelsMoto;
         return !!(hasBrand && hasModel && formData.preu);
       case 3:
         return true; // Technical specs are optional
@@ -439,7 +431,7 @@ export default function MultiStepVehicleForm({
                   {formData.tipusVehicle === 'moto' && (
                     <Bike className="w-12 h-12 text-blue-600 dark:text-blue-400" />
                   )}
-                  {formData.tipusVehicle === 'autocaravana' && (
+                  {formData.tipusVehicle === 'autocaravana-camper' && (
                     <Home className="w-12 h-12 text-blue-600 dark:text-blue-400" />
                   )}
                   {formData.tipusVehicle === 'vehicle-comercial' && (

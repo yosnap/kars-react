@@ -1,9 +1,9 @@
-// Car extras with complete data - EXACTLY 88 elements as requested
+// Car extras with complete data - EXACTLY 93 elements as requested
 export const carExtras = [
   {
     value: "abs",
     name: "Abs",
-    catalan: "Abs",
+    catalan: "ABS",
     spanish: "ABS",
     french: "ABS",
     english: "ABS"
@@ -29,7 +29,7 @@ export const carExtras = [
     name: "Airbags cortina",
     catalan: "Airbags cortina",
     spanish: "Airbags cortina",
-    french: "Airbags rideau",
+    french: "Airbags rideaux",
     english: "Curtain airbags"
   },
   {
@@ -62,7 +62,7 @@ export const carExtras = [
     catalan: "Aparcament control remot",
     spanish: "Aparcamiento control remoto",
     french: "Parking télécommande",
-    english: "Remote parking"
+    english: "Remote parking control"
   },
   {
     value: "apple-car-play-android-auto",
@@ -108,8 +108,8 @@ export const carExtras = [
     value: "assist-colisio-lateral",
     name: "Assist. col·lisió Lateral",
     catalan: "Assist. col·lisió Lateral",
-    spanish: "Asist. colisión lateral",
-    french: "Assist. collision latérale",
+    spanish: "Asist. colisión Lateral",
+    french: "Assist. collision Latérale",
     english: "Side collision assist"
   },
   {
@@ -117,7 +117,7 @@ export const carExtras = [
     name: "Assist. col·lisió per abast",
     catalan: "Assist. col·lisió per abast",
     spanish: "Asist. colisión por alcance",
-    french: "Assist. collision par portée",
+    french: "Assist. collision par l'arrière",
     english: "Rear collision assist"
   },
   {
@@ -158,7 +158,7 @@ export const carExtras = [
     catalan: "Avís canvi involuntari carril",
     spanish: "Aviso cambio involuntario carril",
     french: "Alerte changement involontaire voie",
-    english: "Involuntary lane change warning"
+    english: "Lane departure warning"
   },
   {
     value: "avis-colisio-encreuament",
@@ -166,7 +166,7 @@ export const carExtras = [
     catalan: "Avís col·lisio encreuament",
     spanish: "Aviso colisión cruce",
     french: "Alerte collision intersection",
-    english: "Intersection collision warning"
+    english: "Cross traffic alert"
   },
   {
     value: "avis-colisio-frontal",
@@ -174,7 +174,7 @@ export const carExtras = [
     catalan: "Avís col·lisió frontal",
     spanish: "Aviso colisión frontal",
     french: "Alerte collision frontale",
-    english: "Frontal collision warning"
+    english: "Forward collision warning"
   },
   {
     value: "avis-per-cansament",
@@ -188,15 +188,15 @@ export const carExtras = [
     value: "avis-sentit-erroni-de-la-marxa",
     name: "Avís sentit erròni de la marxa",
     catalan: "Avís sentit erròni de la marxa",
-    spanish: "Aviso sentido erróneo de la marcha",
-    french: "Alerte sens erroné marche",
+    spanish: "Aviso sentido erróneo marcha",
+    french: "Alerte sens circulation",
     english: "Wrong way warning"
   },
   {
     value: "avis-situacions-de-risc",
     name: "Avís situacions de risc",
     catalan: "Avís situacions de risc",
-    spanish: "Aviso situaciones de riesgo",
+    spanish: "Aviso situaciones riesgo",
     french: "Alerte situations risque",
     english: "Risk situations warning"
   },
@@ -206,7 +206,7 @@ export const carExtras = [
     catalan: "Avís trànsit creuat",
     spanish: "Aviso tráfico cruzado",
     french: "Alerte trafic croisé",
-    english: "Cross traffic warning"
+    english: "Cross traffic alert"
   },
   {
     value: "bluetooth",
@@ -222,7 +222,7 @@ export const carExtras = [
     catalan: "Càmera visió davant",
     spanish: "Cámara visión delantera",
     french: "Caméra vision avant",
-    english: "Front camera"
+    english: "Front view camera"
   },
   {
     value: "camara-visio-posterior",
@@ -238,7 +238,7 @@ export const carExtras = [
     catalan: "Càmera visió 360º",
     spanish: "Cámara visión 360º",
     french: "Caméra vision 360º",
-    english: "360º camera"
+    english: "360º view camera"
   },
   {
     value: "carregador-inalambric",
@@ -276,8 +276,8 @@ export const carExtras = [
     value: "assist-per-canvi-carril",
     name: "Control per canvi carril",
     catalan: "Control per canvi carril",
-    spanish: "Control por cambio carril",
-    french: "Contrôle changement voie",
+    spanish: "Control para cambio carril",
+    french: "Contrôle pour changement voie",
     english: "Lane change control"
   },
   {
@@ -285,7 +285,7 @@ export const carExtras = [
     name: "Control clima a distància",
     catalan: "Control clima a distància",
     spanish: "Control clima a distancia",
-    french: "Contrôle climat distance",
+    french: "Contrôle climat à distance",
     english: "Remote climate control"
   },
   {
@@ -324,7 +324,7 @@ export const carExtras = [
     value: "cruise-control",
     name: "Cruise control",
     catalan: "Cruise control",
-    spanish: "Cruise control",
+    spanish: "Control crucero",
     french: "Régulateur vitesse",
     english: "Cruise control"
   },
@@ -332,7 +332,7 @@ export const carExtras = [
     value: "cruise-control-adaptatiu",
     name: "Cruise control adaptatiu",
     catalan: "Cruise control adaptatiu",
-    spanish: "Cruise control adaptativo",
+    spanish: "Control crucero adaptativo",
     french: "Régulateur adaptatif",
     english: "Adaptive cruise control"
   },
@@ -340,8 +340,8 @@ export const carExtras = [
     value: "deteccio-vianants-ciclistes",
     name: "Detecció de vianants i ciclistes",
     catalan: "Detecció de vianants i ciclistes",
-    spanish: "Detección de peatones y ciclistas",
-    french: "Détection piétons cyclistes",
+    spanish: "Detección peatones y ciclistas",
+    french: "Détection piétons et cyclistes",
     english: "Pedestrian and cyclist detection"
   },
   {
@@ -404,9 +404,9 @@ export const carExtras = [
     value: "frenada-automatica-emergencia",
     name: "Frenada automàtica emergència",
     catalan: "Frenada automàtica emergència",
-    spanish: "Frenado automático emergencia",
+    spanish: "Frenada automática emergencia",
     french: "Freinage automatique urgence",
-    english: "Emergency automatic braking"
+    english: "Automatic emergency braking"
   },
   {
     value: "ganxo-remolc",
@@ -421,7 +421,7 @@ export const carExtras = [
     name: "Ganxo remolc retràctil",
     catalan: "Ganxo remolc retràctil",
     spanish: "Gancho remolque retráctil",
-    french: "Crochet remorque rétractible",
+    french: "Crochet remorque rétractable",
     english: "Retractable tow hook"
   },
   {
@@ -429,7 +429,7 @@ export const carExtras = [
     name: "Garantia fabricant",
     catalan: "Garantia fabricant",
     spanish: "Garantía fabricante",
-    french: "Garantie constructeur",
+    french: "Garantie fabricant",
     english: "Manufacturer warranty"
   },
   {
@@ -460,7 +460,7 @@ export const carExtras = [
     value: "lector-senyals-de-transit",
     name: "Lector senyals de trànsit",
     catalan: "Lector senyals de trànsit",
-    spanish: "Lector señales de tráfico",
+    spanish: "Lector señales tráfico",
     french: "Lecteur signaux circulation",
     english: "Traffic sign reader"
   },
@@ -501,7 +501,7 @@ export const carExtras = [
     name: "Llums anti-boira",
     catalan: "Llums anti-boira",
     spanish: "Luces antiniebla",
-    french: "Feux antibrouillard",
+    french: "Phares antibrouillard",
     english: "Fog lights"
   },
   {
@@ -598,7 +598,7 @@ export const carExtras = [
     catalan: "Retrovisors lateral per càmera",
     spanish: "Retrovisores laterales por cámara",
     french: "Rétroviseurs latéraux par caméra",
-    english: "Side mirrors by camera"
+    english: "Side camera mirrors"
   },
   {
     value: "retrovisor-interior-per-camera",
@@ -606,7 +606,7 @@ export const carExtras = [
     catalan: "Retrovisor interior per càmera",
     spanish: "Retrovisor interior por cámara",
     french: "Rétroviseur intérieur par caméra",
-    english: "Interior mirror by camera"
+    english: "Interior camera mirror"
   },
   {
     value: "seients-calefactables",
@@ -733,7 +733,7 @@ export const carExtras = [
     name: "Volant Calefactable",
     catalan: "Volant Calefactable",
     spanish: "Volante Calefactable",
-    french: "Volant chauffant",
+    french: "Volant Chauffant",
     english: "Heated steering wheel"
   },
   {
@@ -745,3 +745,5 @@ export const carExtras = [
     english: "Multifunction steering wheel"
   }
 ];
+
+export default carExtras;

@@ -1,4 +1,4 @@
-// Motorhome extras with complete data - EXACTLY 86 elements as requested
+// Motorhome extras with complete data - EXACTLY 84 elements as requested
 export const motorhomeExtras = [
   {
     value: "abs-caravana",

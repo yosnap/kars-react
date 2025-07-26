@@ -10,7 +10,7 @@ const VehicleTypeStep: React.FC<VehicleTypeStepProps> = ({ formData, updateFormD
   const vehicleTypes = [
     { value: 'cotxe', label: 'Cotxe', icon: Car, description: 'Vehicles de turisme' },
     { value: 'moto', label: 'Motocicleta', icon: Bike, description: 'Motos i ciclomotors' },
-    { value: 'autocaravana', label: 'Autocaravana', icon: Home, description: 'Autocaravanes i campers' },
+    { value: 'autocaravana-camper', label: 'Autocaravana', icon: Home, description: 'Autocaravanes i campers' },
     { value: 'vehicle-comercial', label: 'Vehicle Comercial', icon: Truck, description: 'Furgonetes i camions' }
   ];
 
@@ -34,10 +34,10 @@ const VehicleTypeStep: React.FC<VehicleTypeStepProps> = ({ formData, updateFormD
                   // Limpiar marcas y modelos para evitar inconsistencias
                   marcaCotxe: '',
                   marcaMoto: '',
-                  marquesAutocaravana: '',
+                  marquesComercial: '',
                   modelsCotxe: '',
                   modelsMoto: '',
-                  modelsAutocaravana: '',
+                  modelsComercial: '',
                   versio: ''
                 });
               }}

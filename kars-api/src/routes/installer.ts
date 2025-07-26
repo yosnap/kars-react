@@ -110,17 +110,17 @@ router.get('/status', async (req, res) => {
       {
         id: 'car-extras',
         name: 'Extras de Coches',
-        description: 'Instalar 58 extras para coches con traducciones',
-        status: carExtrasCount >= 58 ? 'completed' : 'pending',
-        progress: carExtrasCount >= 58 ? 100 : Math.round((carExtrasCount / 58) * 100),
+        description: 'Instalar 93 extras para coches con traducciones',
+        status: carExtrasCount >= 93 ? 'completed' : 'pending',
+        progress: carExtrasCount >= 93 ? 100 : Math.round((carExtrasCount / 93) * 100),
         count: carExtrasCount
       },
       {
         id: 'motorhome-extras',
         name: 'Extras de Autocaravanas',
-        description: 'Instalar 51 extras para autocaravanas con traducciones',
-        status: caravanExtrasCount >= 51 ? 'completed' : 'pending',
-        progress: caravanExtrasCount >= 51 ? 100 : Math.round((caravanExtrasCount / 51) * 100),
+        description: 'Instalar 84 extras para autocaravanas con traducciones',
+        status: caravanExtrasCount >= 84 ? 'completed' : 'pending',
+        progress: caravanExtrasCount >= 84 ? 100 : Math.round((caravanExtrasCount / 84) * 100),
         count: caravanExtrasCount
       },
       {
