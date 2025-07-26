@@ -153,53 +153,22 @@ export default function AdminDashboard() {
         axiosAdmin.get('/vehicles?per_page=1') // Total sin filtro para comparar
       ]);
       
-      // Usar los mismos endpoints que ya funcionan en KarsVehicles
-      const [brandsResponse, vehiclesWithFacetsResponse] = await Promise.all([
-        axiosAdmin.get('/brands'), // Todas las marcas con conteo de modelos
-        axiosAdmin.get('/vehicles?per_page=10') // Obtener facets para conteos
-      ]);
+      // Obtener estadísticas de marcas y modelos del nuevo endpoint
+      const brandsStatsResponse = await axiosAdmin.get('/brands/stats');
+      const brandStats = brandsStatsResponse.data?.data || { 
+        cars: { brands: 0, models: 0 },
+        motorcycles: { brands: 0, models: 0 }
+      };
       
-      const allBrands = brandsResponse.data?.data || [];
-      const facets = vehiclesWithFacetsResponse.data?.facets || {};
+      const cotxeBrandsCount = brandStats.cars?.brands || 0;
+      const motoBrandsCount = brandStats.motorcycles?.brands || 0;
+      const cotxeModelsCount = brandStats.cars?.models || 0;
+      const motoModelsCount = brandStats.motorcycles?.models || 0;
       
-      // Como solo tienes coches (150), usar una aproximación simple hasta encontrar el campo correcto
-      // Temporalmente: asumir que todas las marcas son de coches si no encontramos el campo vehicleTypes
-      const hasVehicleTypesField = allBrands.length > 0 && allBrands[0].vehicleTypes !== undefined;
-      
-      let cotxeBrands, motoBrands, cotxeModelsCount, motoModelsCount;
-      
-      if (hasVehicleTypesField) {
-        // Usar el filtrado normal si existe el campo
-        cotxeBrands = allBrands.filter((brand: any) => 
-          brand.vehicleTypes && brand.vehicleTypes.includes('cotxe')
-        );
-        motoBrands = allBrands.filter((brand: any) => 
-          brand.vehicleTypes && brand.vehicleTypes.includes('moto')
-        );
-        cotxeModelsCount = cotxeBrands.reduce((sum: number, brand: any) => 
-          sum + (brand._count?.models || 0), 0
-        );
-        motoModelsCount = motoBrands.reduce((sum: number, brand: any) => 
-          sum + (brand._count?.models || 0), 0
-        );
-      } else {
-        // Fallback: como solo hay coches, contar todas las marcas como de coches
-        cotxeBrands = allBrands;
-        motoBrands = [];
-        cotxeModelsCount = allBrands.reduce((sum: number, brand: any) => 
-          sum + (brand.modelCount || brand._count?.models || 0), 0
-        );
-        motoModelsCount = 0;
-      }
-      
-      console.log('🔍 Debug brands and models:');
-      console.log('- Total brands from /brands:', allBrands.length);
-      console.log('- Sample brand structure:', allBrands[0]);
-      console.log('- All fields in first brand:', Object.keys(allBrands[0] || {}));
-      console.log('- Has vehicleTypes field?', hasVehicleTypesField);
-      console.log('- Using fallback logic?', !hasVehicleTypesField);
-      console.log('- Cotxe brands:', cotxeBrands.length);
-      console.log('- Moto brands:', motoBrands.length);
+      console.log('🔍 Debug brands and models from /brands/stats:');
+      console.log('- Brand stats response:', brandStats);
+      console.log('- Cotxe brands:', cotxeBrandsCount);
+      console.log('- Moto brands:', motoBrandsCount);
       console.log('- Cotxe models total:', cotxeModelsCount);
       console.log('- Moto models total:', motoModelsCount);
       
@@ -230,8 +199,8 @@ export default function AdminDashboard() {
           'vehicle-comercial': []
         },
         totalBrands: {
-          cotxe: cotxeBrands.length,
-          moto: motoBrands.length,
+          cotxe: cotxeBrandsCount,
+          moto: motoBrandsCount,
           'autocaravana-camper': 0, // Los mismos que coches
           'vehicle-comercial': 0    // Los mismos que coches
         },

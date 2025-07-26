@@ -544,6 +544,58 @@ router.post('/import-models', async (req, res) => {
   }
 });
 
+// GET /api/brands/stats - Obtener estadísticas de marcas y modelos
+router.get('/stats', async (req, res) => {
+  try {
+    console.log('📊 GET /brands/stats - Obteniendo estadísticas');
+    
+    // Contar marcas por tipo
+    const carBrandsCount = await prisma.brand.count({
+      where: { vehicleTypes: { hasSome: ['car'] } }
+    });
+    
+    const motorcycleBrandsCount = await prisma.brand.count({
+      where: { vehicleTypes: { hasSome: ['motorcycle'] } }
+    });
+    
+    // Contar modelos totales por tipo de marca
+    const carBrands = await prisma.brand.findMany({
+      where: { vehicleTypes: { hasSome: ['car'] } },
+      include: { _count: { select: { models: true } } }
+    });
+    
+    const motorcycleBrands = await prisma.brand.findMany({
+      where: { vehicleTypes: { hasSome: ['motorcycle'] } },
+      include: { _count: { select: { models: true } } }
+    });
+    
+    const carModelsCount = carBrands.reduce((total, brand) => total + brand._count.models, 0);
+    const motorcycleModelsCount = motorcycleBrands.reduce((total, brand) => total + brand._count.models, 0);
+    
+    return res.json({
+      success: true,
+      data: {
+        cars: {
+          brands: carBrandsCount,
+          models: carModelsCount
+        },
+        motorcycles: {
+          brands: motorcycleBrandsCount,
+          models: motorcycleModelsCount
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error getting brand stats:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to get brand statistics',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // GET /api/brands/models-status - Verificar estado de modelos por marca
 router.get('/models-status', async (req, res) => {
   try {

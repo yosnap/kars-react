@@ -183,7 +183,7 @@ const ExtrasGrid: React.FC<ExtrasGridProps> = ({
       // Usar la función optimizada si está disponible
       const extrasToAdd = categoryItems
         .filter(extra => !isExtraSelected(extra))
-        .map(extra => extra.value || extra.slug);
+        .map(extra => extra.slug);
       
       if (extrasToAdd.length > 0) {
         onSelectMultiple(extrasToAdd);
@@ -204,7 +204,7 @@ const ExtrasGrid: React.FC<ExtrasGridProps> = ({
       // Usar la función optimizada si está disponible
       const extrasToRemove = categoryItems
         .filter(extra => isExtraSelected(extra))
-        .map(extra => extra.value || extra.slug);
+        .map(extra => extra.slug);
       
       if (extrasToRemove.length > 0) {
         onDeselectMultiple(extrasToRemove);
