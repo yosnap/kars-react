@@ -29,7 +29,74 @@
 - Dashboard will be accessible only to administrators
 
 ## Recent Updates (July 2025)
-### Latest: WhatsApp Integration & Home Page Cleanup (July 24, 2025)
+### Latest: Frontend Improvements & Price Display Fix (July 26, 2025)
+
+#### ✅ Admin Dashboard Enhancements
+1. **Brand/Model Statistics** - Nuevo panel de estadísticas en admin dashboard
+   - Contadores de marcas y modelos para coches y motos
+   - Endpoint `/api/brands/stats` para obtener estadísticas
+   - Visualización en tiempo real de totales por tipo de vehículo
+   - Integración con sistema existente de estadísticas
+
+2. **Vehicle Management Improvements** - Mejoras en gestión de vehículos
+   - Botón "Crear Vehicle" conectado correctamente al formulario
+   - Traducción del botón a catalán según especificaciones
+   - Eliminado botón "Actualitzar" innecesario de la página de vehículos
+   - Navegación mejorada entre secciones de administración
+
+#### ✅ Vehicle Detail Page Enhancements  
+1. **Enhanced Technical Specifications** - Ficha técnica completa
+   - Secciones organizadas: Especificaciones técnicas, Características, Información comercial
+   - Layout de 2 columnas para mejor aprovechamiento del espacio
+   - Campos adicionales: color exterior, tapicería, potencia, tracción, carrocería
+   - Integración con `useVehicleTypes` para etiquetas correctas
+
+2. **Improved Navigation & UX** - Mejoras de navegación
+   - Scroll automático al inicio al abrir detalle de vehículo
+   - Enlaces de marca en breadcrumbs filtran vehículos por marca
+   - Breadcrumbs clicables con navegación inteligente
+   - Mejora en la experiencia de usuario general
+
+3. **E-commerce Style Pricing** - Sistema de precios tipo e-commerce
+   - Precio anterior tachado cuando está disponible
+   - Layout visual mejorado similar a tiendas online
+   - Verificación correcta de campos `preuAntic` y `preuAnterior`
+   - Display condicional basado en disponibilidad de datos
+
+#### 🔧 Critical Bug Fixes
+1. **Price Display Correction** - Corrección de precios falsos
+   - **Issue**: VehicleCard mostraba precios anteriores falsos (precio + 2000€)
+   - **Fix**: Eliminado precio anterior hardcodeado e incorrecto
+   - **Implementation**: Solo mostrar precio anterior si existe en base de datos
+   - **Files**: `VehicleCard.tsx`, `VehicleListLayout.tsx`
+
+2. **API Field Mapping** - Mapeo correcto de campos
+   - Carrocería (`carrosseriaCotxe`) añadida al endpoint vehicles
+   - Mapping correcto de camelCase a kebab-case en componentes
+   - Sincronización de campos entre API y frontend
+   - Soporte para múltiples formatos de precio anterior
+
+3. **Database Integration** - Integración con base de datos
+   - Labels correctos para emisiones, tapicería y otros campos
+   - Uso de colecciones de base de datos en lugar de mappings hardcodeados
+   - Sistema de etiquetas consistente entre formulario y detalle
+   - Manejo correcto de valores null/undefined
+
+#### 🛠️ Technical Implementation
+- **AdminDashboard.tsx**: Estadísticas de marcas y modelos con API endpoint
+- **VehicleDetail.tsx**: Especificaciones técnicas completas en 2 columnas
+- **VehicleCard.tsx**: Corrección crítica de precios anteriores falsos  
+- **VehicleListLayout.tsx**: Mapeo completo de campos de precio
+- **useVehicleTypes.ts**: Hook para etiquetas desde base de datos
+
+#### 🎯 System Status
+- ✅ Admin statistics: Panel funcional con contadores en tiempo real
+- ✅ Technical specs: Fichas técnicas completas implementadas
+- ✅ Price display: Sistema corregido sin datos falsos
+- ✅ Navigation: Scroll y breadcrumbs funcionando correctamente
+- ✅ Database integration: Labels desde API funcionando
+
+### Previous: WhatsApp Integration & Home Page Cleanup (July 24, 2025)
 
 #### ✅ WhatsApp Integration System
 1. **Admin Configuration Panel** - Nueva pestaña "Configuración" con gestión de WhatsApp

@@ -521,6 +521,10 @@ router.get('/:slug', async (req, res) => {
         portesCotxe: true,
         climatitzacio: true,
         colorTapisseria: true,
+        // Carrocería por tipo de vehículo
+        carrosseriaCotxe: true,
+        carrosseriaMoto: true,
+        carrosseriaCaravana: true,
         numeroMaletersCotxe: true,
         capacitatMaletersCotxe: true,
         capacitatTotalL: true,
