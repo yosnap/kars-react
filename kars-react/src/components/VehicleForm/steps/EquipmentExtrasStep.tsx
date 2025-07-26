@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { axiosAdmin } from '../../../api/axiosClient';
+import { useVehicleExtras } from '../../../hooks/useVehicleExtras';
 import ExtrasGrid from '../ExtrasGrid';
 import { Switch } from '../../ui/switch';
 
@@ -8,124 +8,73 @@ interface EquipmentExtrasStepProps {
   updateFormData: (data: any) => void;
 }
 
-interface Extra {
-  id: string;
-  name: string;
-  slug: string;
-}
-
 const EquipmentExtrasStep: React.FC<EquipmentExtrasStepProps> = ({ formData, updateFormData }) => {
-  const [carExtras, setCarExtras] = useState<Extra[]>([]);
-  const [motorcycleExtras, setMotorcycleExtras] = useState<Extra[]>([]);
-  const [caravanExtras, setCaravanExtras] = useState<Extra[]>([]);
-  const [habitacleExtras, setHabitacleExtras] = useState<Extra[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Usar el hook para obtener extras según el tipo de vehículo
+  const { 
+    extras: rawExtras, 
+    loading,
+    getExtraName 
+  } = useVehicleExtras(formData.tipusVehicle);
 
-  // Cargar extras desde la API
-  useEffect(() => {
-    const loadExtras = async () => {
-      setLoading(true);
-      try {
-        const [carResponse, motorcycleResponse, caravanResponse, habitacleResponse] = await Promise.all([
-          axiosAdmin.get('/car-extras'),
-          axiosAdmin.get('/motorcycle-extras'),
-          axiosAdmin.get('/caravan-extras'),
-          axiosAdmin.get('/habitacle-extras')
-        ]);
+  // Convertir los extras al formato esperado por ExtrasGrid
+  const extras = rawExtras.map(extra => ({
+    id: extra.value,
+    name: extra.catalan, // Usar el nombre en catalán
+    slug: extra.value
+  }));
 
-        if (carResponse.data?.data) {
-          setCarExtras(carResponse.data.data);
-        }
-        if (motorcycleResponse.data?.data) {
-          setMotorcycleExtras(motorcycleResponse.data.data);
-        }
-        if (caravanResponse.data?.data) {
-          setCaravanExtras(caravanResponse.data.data);
-        }
-        if (habitacleResponse.data?.data) {
-          setHabitacleExtras(habitacleResponse.data.data);
-        }
-      } catch (error) {
-        console.error('Error cargando extras:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadExtras();
-  }, []);
-
-  // Función para normalizar strings para comparación
-  const normalizeExtra = (extra: string): string => {
-    return extra.toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[àáâãä]/g, 'a')
-      .replace(/[èéêë]/g, 'e')
-      .replace(/[ìíîï]/g, 'i')
-      .replace(/[òóôõö]/g, 'o')
-      .replace(/[ùúûü]/g, 'u')
-      .replace(/ç/g, 'c')
-      .replace(/ñ/g, 'n');
-  };
-
-  // Función para obtener la configuración de extras según el tipo de vehículo
-  const getExtrasConfig = () => {
-    let extras: Extra[];
-    let currentField: string;
-    let rawExtras: string[];
-    
+  // Función para obtener el campo de extras según el tipo de vehículo
+  const getExtrasField = () => {
     switch (formData.tipusVehicle) {
       case 'moto':
-        extras = motorcycleExtras;
-        currentField = 'extresMoto';
-        rawExtras = formData.extresMoto || [];
-        break;
+        return 'extresMoto';
       case 'autocaravana':
-        // Para autocaravanas, usar tanto caravana como habitáculo
-        extras = [...caravanExtras, ...habitacleExtras];
-        currentField = 'extresAutocaravana';
-        rawExtras = formData.extresAutocaravana || [];
-        break;
+        return 'extresAutocaravana';
       case 'vehicle-comercial':
-        extras = carExtras; // Los comerciales usan extras de coches
-        currentField = 'extresCotxe';
-        rawExtras = formData.extresCotxe || [];
-        break;
+        return 'extresCotxe';
       default:
-        extras = carExtras;
-        currentField = 'extresCotxe';
-        rawExtras = formData.extresCotxe || [];
+        return 'extresCotxe';
     }
-    
-    // Normalizar los extras guardados para comparación
-    const normalizedExtras = rawExtras.map(extra => normalizeExtra(extra));
-    
-    return {
-      extras,
-      currentField,
-      currentExtras: rawExtras,
-      normalizedExtras
-    };
   };
 
-  const extrasConfig = getExtrasConfig();
+  // Función para obtener los extras seleccionados
+  const getSelectedExtras = (): string[] => {
+    const field = getExtrasField();
+    return formData[field] || [];
+  };
 
-  const toggleExtra = (extra: Extra) => {
-    const currentExtras = extrasConfig.currentExtras;
-    
-    // Ahora que usamos slugs, la comparación es directa
-    const existingIndex = currentExtras.findIndex((item: string) => item === extra.slug);
+  // Función para alternar un extra
+  const toggleExtra = (extra: any) => {
+    const field = getExtrasField();
+    const currentExtras = getSelectedExtras();
+    const extraValue = extra.value || extra.slug; // Compatibilidad con ambos formatos
     
     let updatedExtras: string[];
-    if (existingIndex >= 0) {
+    if (currentExtras.includes(extraValue)) {
       // Si existe, lo quitamos
-      updatedExtras = currentExtras.filter((_: string, index: number) => index !== existingIndex);
+      updatedExtras = currentExtras.filter(e => e !== extraValue);
     } else {
-      // Si no existe, lo agregamos con el slug
-      updatedExtras = [...currentExtras, extra.slug];
+      // Si no existe, lo agregamos
+      updatedExtras = [...currentExtras, extraValue];
     }
     
-    updateFormData({ [extrasConfig.currentField]: updatedExtras });
+    updateFormData({ [field]: updatedExtras });
+  };
+
+  // Función para seleccionar múltiples extras de una vez
+  const selectMultipleExtras = (extrasToAdd: string[]) => {
+    const field = getExtrasField();
+    const currentExtras = getSelectedExtras();
+    const uniqueExtras = [...new Set([...currentExtras, ...extrasToAdd])];
+    updateFormData({ [field]: uniqueExtras });
+  };
+
+  // Función para deseleccionar múltiples extras de una vez
+  const deselectMultipleExtras = (extrasToRemove: string[]) => {
+    const field = getExtrasField();
+    const currentExtras = getSelectedExtras();
+    const updatedExtras = currentExtras.filter(extra => !extrasToRemove.includes(extra));
+    updateFormData({ [field]: updatedExtras });
   };
 
   // Obtener el título según el tipo de vehículo
@@ -228,9 +177,11 @@ const EquipmentExtrasStep: React.FC<EquipmentExtrasStepProps> = ({ formData, upd
 
       {/* Extras específicos del vehículo */}
       <ExtrasGrid
-        extras={extrasConfig.extras}
-        selectedExtras={extrasConfig.currentExtras}
+        extras={extras}
+        selectedExtras={getSelectedExtras()}
         onToggleExtra={toggleExtra}
+        onSelectMultiple={selectMultipleExtras}
+        onDeselectMultiple={deselectMultipleExtras}
         title={getTitle()}
       />
     </div>

@@ -11,6 +11,8 @@ interface ExtrasGridProps {
   extras: Extra[];
   selectedExtras: string[];
   onToggleExtra: (extra: Extra) => void;
+  onSelectMultiple?: (extras: string[]) => void;
+  onDeselectMultiple?: (extras: string[]) => void;
   title: string;
 }
 
@@ -148,7 +150,14 @@ const categorizeExtras = (extras: Extra[]) => {
 };
 
 
-const ExtrasGrid: React.FC<ExtrasGridProps> = ({ extras, selectedExtras, onToggleExtra, title }) => {
+const ExtrasGrid: React.FC<ExtrasGridProps> = ({ 
+  extras, 
+  selectedExtras, 
+  onToggleExtra, 
+  onSelectMultiple,
+  onDeselectMultiple,
+  title 
+}) => {
   const categories = categorizeExtras(extras);
   
   // Filtrar valores inválidos una sola vez para reutilizar
@@ -168,20 +177,62 @@ const ExtrasGrid: React.FC<ExtrasGridProps> = ({ extras, selectedExtras, onToggl
     return isDirectMatch || isReverseMatch;
   };
 
+  // Función para seleccionar todos los extras de una categoría
+  const selectAllInCategory = (categoryItems: Extra[]) => {
+    if (onSelectMultiple) {
+      // Usar la función optimizada si está disponible
+      const extrasToAdd = categoryItems
+        .filter(extra => !isExtraSelected(extra))
+        .map(extra => extra.value || extra.slug);
+      
+      if (extrasToAdd.length > 0) {
+        onSelectMultiple(extrasToAdd);
+      }
+    } else {
+      // Fallback al método original con timeouts
+      categoryItems.forEach((extra, index) => {
+        if (!isExtraSelected(extra)) {
+          setTimeout(() => onToggleExtra(extra), index * 10);
+        }
+      });
+    }
+  };
+
+  // Función para deseleccionar todos los extras de una categoría
+  const deselectAllInCategory = (categoryItems: Extra[]) => {
+    if (onDeselectMultiple) {
+      // Usar la función optimizada si está disponible
+      const extrasToRemove = categoryItems
+        .filter(extra => isExtraSelected(extra))
+        .map(extra => extra.value || extra.slug);
+      
+      if (extrasToRemove.length > 0) {
+        onDeselectMultiple(extrasToRemove);
+      }
+    } else {
+      // Fallback al método original con timeouts
+      categoryItems.forEach((extra, index) => {
+        if (isExtraSelected(extra)) {
+          setTimeout(() => onToggleExtra(extra), index * 10);
+        }
+      });
+    }
+  };
+
 
 
   // Configuración de categorías con nombres en catalán
   const categoryConfig = [
-    { key: 'safety', name: 'Seguretat', icon: '🛡️', items: categories.safety },
-    { key: 'comfort', name: 'Confort', icon: '❄️', items: categories.comfort },
-    { key: 'technology', name: 'Tecnologia', icon: '📱', items: categories.technology },
-    { key: 'audio', name: 'Audio i Entreteniment', icon: '🎵', items: categories.audio },
-    { key: 'lighting', name: 'Il·luminació', icon: '💡', items: categories.lighting },
-    { key: 'assistance', name: 'Assistència', icon: '🚗', items: categories.assistance },
-    { key: 'mechanical', name: 'Mecànica', icon: '⚙️', items: categories.mechanical },
-    { key: 'habitacle', name: 'Habitacle', icon: '🏠', items: categories.habitacle },
-    { key: 'motorcycle', name: 'Moto Específics', icon: '🏍️', items: categories.motorcycle },
-    { key: 'others', name: 'Altres', icon: '⭐', items: categories.others }
+    { key: 'safety', name: 'Seguretat', items: categories.safety },
+    { key: 'comfort', name: 'Confort', items: categories.comfort },
+    { key: 'technology', name: 'Tecnologia', items: categories.technology },
+    { key: 'audio', name: 'Audio i Entreteniment', items: categories.audio },
+    { key: 'lighting', name: 'Il·luminació', items: categories.lighting },
+    { key: 'assistance', name: 'Assistència', items: categories.assistance },
+    { key: 'mechanical', name: 'Mecànica', items: categories.mechanical },
+    { key: 'habitacle', name: 'Habitacle', items: categories.habitacle },
+    { key: 'motorcycle', name: 'Moto Específics', items: categories.motorcycle },
+    { key: 'others', name: 'Altres', items: categories.others }
   ].filter(category => category.items.length > 0);
 
   return (
@@ -197,15 +248,54 @@ const ExtrasGrid: React.FC<ExtrasGridProps> = ({ extras, selectedExtras, onToggl
         )}
       </div>
 
-      {categoryConfig.map(category => (
-        <div key={category.key} className="space-y-4">
-          <h4 className="flex items-center gap-2 text-lg font-medium text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2">
-            <span>{category.icon}</span>
-            {category.name}
-            <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-              ({category.items.length})
-            </span>
-          </h4>
+      {categoryConfig.map(category => {
+        // Calcular cuántos extras están seleccionados en esta categoría
+        const selectedInCategory = category.items.filter(extra => isExtraSelected(extra)).length;
+        const allSelectedInCategory = category.items.length > 0 && category.items.every(extra => isExtraSelected(extra));
+        
+        return (
+          <div key={category.key} className="space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
+              <h4 className="flex items-center gap-2 text-lg font-medium text-gray-800 dark:text-gray-200">
+                {category.name}
+                <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                  ({category.items.length})
+                </span>
+                {selectedInCategory > 0 && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 ml-2">
+                    {selectedInCategory} seleccionat{selectedInCategory !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </h4>
+              
+              {/* Botones Todos/Nada por sección */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => selectAllInCategory(category.items)}
+                  disabled={allSelectedInCategory}
+                  className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                    allSelectedInCategory
+                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                      : 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800'
+                  }`}
+                >
+                  Tots
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deselectAllInCategory(category.items)}
+                  disabled={selectedInCategory === 0}
+                  className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                    selectedInCategory === 0
+                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                      : 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800'
+                  }`}
+                >
+                  Cap
+                </button>
+              </div>
+            </div>
           
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {category.items.map(extra => (
@@ -219,29 +309,9 @@ const ExtrasGrid: React.FC<ExtrasGridProps> = ({ extras, selectedExtras, onToggl
             ))}
           </div>
         </div>
-      ))}
+        );
+      })}
       
-      {/* Resumen de extras seleccionados */}
-      {validSelectedExtras.length > 0 && (
-        <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
-          <h4 className="text-lg font-medium text-blue-900 dark:text-blue-100 mb-4">
-            Resum d'extras seleccionats
-          </h4>
-          <div className="flex flex-wrap gap-2">
-            {validSelectedExtras.map((extraSlug, index) => {
-              const extraData = extras.find(e => e.slug === extraSlug);
-              return (
-                <span 
-                  key={index} 
-                  className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700"
-                >
-                  {extraData ? extraData.name : extraSlug}
-                </span>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

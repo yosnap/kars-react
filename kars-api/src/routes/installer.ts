@@ -126,9 +126,9 @@ router.get('/status', async (req, res) => {
       {
         id: 'motorcycle-extras',
         name: 'Extras de Motos',
-        description: 'Instalar 47 extras para motos con traducciones',
-        status: motorcycleExtrasCount >= 47 ? 'completed' : 'pending',
-        progress: motorcycleExtrasCount >= 47 ? 100 : Math.round((motorcycleExtrasCount / 47) * 100),
+        description: 'Instalar 30 extras para motos con traducciones',
+        status: motorcycleExtrasCount >= 30 ? 'completed' : 'pending',
+        progress: motorcycleExtrasCount >= 30 ? 100 : Math.round((motorcycleExtrasCount / 30) * 100),
         count: motorcycleExtrasCount
       },
       {
