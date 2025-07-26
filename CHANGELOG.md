@@ -5,6 +5,69 @@ Todos los cambios notables de este proyecto se documentarán en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-es/1.0.0/),
 y este proyecto adhiere al [Versionado Semántico](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2025-07-26
+
+### 🎉 Vehicle Form Complete Fix - Extras and Commercial Vehicles
+
+### ✅ Corregido
+
+#### Sistema de Extras de Vehículos
+- **Datos de inicialización de extras**: Actualización completa de todos los extras
+  - Extras de coches: 93 elementos correctos (antes mostraba 58)
+  - Extras de autocaravanas: 84 elementos correctos (antes mostraba 51)
+  - Extras de motos: 30 elementos correctos con valores sin sufijos
+- **Contador de instalador**: Corregidos los números mostrados en el instalador
+- **Funcionalidad "Seleccionar todos"**: Fix del botón que solo seleccionaba el último elemento
+  - Implementación de selección/deselección por lotes
+  - Funciones batch para mejorar performance
+- **Separación de extras**: Autocaravanas ahora muestran dos secciones distintas
+  - Extras de autocaravana
+  - Extras del habitáculo (sin duplicados)
+
+#### Sistema de Marcas y Modelos
+- **Vehículos comerciales**: Configurados para usar marcas/modelos de coches
+  - Ahora usan `marcaCotxe` y `modelsCotxe`
+  - Migración automática de datos antiguos
+  - Compatible con vehículos existentes
+- **Autocaravanas**: Ya configuradas previamente para usar marcas de coches
+- **Preselección de modelos**: Corregido problema de carga en formulario de edición
+
+#### Integración con API
+- **Estructura de respuesta**: Fix del check de respuesta API
+  - Eliminado check innecesario de `response.data?.success`
+  - Ahora verifica directamente `response.data?.data`
+- **Carga dinámica**: Extras ahora se cargan desde API en lugar de datos hardcodeados
+
+### 🔧 Mejoras Técnicas
+
+#### Frontend
+- **ExtrasGrid.tsx**: Implementación de selección múltiple eficiente
+- **useVehicleExtras.ts**: Corrección de interpretación de respuesta API
+- **EquipmentExtrasStep.tsx**: Separación completa de secciones de extras
+- **VehicleForm.tsx**: Migración de campos para compatibilidad
+
+#### Backend
+- **Inicialización de datos**: Arrays actualizados con datos correctos
+- **Instalador**: Contadores actualizados para reflejar números reales
+- **Compatibilidad**: Sistema de migración para campos antiguos
+
+### 📊 Resumen de Cambios
+
+- ✅ Extras de coches: 58 → 93 elementos
+- ✅ Extras de autocaravanas: 51 → 84 elementos  
+- ✅ Extras de motos: Valores corregidos sin sufijos
+- ✅ Vehículos comerciales: Ahora usan campos de coches
+- ✅ Selección múltiple: Funcionalidad completamente operativa
+- ✅ API: Interpretación correcta de respuestas
+
+### 🎯 Estado del Sistema
+
+Todos los tipos de vehículos ahora funcionan correctamente con:
+- Selección correcta de marcas y modelos
+- Extras cargados dinámicamente desde API
+- Datos de inicialización actualizados y precisos
+- Formularios completamente funcionales para crear y editar
+
 ## [0.2.0] - 2025-07-25
 
 ### 🎉 NEW FEATURE - Sistema de Versiones Unificado
