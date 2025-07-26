@@ -13,7 +13,7 @@ import {
   FileText,
   Calendar
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { VERSION_INFO } from '../../config/version';
 import AdminLayout from '../../components/Admin/AdminLayout';
 import { axiosAdmin } from '../../api/axiosClient';
@@ -26,6 +26,7 @@ interface SystemInfo {
 }
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('overview');
   const [systemInfo, setSystemInfo] = useState<SystemInfo>({
     apiVersion: 'unknown',
@@ -244,8 +245,7 @@ export default function AdminDashboard() {
   }, []);
 
   const handleCreateVehicle = () => {
-    // Aquí podrías abrir un modal o navegar a un formulario
-    alert('Función de crear vehículo - por implementar');
+    navigate('/admin/kars-vehicles/create');
   };
 
   return (
@@ -262,7 +262,7 @@ export default function AdminDashboard() {
             className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Crear Vehículo
+            Crear Vehicle
           </button>
         </div>
       </div>
