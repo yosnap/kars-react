@@ -61,6 +61,16 @@ interface Vehicle {
   estatVehicle?: string;
 }
 
+// Función para mapear tipos de vehículo a etiquetas legibles
+const getVehicleTypeLabel = (tipusVehicle: string): string => {
+  switch (tipusVehicle?.toLowerCase()) {
+    case 'cotxe': return 'Cotxe';
+    case 'moto': return 'Moto';
+    case 'autocaravana-camper': return 'Autocaravana';
+    case 'vehicle-comercial': return 'Vehicle Comercial';
+    default: return tipusVehicle?.charAt(0).toUpperCase() + tipusVehicle?.slice(1).toLowerCase() || '';
+  }
+};
 
 /**
  * NOTA: En desarrollo, React.StrictMode causa doble renderizado intencional
@@ -848,8 +858,8 @@ const KarsVehicles = () => {
                       <h3 className="font-medium text-gray-900 dark:text-white truncate">
                         {decodeHtmlEntities(vehicle.titolAnunci)}
                       </h3>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 capitalize mt-1">
-                        {vehicle.tipusVehicle}
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 mt-1">
+                        {getVehicleTypeLabel(vehicle.tipusVehicle)}
                       </span>
                       <p className="text-xs text-gray-400 mt-1">
                         {vehicle.any} • {vehicle.quilometratge} km

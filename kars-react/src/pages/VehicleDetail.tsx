@@ -709,9 +709,10 @@ const VehicleDetail = () => {
 function getVehicleTypeLabel(slug: string): string {
   switch (slug.toLowerCase()) {
     case "cotxe": return "Cotxe";
+    case "moto": return "Moto";
     case "moto-quad-atv": return "Moto";
-    case "autocaravana-camper": return "Caravana";
-    case "vehicle-comercial": return "Vehicle comercial";
+    case "autocaravana-camper": return "Autocaravana";
+    case "vehicle-comercial": return "Vehicle Comercial";
     default: return slug.charAt(0).toUpperCase() + slug.slice(1).toLowerCase();
   }
 }

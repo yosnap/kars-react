@@ -480,6 +480,7 @@ const ImagesAndStatusStep: React.FC<ImagesAndStatusStepProps> = ({ formData, upd
         </div>
       </div>
 
+
       {uploading && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 flex items-center gap-3">

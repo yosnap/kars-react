@@ -444,8 +444,14 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
             </label>
             <SearchableSelect
               options={transmissionTypes}
-              value={formData.tipusCanvi || ''}
-              onValueChange={(value) => updateFormData({ tipusCanvi: value })}
+              value={formData.tipusVehicle === 'moto' ? (formData.tipusCanviMoto || '') : (formData.tipusCanvi || '')}
+              onValueChange={(value) => {
+                if (formData.tipusVehicle === 'moto') {
+                  updateFormData({ tipusCanviMoto: value });
+                } else {
+                  updateFormData({ tipusCanvi: value });
+                }
+              }}
               placeholder="Selecciona tipus de canvi..."
               allowClear={true}
               showSearch={false}

@@ -81,6 +81,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
       // Step 3: Technical Specs
       tipusCombustible: apiData.tipusCombustible || '',
       tipusCanvi: apiData.tipusCanvi || '',
+      tipusCanviMoto: apiData.tipusCanviMoto || '',
       tipusPropulsor: apiData.tipusPropulsor || '',
       potenciaCv: String(apiData.potenciaCv || ''),
       potenciaKw: String(apiData.potenciaKw || ''),
@@ -105,6 +106,13 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
       tipusTapisseria: apiData.tipusTapisseria || '',
       colorTapisseria: apiData.colorTapisseria || '',
       
+      // Equipment and capacity fields
+      numeroMaleters: String(apiData.numeroMaleters || ''),
+      capacitatTotal: String(apiData.capacitatTotal || ''),
+      rodaRecanvi: apiData.rodaRecanvi || '',
+      velocitatMaxima: String(apiData.velocitatMaxima || ''),
+      acceleracio0100: String(apiData.acceleracio0100 || ''),
+      
       // Step 4: Equipment and Extras - Mapear todos los tipos según el vehículo
       extresCotxe: Array.isArray(apiData.extresCotxe) ? apiData.extresCotxe : [],
       extresMoto: Array.isArray(apiData.extresMoto) ? apiData.extresMoto : [],
@@ -118,7 +126,12 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
       
       // Step 5: Commercial Information
       garantia: apiData.garantia || '',
-      vehicleAccidentat: apiData.vehicleAccidentat || '',
+      vehicleAccidentat: (() => {
+        const value = apiData.vehicleAccidentat || apiData['vehicle-accidentat'];
+        if (value === true || value === 'true') return 'true';
+        if (value === false || value === 'false') return 'false';
+        return ''; // null, undefined o cualquier otro valor -> placeholder
+      })(),
       origen: apiData.origen || '',
       iva: apiData.iva || '',
       finacament: apiData.finacament || '',
@@ -132,7 +145,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
       nombrePropietaris: apiData.nombrePropietaris || '',
       llibreManteniment: apiData.llibreManteniment === true || apiData.llibreManteniment === 'true',
       revisionsOficials: apiData.revisionsOficials === true || apiData.revisionsOficials === 'true',
-      impostosDeduibles: apiData.impostosDeduibles === true || apiData.impostosDeduibles === 'true',
+      impostosDeduibles: apiData.impostosDeduibles === true || apiData.impostosDeduibles === 'true' ? 'true' : 'false',
       vehicleACanvi: apiData.vehicleACanvi === true || apiData.vehicleACanvi === 'true',
       
       // Step 6: Descriptions (multilingual support)
@@ -147,6 +160,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
       anunciActiu: apiData.anunciActiu === true || apiData.anunciActiu === 'true',
       anunciDestacat: parseInt(apiData.anunciDestacat || '0'),
       venut: apiData.venut === true || apiData.venut === 'true',
+      
+      // Internal Notes (not part of the 7 steps, but additional field)
+      notesInternes: apiData.notesInternes || apiData['notes-internes'] || '',
       
       // Additional fields that might be missing
       // Note: seguretat, confort, multimedia removed - not in Prisma schema

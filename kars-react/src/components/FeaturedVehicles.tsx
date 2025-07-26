@@ -21,9 +21,9 @@ const FeaturedVehicles = () => {
     setLoading(true);
     
     const params = {
-      "anunci-destacat": 1,
-      "anunci-actiu": true,
-      venut: false,
+      "anunci-destacat": "1",
+      "anunci-actiu": "true",
+      venut: "false",
       per_page: 100,
       orderby: "anunci-destacat",
       order: "DESC"
@@ -31,13 +31,14 @@ const FeaturedVehicles = () => {
     
     axiosAdmin.get("/vehicles", { params })
       .then(res => {
-        const activos = (res.data.items || []).filter(
-          (v: any) => v["anunci-actiu"] === "true" || v["anunci-actiu"] === true
+        const items = res.data.items || [];
+        const activos = items.filter(
+          (v: any) => v.anunciActiu === "true" || v.anunciActiu === true
         );
         setVehicles(activos);
       })
-      .catch(() => {
-        // Error silencioso
+      .catch((error) => {
+        console.error("FeaturedVehicles API error:", error);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -117,25 +118,25 @@ const FeaturedVehicles = () => {
             }}
             className="featured-vehicles-swiper"
           >
-            {vehicles.map((vehicle) => {
+            {vehicles.map((vehicle: any) => {
               const uiVehicle = {
                 id: String(vehicle.id),
-                ["titol-anunci"]: vehicle["titol-anunci"] ?? "",
-                ["descripcio-anunci"]: vehicle["descripcio-anunci"] ?? "",
-                ["marques-cotxe"]: vehicle["marques-cotxe"] ?? "",
-                ["models-cotxe"]: vehicle["models-cotxe"] ?? "",
-                ["estat-vehicle"]: vehicle["estat-vehicle"] ?? "",
-                any: vehicle["any"] ?? "",
-                quilometratge: vehicle["quilometratge"] !== undefined && vehicle["quilometratge"] !== null ? String(vehicle["quilometratge"]) : "",
-                preu: vehicle["preu"] !== undefined && vehicle["preu"] !== null ? String(vehicle["preu"]) : "",
-                ["color-vehicle"]: vehicle["color-vehicle"] ?? "",
-                ["tipus-combustible"]: vehicle["tipus-combustible"] ?? "",
-                ["potencia-cv"]: vehicle["potencia-cv"] !== undefined && vehicle["potencia-cv"] !== null ? String(vehicle["potencia-cv"]) : "",
-                slug: vehicle["slug"] ?? "",
-                ["anunci-destacat"]: vehicle["anunci-destacat"] !== undefined ? String(vehicle["anunci-destacat"]) : "",
-                ["imatge-destacada-url"]: vehicle["imatge-destacada-url"] ?? "",
-                ["anunci-actiu"]: vehicle["anunci-actiu"] !== undefined ? String(vehicle["anunci-actiu"]) : undefined,
-                venut: vehicle["venut"] !== undefined ? String(vehicle["venut"]) : undefined
+                ["titol-anunci"]: vehicle.titolAnunci ?? vehicle["titol-anunci"] ?? "",
+                ["descripcio-anunci"]: vehicle.descripcioAnunci ?? vehicle["descripcio-anunci"] ?? "",
+                ["marques-cotxe"]: vehicle.marcaCotxe ?? vehicle["marques-cotxe"] ?? "",
+                ["models-cotxe"]: vehicle.modelsCotxe ?? vehicle["models-cotxe"] ?? "",
+                ["estat-vehicle"]: vehicle.estatVehicle ?? vehicle["estat-vehicle"] ?? "",
+                any: vehicle.any ?? "",
+                quilometratge: vehicle.quilometratge !== undefined && vehicle.quilometratge !== null ? String(vehicle.quilometratge) : "",
+                preu: vehicle.preu !== undefined && vehicle.preu !== null ? String(vehicle.preu) : "",
+                ["color-vehicle"]: vehicle.colorVehicle ?? vehicle["color-vehicle"] ?? "",
+                ["tipus-combustible"]: vehicle.tipusCombustible ?? vehicle["tipus-combustible"] ?? "",
+                ["potencia-cv"]: vehicle.potenciaCv !== undefined && vehicle.potenciaCv !== null ? String(vehicle.potenciaCv) : (vehicle["potencia-cv"] !== undefined && vehicle["potencia-cv"] !== null ? String(vehicle["potencia-cv"]) : ""),
+                slug: vehicle.slug ?? "",
+                ["anunci-destacat"]: vehicle.anunciDestacat !== undefined ? String(vehicle.anunciDestacat) : (vehicle["anunci-destacat"] !== undefined ? String(vehicle["anunci-destacat"]) : ""),
+                ["imatge-destacada-url"]: vehicle.imatgeDestacadaUrl ?? vehicle["imatge-destacada-url"] ?? "",
+                ["anunci-actiu"]: vehicle.anunciActiu !== undefined ? String(vehicle.anunciActiu) : (vehicle["anunci-actiu"] !== undefined ? String(vehicle["anunci-actiu"]) : undefined),
+                venut: vehicle.venut !== undefined ? String(vehicle.venut) : undefined
               };
 
               return (

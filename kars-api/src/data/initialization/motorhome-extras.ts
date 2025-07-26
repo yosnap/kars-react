@@ -1,36 +1,12 @@
-// Motorhome extras with complete data from user - EXACTLY 51 elements as requested
+// Motorhome extras with complete data - EXACTLY 86 elements as requested
 export const motorhomeExtras = [
   {
-    value: "abs",
-    name: "Abs",
-    catalan: "Abs",
+    value: "abs-caravana",
+    name: "ABS",
+    catalan: "ABS",
     spanish: "ABS",
     french: "ABS",
     english: "ABS"
-  },
-  {
-    value: "aire-condicionat-cabina",
-    name: "Aire condicionat cabina",
-    catalan: "Aire condicionat cabina",
-    spanish: "Aire acondicionado cabina",
-    french: "Climatisation cabine",
-    english: "Cabin air conditioning"
-  },
-  {
-    value: "aire-condicionat-habitacle",
-    name: "Aire condicionat habitacle",
-    catalan: "Aire condicionat habitacle",
-    spanish: "Aire acondicionado habitáculo",
-    french: "Climatisation habitacle",
-    english: "Living area air conditioning"
-  },
-  {
-    value: "airbag-acompanyant",
-    name: "Airbag acompanyant",
-    catalan: "Airbag acompanyant",
-    spanish: "Airbag acompañante",
-    french: "Airbag passager",
-    english: "Passenger airbag"
   },
   {
     value: "airbag-conductor",
@@ -41,6 +17,30 @@ export const motorhomeExtras = [
     english: "Driver airbag"
   },
   {
+    value: "airbag-passatger",
+    name: "Airbag passatger",
+    catalan: "Airbag passatger",
+    spanish: "Airbag pasajero",
+    french: "Airbag passager",
+    english: "Passenger airbag"
+  },
+  {
+    value: "airbags-cortina",
+    name: "Airbags cortina",
+    catalan: "Airbags cortina",
+    spanish: "Airbags cortina",
+    french: "Airbags rideaux",
+    english: "Curtain airbags"
+  },
+  {
+    value: "airbags-laterals",
+    name: "Airbags laterals",
+    catalan: "Airbags laterals",
+    spanish: "Airbags laterales",
+    french: "Airbags latéraux",
+    english: "Side airbags"
+  },
+  {
     value: "alarma",
     name: "Alarma",
     catalan: "Alarma",
@@ -49,36 +49,148 @@ export const motorhomeExtras = [
     english: "Alarm"
   },
   {
-    value: "antena-parabolica",
-    name: "Antena parabòlica",
-    catalan: "Antena parabòlica",
-    spanish: "Antena parabólica",
-    french: "Antenne parabolique",
-    english: "Satellite dish"
+    value: "app-carrega",
+    name: "App estat càrrega bateria",
+    catalan: "App estat càrrega bateria",
+    spanish: "App estado carga batería",
+    french: "App état charge batterie",
+    english: "Battery charge status app"
   },
   {
-    value: "arara-remolc",
-    name: "Arara remolc",
-    catalan: "Arara remolc",
-    spanish: "Enganche remolque",
-    french: "Attelage remorque",
-    english: "Tow hitch"
+    value: "apple-car-play-android-auto",
+    name: "Apple Car Play / Android Auto",
+    catalan: "Apple Car Play / Android Auto",
+    spanish: "Apple Car Play / Android Auto",
+    french: "Apple Car Play / Android Auto",
+    english: "Apple Car Play / Android Auto"
   },
   {
-    value: "baca",
-    name: "Baca",
-    catalan: "Baca",
-    spanish: "Baca",
-    french: "Galerie",
-    english: "Roof rack"
+    value: "assist-aparcament",
+    name: "Assist. aparcament",
+    catalan: "Assist. aparcament",
+    spanish: "Asist. aparcamiento",
+    french: "Assist. parking",
+    english: "Parking assist"
   },
   {
-    value: "banys-armaris",
-    name: "Banys armaris",
-    catalan: "Banys armaris",
-    spanish: "Baños armarios",
-    french: "Salles de bain placards",
-    english: "Bathroom cabinets"
+    value: "arrancada-sense-clau",
+    name: "Arrancada sense clau",
+    catalan: "Arrancada sense clau",
+    spanish: "Arranque sin llave",
+    french: "Démarrage sans clé",
+    english: "Keyless start"
+  },
+  {
+    value: "protec-collisio-lateral",
+    name: "Assistent carril + Protec. col·lisió lateral",
+    catalan: "Assistent carril + Protec. col·lisió lateral",
+    spanish: "Asistente carril + Protec. colisión lateral",
+    french: "Assistant voie + Protec. collision latérale",
+    english: "Lane assist + Side collision protection"
+  },
+  {
+    value: "collisio-lateral",
+    name: "Assist. col·lisió lateral",
+    catalan: "Assist. col·lisió lateral",
+    spanish: "Asist. colisión lateral",
+    french: "Assist. collision latérale",
+    english: "Side collision assist"
+  },
+  {
+    value: "collisio-per-abast",
+    name: "Assist. col·lisió per abast",
+    catalan: "Assist. col·lisió per abast",
+    spanish: "Asist. colisión por alcance",
+    french: "Assist. collision par l'arrière",
+    english: "Rear collision assist"
+  },
+  {
+    value: "assist-manteniment-carril",
+    name: "Assist. manteniment carril",
+    catalan: "Assist. manteniment carril",
+    spanish: "Asist. mantenimiento carril",
+    french: "Assist. maintien voie",
+    english: "Lane keeping assist"
+  },
+  {
+    value: "marxa-enrere",
+    name: "Assist. marxa enrere",
+    catalan: "Assist. marxa enrere",
+    spanish: "Asist. marcha atrás",
+    french: "Assist. marche arrière",
+    english: "Reverse assist"
+  },
+  {
+    value: "assist-parada-emergencia",
+    name: "Assist. parada emergència",
+    catalan: "Assist. parada emergència",
+    spanish: "Asist. parada emergencia",
+    french: "Assist. arrêt urgence",
+    english: "Emergency stop assist"
+  },
+  {
+    value: "per-canvi-carril",
+    name: "Assist. per canvi carril",
+    catalan: "Assist. per canvi carril",
+    spanish: "Asist. para cambio carril",
+    french: "Assist. pour changement voie",
+    english: "Lane change assist"
+  },
+  {
+    value: "avis-angle-mort",
+    name: "Avís angle mort",
+    catalan: "Avís angle mort",
+    spanish: "Aviso ángulo muerto",
+    french: "Alerte angle mort",
+    english: "Blind spot warning"
+  },
+  {
+    value: "avis-collisio-encreuament",
+    name: "Avís col·lisio encreuament",
+    catalan: "Avís col·lisio encreuament",
+    spanish: "Aviso colisión cruce",
+    french: "Alerte collision intersection",
+    english: "Cross traffic alert"
+  },
+  {
+    value: "avis-collisio-frontal",
+    name: "Avís col·lisió frontal",
+    catalan: "Avís col·lisió frontal",
+    spanish: "Aviso colisión frontal",
+    french: "Alerte collision frontale",
+    english: "Forward collision warning"
+  },
+  {
+    value: "avis-per-cansament",
+    name: "Avís per cansament",
+    catalan: "Avís per cansament",
+    spanish: "Aviso por cansancio",
+    french: "Alerte fatigue",
+    english: "Fatigue warning"
+  },
+  {
+    value: "avis-sentit-erroni-marxa",
+    name: "Avís sentit erròni de la marxa",
+    catalan: "Avís sentit erròni de la marxa",
+    spanish: "Aviso sentido erróneo marcha",
+    french: "Alerte sens circulation",
+    english: "Wrong way warning"
+  },
+  {
+    value: "avis-situacions-de-risc",
+    name: "Avís situacions de risc",
+    catalan: "Avís situacions de risc",
+    spanish: "Aviso situaciones riesgo",
+    french: "Alerte situations risque",
+    english: "Risk situations warning"
+  },
+  {
+    value: "avis-transit-creuat",
+    name: "Avís trànsit creuat",
+    catalan: "Avís trànsit creuat",
+    spanish: "Aviso tráfico cruzado",
+    french: "Alerte trafic croisé",
+    english: "Cross traffic alert"
   },
   {
     value: "bluetooth",
@@ -89,68 +201,52 @@ export const motorhomeExtras = [
     english: "Bluetooth"
   },
   {
-    value: "boiler",
-    name: "Boiler",
-    catalan: "Boiler",
-    spanish: "Calentador",
-    french: "Chauffe-eau",
-    english: "Water heater"
+    value: "camara-posterior",
+    name: "Càmara visió posterior",
+    catalan: "Càmara visió posterior",
+    spanish: "Cámara visión posterior",
+    french: "Caméra vision arrière",
+    english: "Rear view camera"
   },
   {
-    value: "calefaccio-estacionaria",
-    name: "Calefacció estacionària",
-    catalan: "Calefacció estacionària",
-    spanish: "Calefacción estacionaria",
-    french: "Chauffage stationnaire",
-    english: "Stationary heating"
+    value: "camera-visio-davant",
+    name: "Càmera visió davant",
+    catalan: "Càmera visió davant",
+    spanish: "Cámara visión delantera",
+    french: "Caméra vision avant",
+    english: "Front view camera"
   },
   {
-    value: "calefaccio-gas",
-    name: "Calefacció gas",
-    catalan: "Calefacció gas",
-    spanish: "Calefacción gas",
-    french: "Chauffage gaz",
-    english: "Gas heating"
+    value: "camera-visio-periferica",
+    name: "Càmera visió perifèrica",
+    catalan: "Càmera visió perifèrica",
+    spanish: "Cámara visión periférica",
+    french: "Caméra vision périphérique",
+    english: "Peripheral view camera"
   },
   {
-    value: "calefaccio-gasoil",
-    name: "Calefacció gasoil",
-    catalan: "Calefacció gasoil",
-    spanish: "Calefacción gasóleo",
-    french: "Chauffage diesel",
-    english: "Diesel heating"
+    value: "carregador-inalambric",
+    name: "Carregador inalàmbric",
+    catalan: "Carregador inalàmbric",
+    spanish: "Cargador inalámbrico",
+    french: "Chargeur sans fil",
+    english: "Wireless charger"
   },
   {
-    value: "camera-marxa-enrere",
-    name: "Càmera marxa enrere",
-    catalan: "Càmera marxa enrere",
-    spanish: "Cámara marcha atrás",
-    french: "Caméra de recul",
-    english: "Reverse camera"
+    value: "connexio-internet",
+    name: "Connexió Internet",
+    catalan: "Connexió Internet",
+    spanish: "Conexión Internet",
+    french: "Connexion Internet",
+    english: "Internet connection"
   },
   {
-    value: "canvi-automatic",
-    name: "Canvi automàtic",
-    catalan: "Canvi automàtic",
-    spanish: "Cambio automático",
-    french: "Boîte automatique",
-    english: "Automatic transmission"
-  },
-  {
-    value: "clausor-centralitzat",
-    name: "Clausor centralitzat",
-    catalan: "Clausor centralitzat",
-    spanish: "Cierre centralizado",
-    french: "Verrouillage centralisé",
-    english: "Central locking"
-  },
-  {
-    value: "consola-central",
-    name: "Consola central",
-    catalan: "Consola central",
-    spanish: "Consola central",
-    french: "Console centrale",
-    english: "Center console"
+    value: "control-descens",
+    name: "Control descens",
+    catalan: "Control descens",
+    spanish: "Control descenso",
+    french: "Contrôle descente",
+    english: "Hill descent control"
   },
   {
     value: "control-estabilitat",
@@ -169,12 +265,36 @@ export const motorhomeExtras = [
     english: "Traction control"
   },
   {
-    value: "convertidor-corrent",
-    name: "Convertidor corrent",
-    catalan: "Convertidor corrent",
-    spanish: "Convertidor corriente",
-    french: "Convertisseur courant",
-    english: "Power converter"
+    value: "connexio-mp3-ipod",
+    name: "Connexió Mp3-iPod",
+    catalan: "Connexió Mp3-iPod",
+    spanish: "Conexión Mp3-iPod",
+    french: "Connexion Mp3-iPod",
+    english: "Mp3-iPod connection"
+  },
+  {
+    value: "connexio-telefon",
+    name: "Connexió telèfon",
+    catalan: "Connexió telèfon",
+    spanish: "Conexión teléfono",
+    french: "Connexion téléphone",
+    english: "Phone connection"
+  },
+  {
+    value: "control-clima-distancia",
+    name: "Control clima a distància",
+    catalan: "Control clima a distància",
+    spanish: "Control clima a distancia",
+    french: "Contrôle climat à distance",
+    english: "Remote climate control"
+  },
+  {
+    value: "control-pressio-pneumatics",
+    name: "Control pressió pneumàtics",
+    catalan: "Control pressió pneumàtics",
+    spanish: "Control presión neumáticos",
+    french: "Contrôle pression pneus",
+    english: "Tire pressure control"
   },
   {
     value: "cruise-control",
@@ -185,6 +305,14 @@ export const motorhomeExtras = [
     english: "Cruise control"
   },
   {
+    value: "cruise-control-adaptatiu",
+    name: "Cruise control adaptatiu",
+    catalan: "Cruise control adaptatiu",
+    spanish: "Control crucero adaptativo",
+    french: "Régulateur adaptatif",
+    english: "Adaptive cruise control"
+  },
+  {
     value: "direccio-assistida",
     name: "Direcció assistida",
     catalan: "Direcció assistida",
@@ -193,204 +321,324 @@ export const motorhomeExtras = [
     english: "Power steering"
   },
   {
-    value: "dutxa",
-    name: "Dutxa",
-    catalan: "Dutxa",
-    spanish: "Ducha",
-    french: "Douche",
-    english: "Shower"
+    value: "dvd",
+    name: "DVD",
+    catalan: "DVD",
+    spanish: "DVD",
+    french: "DVD",
+    english: "DVD"
   },
   {
-    value: "escalfa-plats",
-    name: "Escalfa plats",
-    catalan: "Escalfa plats",
-    spanish: "Calienta platos",
-    french: "Chauffe-plats",
-    english: "Plate warmer"
+    value: "endoll-12v",
+    name: "Endoll 12 V",
+    catalan: "Endoll 12 V",
+    spanish: "Enchufe 12 V",
+    french: "Prise 12 V",
+    english: "12V socket"
   },
   {
-    value: "finestres-dobles",
-    name: "Finestres dobles",
-    catalan: "Finestres dobles",
-    spanish: "Ventanas dobles",
-    french: "Fenêtres doubles",
-    english: "Double windows"
+    value: "endoll-220v",
+    name: "Endoll 220V",
+    catalan: "Endoll 220V",
+    spanish: "Enchufe 220V",
+    french: "Prise 220V",
+    english: "220V socket"
   },
   {
-    value: "forn",
-    name: "Forn",
-    catalan: "Forn",
-    spanish: "Horno",
-    french: "Four",
-    english: "Oven"
+    value: "endoll-usb",
+    name: "Endoll USB",
+    catalan: "Endoll USB",
+    spanish: "Enchufe USB",
+    french: "Prise USB",
+    english: "USB socket"
   },
   {
-    value: "garatge",
-    name: "Garatge",
-    catalan: "Garatge",
-    spanish: "Garaje",
-    french: "Garage",
-    english: "Garage"
+    value: "equip-de-alta-fidelitat",
+    name: "Equip de alta fidelitat",
+    catalan: "Equip de alta fidelitat",
+    spanish: "Equipo alta fidelidad",
+    french: "Équipement haute fidélité",
+    english: "High fidelity equipment"
   },
   {
-    value: "generador",
-    name: "Generador",
-    catalan: "Generador",
-    spanish: "Generador",
-    french: "Générateur",
-    english: "Generator"
+    value: "fars-anti-boira",
+    name: "Fars anti-boira",
+    catalan: "Fars anti-boira",
+    spanish: "Faros antiniebla",
+    french: "Phares antibrouillard",
+    english: "Fog lights"
+  },
+  {
+    value: "fars-xeno",
+    name: "Fars xenó",
+    catalan: "Fars xenó",
+    spanish: "Faros xenón",
+    french: "Phares xénon",
+    english: "Xenon headlights"
+  },
+  {
+    value: "fars-bi-xeno",
+    name: "Fars Bi-xenó",
+    catalan: "Fars Bi-xenó",
+    spanish: "Faros Bi-xenón",
+    french: "Phares Bi-xénon",
+    english: "Bi-xenon headlights"
+  },
+  {
+    value: "fars-led",
+    name: "Fars LED",
+    catalan: "Fars LED",
+    spanish: "Faros LED",
+    french: "Phares LED",
+    english: "LED headlights"
+  },
+  {
+    value: "frenada-automatica-emergencia",
+    name: "Frenada automàtica emergència",
+    catalan: "Frenada automàtica emergència",
+    spanish: "Frenada automática emergencia",
+    french: "Freinage automatique urgence",
+    english: "Automatic emergency braking"
+  },
+  {
+    value: "ganxo-remolc",
+    name: "Ganxo remolc",
+    catalan: "Ganxo remolc",
+    spanish: "Gancho remolque",
+    french: "Crochet remorque",
+    english: "Tow hook"
+  },
+  {
+    value: "garantia-fabricant",
+    name: "Garantia fabricant",
+    catalan: "Garantia fabricant",
+    spanish: "Garantía fabricante",
+    french: "Garantie fabricant",
+    english: "Manufacturer warranty"
+  },
+  {
+    value: "head-up-display",
+    name: "Head Up Display",
+    catalan: "Head Up Display",
+    spanish: "Head Up Display",
+    french: "Affichage tête haute",
+    english: "Head Up Display"
+  },
+  {
+    value: "keyless",
+    name: "Keyless",
+    catalan: "Keyless",
+    spanish: "Sin llave",
+    french: "Sans clé",
+    english: "Keyless"
+  },
+  {
+    value: "kit-carrosseria",
+    name: "Kit carrosseria",
+    catalan: "Kit carrosseria",
+    spanish: "Kit carrocería",
+    french: "Kit carrosserie",
+    english: "Body kit"
+  },
+  {
+    value: "lector-senyals-de-transit",
+    name: "Lector senyals de trànsit",
+    catalan: "Lector senyals de trànsit",
+    spanish: "Lector señales tráfico",
+    french: "Lecteur signaux circulation",
+    english: "Traffic sign reader"
+  },
+  {
+    value: "limitador-velocitat",
+    name: "Limitador velocitat",
+    catalan: "Limitador velocitat",
+    spanish: "Limitador velocidad",
+    french: "Limiteur vitesse",
+    english: "Speed limiter"
+  },
+  {
+    value: "limitador-velocitat-adaptatiu",
+    name: "Limitador velocitat adaptatiu",
+    catalan: "Limitador velocitat adaptatiu",
+    spanish: "Limitador velocidad adaptativo",
+    french: "Limiteur vitesse adaptatif",
+    english: "Adaptive speed limiter"
+  },
+  {
+    value: "llandes-alliatge",
+    name: "Llandes al·liatge",
+    catalan: "Llandes al·liatge",
+    spanish: "Llantas aleación",
+    french: "Jantes alliage",
+    english: "Alloy wheels"
+  },
+  {
+    value: "llums-adaptatives",
+    name: "Llums adaptatives",
+    catalan: "Llums adaptatives",
+    spanish: "Luces adaptativas",
+    french: "Éclairage adaptatif",
+    english: "Adaptive lights"
+  },
+  {
+    value: "llums-de-dia",
+    name: "Llums de dia",
+    catalan: "Llums de dia",
+    spanish: "Luces diurnas",
+    french: "Feux de jour",
+    english: "Daytime running lights"
   },
   {
     value: "gps",
-    name: "GPS",
-    catalan: "GPS",
-    spanish: "GPS",
-    french: "GPS",
-    english: "GPS"
+    name: "Navegador",
+    catalan: "Navegador",
+    spanish: "Navegador",
+    french: "Navigateur",
+    english: "GPS Navigator"
   },
   {
-    value: "lavabo",
-    name: "Lavabo",
-    catalan: "Lavabo",
-    spanish: "Lavabo",
-    french: "Lavabo",
-    english: "Sink"
+    value: "ordinador-de-bord",
+    name: "Ordinador de bord",
+    catalan: "Ordinador de bord",
+    spanish: "Ordenador de bordo",
+    french: "Ordinateur de bord",
+    english: "Trip computer"
   },
   {
-    value: "llit-capcer",
-    name: "Llit capcer",
-    catalan: "Llit capcer",
-    spanish: "Cama capuchina",
-    french: "Lit capucine",
-    english: "Overcab bed"
+    value: "pintura-metalitzada",
+    name: "Pintura metal·litzada",
+    catalan: "Pintura metal·litzada",
+    spanish: "Pintura metalizada",
+    french: "Peinture métallisée",
+    english: "Metallic paint"
   },
   {
-    value: "llit-elevable",
-    name: "Llit elevable",
-    catalan: "Llit elevable",
-    spanish: "Cama elevable",
-    french: "Lit relevable",
-    english: "Drop-down bed"
-  },
-  {
-    value: "microones",
-    name: "Microones",
-    catalan: "Microones",
-    spanish: "Microondas",
-    french: "Micro-ondes",
-    english: "Microwave"
-  },
-  {
-    value: "mosquiters",
-    name: "Mosquiters",
-    catalan: "Mosquiters",
-    spanish: "Mosquiteras",
-    french: "Moustiquaires",
-    english: "Mosquito nets"
-  },
-  {
-    value: "nevera",
-    name: "Nevera",
-    catalan: "Nevera",
-    spanish: "Nevera",
-    french: "Réfrigérateur",
-    english: "Refrigerator"
-  },
-  {
-    value: "panells-solars",
-    name: "Panells solars",
-    catalan: "Panells solars",
-    spanish: "Paneles solares",
-    french: "Panneaux solaires",
-    english: "Solar panels"
-  },
-  {
-    value: "portabicicletes",
-    name: "Portabicicletes",
-    catalan: "Portabicicletes",
-    spanish: "Portabicicletas",
-    french: "Porte-vélos",
-    english: "Bike rack"
-  },
-  {
-    value: "porta-esquis",
-    name: "Porta esquís",
-    catalan: "Porta esquís",
-    spanish: "Porta esquís",
-    french: "Porte-skis",
-    english: "Ski rack"
+    value: "pneumatics-hivern",
+    name: "Pneumàtics d'hivern",
+    catalan: "Pneumàtics d'hivern",
+    spanish: "Neumáticos invierno",
+    french: "Pneus hiver",
+    english: "Winter tires"
   },
   {
     value: "radio-cd",
-    name: "Ràdio CD",
-    catalan: "Ràdio CD",
-    spanish: "Radio CD",
-    french: "Radio CD",
-    english: "CD radio"
+    name: "Ràdio-CD",
+    catalan: "Ràdio-CD",
+    spanish: "Radio-CD",
+    french: "Radio-CD",
+    english: "Radio-CD"
   },
   {
-    value: "seients-giratoris",
-    name: "Seients giratoris",
-    catalan: "Seients giratoris",
-    spanish: "Asientos giratorios",
-    french: "Sièges pivotants",
-    english: "Swivel seats"
+    value: "retrovisors-electrics",
+    name: "Retrovisors elèctrics",
+    catalan: "Retrovisors elèctrics",
+    spanish: "Retrovisores eléctricos",
+    french: "Rétroviseurs électriques",
+    english: "Electric mirrors"
   },
   {
-    value: "sostre-elevable",
-    name: "Sostre elevable",
-    catalan: "Sostre elevable",
-    spanish: "Techo elevable",
-    french: "Toit relevable",
-    english: "Pop-up roof"
+    value: "retrovisors-digital-camera",
+    name: "Retrovisors digital càmera",
+    catalan: "Retrovisors digital càmera",
+    spanish: "Retrovisores digitales cámara",
+    french: "Rétroviseurs numériques caméra",
+    english: "Digital camera mirrors"
   },
   {
-    value: "suport-tv",
-    name: "Suport TV",
-    catalan: "Suport TV",
-    spanish: "Soporte TV",
-    french: "Support TV",
-    english: "TV mount"
+    value: "retrovisor-central-digital",
+    name: "Retrovisor central digital",
+    catalan: "Retrovisor central digital",
+    spanish: "Retrovisor central digital",
+    french: "Rétroviseur central numérique",
+    english: "Digital central mirror"
   },
   {
-    value: "taulell-extraible",
-    name: "Taulell extraïble",
-    catalan: "Taulell extraïble",
-    spanish: "Encimera extraíble",
-    french: "Plan de travail extractible",
-    english: "Pull-out counter"
+    value: "retrovisors-calefactables",
+    name: "Retrovisors calefactables",
+    catalan: "Retrovisors calefactables",
+    spanish: "Retrovisores calefactables",
+    french: "Rétroviseurs chauffants",
+    english: "Heated mirrors"
   },
   {
-    value: "tenda",
-    name: "Tenda",
-    catalan: "Tenda",
-    spanish: "Toldo",
-    french: "Auvent",
-    english: "Awning"
+    value: "seients-calefactables",
+    name: "Seients calefactables",
+    catalan: "Seients calefactables",
+    spanish: "Asientos calefactables",
+    french: "Sièges chauffants",
+    english: "Heated seats"
   },
   {
-    value: "tv",
-    name: "TV",
-    catalan: "TV",
-    spanish: "TV",
-    french: "TV",
-    english: "TV"
+    value: "seients-massatge",
+    name: "Seients massatge",
+    catalan: "Seients massatge",
+    spanish: "Asientos masaje",
+    french: "Sièges massage",
+    english: "Massage seats"
   },
   {
-    value: "wc",
-    name: "WC",
-    catalan: "WC",
-    spanish: "WC",
-    french: "WC",
-    english: "Toilet"
+    value: "seients-electrics",
+    name: "Seients elèctrics",
+    catalan: "Seients elèctrics",
+    spanish: "Asientos eléctricos",
+    french: "Sièges électriques",
+    english: "Electric seats"
   },
   {
-    value: "wc-quimic",
-    name: "WC químic",
-    catalan: "WC químic",
-    spanish: "WC químico",
-    french: "WC chimique",
-    english: "Chemical toilet"
+    value: "sensors-anti-colisio",
+    name: "Sensors anti-colisió",
+    catalan: "Sensors anti-colisió",
+    spanish: "Sensores anti-colisión",
+    french: "Capteurs anti-collision",
+    english: "Anti-collision sensors"
+  },
+  {
+    value: "sensors-aparcament",
+    name: "Sensors aparcament",
+    catalan: "Sensors aparcament",
+    spanish: "Sensores aparcamiento",
+    french: "Capteurs parking",
+    english: "Parking sensors"
+  },
+  {
+    value: "sensors-llums",
+    name: "Sensors llums",
+    catalan: "Sensors llums",
+    spanish: "Sensores luces",
+    french: "Capteurs éclairage",
+    english: "Light sensors"
+  },
+  {
+    value: "sensors-pluja",
+    name: "Sensors pluja",
+    catalan: "Sensors pluja",
+    spanish: "Sensores lluvia",
+    french: "Capteurs pluie",
+    english: "Rain sensors"
+  },
+  {
+    value: "sostre-obert",
+    name: "Sostre obert",
+    catalan: "Sostre obert",
+    spanish: "Techo abierto",
+    french: "Toit ouvrant",
+    english: "Open roof"
+  },
+  {
+    value: "Start-Stop",
+    name: "Start-Stop",
+    catalan: "Start-Stop",
+    spanish: "Start-Stop",
+    french: "Start-Stop",
+    english: "Start-Stop"
+  },
+  {
+    value: "tanca-centralitzada",
+    name: "Tanca centralitzada",
+    catalan: "Tanca centralitzada",
+    spanish: "Cierre centralizado",
+    french: "Verrouillage centralisé",
+    english: "Central locking"
   },
   {
     value: "vidres-electrics",
@@ -401,6 +649,22 @@ export const motorhomeExtras = [
     english: "Electric windows"
   },
   {
+    value: "vidres-tintats",
+    name: "Vidres tintats",
+    catalan: "Vidres tintats",
+    spanish: "Cristales tintados",
+    french: "Vitres teintées",
+    english: "Tinted windows"
+  },
+  {
+    value: "visio-nocturna",
+    name: "Visió nocturna",
+    catalan: "Visió nocturna",
+    spanish: "Visión nocturna",
+    french: "Vision nocturne",
+    english: "Night vision"
+  },
+  {
     value: "volant-multifuncio",
     name: "Volant multifunció",
     catalan: "Volant multifunció",
@@ -409,3 +673,5 @@ export const motorhomeExtras = [
     english: "Multifunction steering wheel"
   }
 ];
+
+export default motorhomeExtras;

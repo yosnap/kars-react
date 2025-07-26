@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { axiosAdmin } from '../../../api/axiosClient';
+import React from 'react';
 import SearchableSelect from '../../ui/SearchableSelect';
+import { useVehicleTypes } from '../../../hooks/useVehicleTypes';
 
 interface TechnicalSpecsStepProps {
   formData: any;
@@ -8,134 +8,14 @@ interface TechnicalSpecsStepProps {
 }
 
 const TechnicalSpecsStep: React.FC<TechnicalSpecsStepProps> = ({ formData, updateFormData }) => {
-  const [exteriorColors, setExteriorColors] = useState<Array<{value: string, label: string, color?: string}>>([]);
-  const [upholsteryTypes, setUpholsteryTypes] = useState<Array<{value: string, label: string}>>([]);
-  const [upholsteryColors, setUpholsteryColors] = useState<Array<{value: string, label: string, color?: string}>>([]);
-  const [loading, setLoading] = useState(true);
-
-  // Cargar datos desde la API
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        
-        // Cargar colores exteriores
-        const colorsResponse = await axiosAdmin.get('/exterior-colors');
-        if (colorsResponse.data?.data) {
-          setExteriorColors(colorsResponse.data.data.map((item: any) => ({
-            value: item.slug,
-            label: item.name,
-            color: getColorHex(item.slug)
-          })));
-        }
-
-        // Cargar tipos de tapicería
-        const upholsteryTypesResponse = await axiosAdmin.get('/upholstery-types');
-        if (upholsteryTypesResponse.data?.data) {
-          setUpholsteryTypes(upholsteryTypesResponse.data.data.map((item: any) => ({
-            value: item.slug,
-            label: item.name
-          })));
-        }
-
-        // Cargar colores de tapicería
-        const upholsteryColorsResponse = await axiosAdmin.get('/upholstery-colors');
-        if (upholsteryColorsResponse.data?.data) {
-          setUpholsteryColors(upholsteryColorsResponse.data.data.map((item: any) => ({
-            value: item.slug,
-            label: item.name,
-            color: getUpholsteryColorHex(item.slug)
-          })));
-        }
-
-      } catch (error) {
-        console.error('Error cargando datos técnicos:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
-
-  // Mapeo de colores exteriores a códigos hex
-  const getColorHex = (colorSlug: string): string => {
-    const colorMap: Record<string, string> = {
-      // Colores básicos
-      'blanc': '#FFFFFF',
-      'negre': '#000000',
-      'gris': '#808080',
-      'antracita': '#36454F',
-      
-      // Colores vivos
-      'vermell': '#DC2626',
-      'blau': '#2563EB',
-      'verd': '#16A34A',
-      'groc': '#EAB308',
-      'taronja': '#EA580C',
-      'rosa': '#EC4899',
-      'lila': '#A855F7',
-      
-      // Colores especiales
-      'daurat': '#D97706',
-      'bordeus': '#991B1B',
-      'granat': '#7F1D1D',
-      
-      // Colores naturales
-      'marró': '#92400E',
-      'beige': '#FEF3C7',
-      'camel': '#D2B48C',
-      
-      // Colores especiales
-      'bicolor': 'linear-gradient(45deg, #000000 50%, #FFFFFF 50%)',
-      'altres-exterior': '#9CA3AF'
-    };
-    return colorMap[colorSlug] || '#9CA3AF';
-  };
-
-  // Mapeo de colores de tapicería a códigos hex
-  const getUpholsteryColorHex = (colorSlug: string): string => {
-    const colorMap: Record<string, string> = {
-      // Colores básicos
-      'tapisseria-negre': '#1F2937',
-      'tapisseria-blanc': '#F9FAFB',
-      'tapisseria-gris': '#6B7280',
-      'tapisseria-antracita': '#374151',
-      
-      // Colores naturales
-      'tapisseria-beige': '#F3E8D0',
-      'tapisseria-camel': '#C19A6B',
-      'tapisseria-marro': '#8B4513',
-      
-      // Colores vivos
-      'tapisseria-blau': '#1E40AF',
-      'tapisseria-vermell': '#DC2626',
-      'tapisseria-verd': '#059669',
-      'tapisseria-groc': '#D97706',
-      'tapisseria-taronja': '#EA580C',
-      'tapisseria-lila': '#7C3AED',
-      
-      // Colores especiales
-      'tapisseria-bordeus': '#7F1D1D',
-      'tapisseria-granat': '#991B1B',
-      
-      // Especiales
-      'tapisseria-bicolor': 'linear-gradient(45deg, #1F2937 50%, #F9FAFB 50%)',
-      'altres-tapisseria': '#9CA3AF'
-    };
-    return colorMap[colorSlug] || '#9CA3AF';
-  };
-
-
-  // Opciones de emisiones (pocas opciones, usamos botones)
-  const emissionOptions = [
-    { value: 'euro1', label: 'Euro1' },
-    { value: 'euro2', label: 'Euro2' },
-    { value: 'euro3', label: 'Euro3' },
-    { value: 'euro4', label: 'Euro4' },
-    { value: 'euro5', label: 'Euro5' },
-    { value: 'euro6', label: 'Euro6' }
-  ];
+  // Usar el hook para obtener tipos dinámicamente
+  const { 
+    emissions,
+    upholsteryTypes: upholsteryTypesFromAPI,
+    upholsteryColors: upholsteryColorsFromAPI,
+    exteriorColors: exteriorColorsFromAPI,
+    loading: typesLoading 
+  } = useVehicleTypes();
 
   // Componente para botones de selección numérica
   const NumberButtons: React.FC<{
@@ -177,7 +57,7 @@ const TechnicalSpecsStep: React.FC<TechnicalSpecsStepProps> = ({ formData, updat
         Emissions Vehicle
       </label>
       <div className="flex flex-wrap gap-2">
-        {emissionOptions.map(option => (
+        {emissions.map(option => (
           <button
             key={option.value}
             type="button"
@@ -205,7 +85,7 @@ const TechnicalSpecsStep: React.FC<TechnicalSpecsStepProps> = ({ formData, updat
         Color Exterior
       </label>
       <div className="grid grid-cols-5 gap-3">
-        {exteriorColors.map(color => (
+        {exteriorColorsFromAPI.map(color => (
           <button
             key={color.value}
             type="button"
@@ -232,7 +112,7 @@ const TechnicalSpecsStep: React.FC<TechnicalSpecsStepProps> = ({ formData, updat
     </div>
   );
 
-  if (loading) {
+  if (typesLoading) {
     return (
       <div className="space-y-8">
         <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -418,7 +298,7 @@ const TechnicalSpecsStep: React.FC<TechnicalSpecsStepProps> = ({ formData, updat
                 Tipus Tapisseria
               </label>
               <div className="flex flex-wrap gap-3">
-                {upholsteryTypes.map(option => (
+                {upholsteryTypesFromAPI.map(option => (
                   <button
                     key={option.value}
                     type="button"
@@ -441,7 +321,7 @@ const TechnicalSpecsStep: React.FC<TechnicalSpecsStepProps> = ({ formData, updat
                 Color Tapisseria
               </label>
               <div className="grid grid-cols-5 gap-3">
-                {upholsteryColors.map(color => (
+                {upholsteryColorsFromAPI.map(color => (
                   <button
                     key={color.value}
                     type="button"

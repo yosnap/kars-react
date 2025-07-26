@@ -1,147 +1,141 @@
-// Extras de habitáculo con traducciones
-// Generado desde datos del sistema existente
-
-export interface HabitacleExtraTranslation {
-  catalan: string;
-  spanish: string;
-  french: string;
-  english: string;
-  value: string;
-}
-
-export const habitacleExtras: HabitacleExtraTranslation[] = [
+// Habitacle extras with complete data - EXACTLY 17 elements as requested
+export const habitacleExtras = [
   {
+    value: "aigua-corrent",
+    name: "Aigua corrent",
     catalan: "Aigua corrent",
     spanish: "Agua corriente",
     french: "Eau courante",
-    english: "Running Water",
-    value: "aigua-corrent"
+    english: "Running water"
   },
   {
+    value: "antena-satelit",
+    name: "Antena Satèl·lit",
     catalan: "Antena Satèl·lit",
     spanish: "Antena Satélite",
-    french: "Antenne Satellite",
-    english: "Satellite Antenna",
-    value: "antena-satelit"
+    french: "Antenne satellite",
+    english: "Satellite antenna"
   },
   {
+    value: "antena-tv",
+    name: "Antena TV",
     catalan: "Antena TV",
     spanish: "Antena TV",
     french: "Antenne TV",
-    english: "TV Antenna",
-    value: "antena-tv"
+    english: "TV antenna"
   },
   {
-    catalan: "Claraboies",
-    spanish: "Claraboyas",
-    french: "Lucarnes",
-    english: "Skylights",
-    value: "claraboies"
+    value: "calefaccio",
+    name: "Calefacció",
+    catalan: "Calefacció",
+    spanish: "Calefacción",
+    french: "Chauffage",
+    english: "Heating"
   },
   {
-    catalan: "Congelador",
-    spanish: "Congelador",
-    french: "Congélateur",
-    english: "Freezer",
-    value: "congelador"
+    value: "connexio-exterior",
+    name: "Connexió exterior",
+    catalan: "Connexió exterior",
+    spanish: "Conexión exterior",
+    french: "Connexion extérieure",
+    english: "External connection"
   },
   {
+    value: "cuina",
+    name: "Cuina",
     catalan: "Cuina",
     spanish: "Cocina",
     french: "Cuisine",
-    english: "Kitchen",
-    value: "cuina"
+    english: "Kitchen"
   },
   {
-    catalan: "Detector fums",
-    spanish: "Detector de humos",
-    french: "Détecteur de fumée",
-    english: "Smoke Detector",
-    value: "detector-fums"
-  },
-  {
+    value: "ducha",
+    name: "Dutxa",
     catalan: "Dutxa",
     spanish: "Ducha",
     french: "Douche",
-    english: "Shower",
-    value: "dutxa"
+    english: "Shower"
   },
   {
-    catalan: "Forn",
-    spanish: "Horno",
-    french: "Four",
-    english: "Oven",
-    value: "forn"
+    value: "forn-microones",
+    name: "Forn microones",
+    catalan: "Forn microones",
+    spanish: "Horno microondas",
+    french: "Four micro-ondes",
+    english: "Microwave oven"
   },
   {
+    value: "frigorific",
+    name: "Frigorífic",
     catalan: "Frigorífic",
     spanish: "Frigorífico",
     french: "Réfrigérateur",
-    english: "Refrigerator",
-    value: "frigorific"
+    english: "Refrigerator"
   },
   {
-    catalan: "Llits",
-    spanish: "Camas",
-    french: "Lits",
-    english: "Beds",
-    value: "llits"
+    value: "generador",
+    name: "Generador",
+    catalan: "Generador",
+    spanish: "Generador",
+    french: "Générateur",
+    english: "Generator"
   },
   {
-    catalan: "Microones",
-    spanish: "Microondas",
-    french: "Micro-ondes",
-    english: "Microwave",
-    value: "microones"
+    value: "nevera-camping",
+    name: "Nevera camping",
+    catalan: "Nevera camping",
+    spanish: "Nevera camping",
+    french: "Glacière camping",
+    english: "Camping cooler"
   },
   {
-    catalan: "Mosquitera",
-    spanish: "Mosquitera",
-    french: "Moustiquaire",
-    english: "Mosquito Net",
-    value: "mosquitera"
+    value: "placa-solar",
+    name: "Placa solar",
+    catalan: "Placa solar",
+    spanish: "Placa solar",
+    french: "Panneau solaire",
+    english: "Solar panel"
   },
   {
-    catalan: "Nevera",
-    spanish: "Nevera",
-    french: "Glacière",
-    english: "Cooler",
-    value: "nevera"
+    value: "taula-dinette",
+    name: "Taula dinette",
+    catalan: "Taula dinette",
+    spanish: "Mesa dinette",
+    french: "Table dinette",
+    english: "Dinette table"
   },
   {
-    catalan: "Tendall",
-    spanish: "Toldo",
-    french: "Auvent",
-    english: "Awning",
-    value: "tendall"
-  },
-  {
-    catalan: "TV",
-    spanish: "TV",
+    value: "televisio",
+    name: "Televisió",
+    catalan: "Televisió",
+    spanish: "Televisión",
     french: "Télévision",
-    english: "Television",
-    value: "tv"
+    english: "Television"
   },
   {
+    value: "ventilador-de-sostre",
+    name: "Ventilador de sostre",
+    catalan: "Ventilador de sostre",
+    spanish: "Ventilador de techo",
+    french: "Ventilateur de plafond",
+    english: "Ceiling fan"
+  },
+  {
+    value: "wc",
+    name: "WC",
     catalan: "WC",
     spanish: "WC",
-    french: "Toilettes",
-    english: "Toilet",
-    value: "wc"
+    french: "WC",
+    english: "WC"
+  },
+  {
+    value: "wc-electric",
+    name: "WC elèctric",
+    catalan: "WC elèctric",
+    spanish: "WC eléctrico",
+    french: "WC électrique",
+    english: "Electric WC"
   }
 ];
 
-// Función helper para obtener extra de habitáculo por valor
-export const getHabitacleExtraByValue = (value: string): HabitacleExtraTranslation | undefined => {
-  return habitacleExtras.find(extra => extra.value === value);
-};
-
-// Función helper para obtener todos los valores
-export const getHabitacleExtraValues = (): string[] => {
-  return habitacleExtras.map(extra => extra.value);
-};
-
-// Función helper para obtener nombres en catalán (idioma principal)
-export const getHabitacleExtraNames = (): string[] => {
-  return habitacleExtras.map(extra => extra.catalan);
-};
+export default habitacleExtras;

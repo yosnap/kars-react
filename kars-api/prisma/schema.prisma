@@ -36,7 +36,7 @@ model Vehicle {
   diesCaducitat     String?  @map("dies-caducitat")
   
   // Tipo y marca
-  tipusVehicle      String   @map("tipus-vehicle")
+  tipusVehicle      String?  @map("tipus-vehicle")
   marquesAutocaravana String? @map("marques-autocaravana")
   modelsAutocaravana String?  @map("models-autocaravana")
   marcaCotxe        String?  @map("marca-cotxe")
@@ -141,7 +141,7 @@ model Vehicle {
   
   // Estado y garantías
   garantia           String?  // Changed from Boolean to String for more options
-  vehicleAccidentat  String?  @map("vehicle-accidentat") // Changed from Boolean to String
+  vehicleAccidentat  String?  @map("vehicle-accidentat")
   llibreManteniment  Boolean? @default(false) @map("llibre-manteniment")
   revisionsOficials  Boolean? @default(false) @map("revisions-oficials")
   impostosDeduibles  Boolean? @default(false) @map("impostos-deduibles")

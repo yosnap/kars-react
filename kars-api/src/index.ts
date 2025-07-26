@@ -16,6 +16,7 @@ import brandRoutes from './routes/brands';
 import uploadRoutes from './routes/upload';
 import installerRoutes from './routes/installer';
 import systemRoutes from './routes/system';
+import typesRoutes from './routes/types';
 
 // Import sync service
 import { initializeCronSync } from './services/syncService';
@@ -68,6 +69,7 @@ app.use('/api/brands', brandRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/installer', installerRoutes);
 app.use('/api/system', systemRoutes);
+app.use('/api/types', typesRoutes);
 app.use('/api', metadataRoutes);
 
 // 404 handler

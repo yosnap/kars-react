@@ -181,7 +181,9 @@ router.get('/', async (req, res) => {
     // Calcular facets si se solicitan (sin filtros aplicados para mostrar todas las opciones disponibles)
     let facets = {};
     if (req.query.facets === 'true') {
+      console.log('🔍 Calculating facets...');
       facets = await calculateFacets({});
+      console.log('📊 Facets result:', JSON.stringify(facets, null, 2));
     }
 
     const totalPages = Math.ceil(total / perPage);
@@ -275,7 +277,7 @@ router.put('/:id', async (req, res) => {
       'extresHabitacle', 'emissionsCo2', 'consumUrba', 'consumCarretera', 'consumMixt',
       'categoriaEcologica', 'origen', 'iva', 'finacament', 'garantia', 'vehicleAccidentat',
       'llibreManteniment', 'revisionsOficials', 'impostosDeduibles', 'vehicleACanvi', 'nombrePropietaris',
-      'preu', 'imatgeDestacadaUrl', 'galeriaVehicleUrls', 'dataCreacio', 'userId', 'professionalId',
+      'preu', 'imatgeDestacadaUrl', 'galeriaVehicleUrls', 'notesInternes', 'dataCreacio', 'userId', 'professionalId',
       'lastSyncAt', 'syncedToMotoraldiaAt', 'motoraldiaVehicleId', 'needsSync', 'syncError',
       'createdAt', 'updatedAt'
     ];
@@ -564,6 +566,7 @@ router.get('/:slug', async (req, res) => {
 // Función para calcular facets
 async function calculateFacets(baseWhere: any) {
   try {
+    console.log('🔍 Starting facets calculation with baseWhere:', baseWhere);
     const [
       tipusVehicleFacets,
       venutFacets,
@@ -578,7 +581,7 @@ async function calculateFacets(baseWhere: any) {
       // Tipos de vehículo
       prisma.vehicle.groupBy({
         by: ['tipusVehicle'],
-        where: baseWhere,
+        where: { ...baseWhere, tipusVehicle: { not: null } },
         _count: true
       }),
       // Vendido
@@ -590,7 +593,7 @@ async function calculateFacets(baseWhere: any) {
       // Estado del vehículo
       prisma.vehicle.groupBy({
         by: ['estatVehicle'],
-        where: { ...baseWhere, estatVehicle: { not: null } },
+        where: baseWhere,
         _count: true
       }),
       // Anuncio activo
@@ -608,19 +611,19 @@ async function calculateFacets(baseWhere: any) {
       // Marcas de coche
       prisma.vehicle.groupBy({
         by: ['marcaCotxe'],
-        where: { ...baseWhere, marcaCotxe: { not: null } },
+        where: baseWhere,
         _count: true
       }),
       // Marcas de moto
       prisma.vehicle.groupBy({
         by: ['marcaMoto'],
-        where: { ...baseWhere, marcaMoto: { not: null } },
+        where: baseWhere,
         _count: true
       }),
       // Combustibles
       prisma.vehicle.groupBy({
         by: ['tipusCombustible'],
-        where: { ...baseWhere, tipusCombustible: { not: null } },
+        where: baseWhere,
         _count: true
       }),
       // Años
@@ -653,7 +656,7 @@ async function calculateFacets(baseWhere: any) {
       'marca-moto': Object.fromEntries(
         marcaMotoFacets.map(f => [f.marcaMoto!, f._count])
       ),
-      'combustible': Object.fromEntries(
+      'tipus-combustible': Object.fromEntries(
         combustibleFacets.map(f => [f.tipusCombustible!, f._count])
       ),
       'any-fabricacio': Object.fromEntries(
@@ -668,8 +671,101 @@ async function calculateFacets(baseWhere: any) {
 
 // Transformar vehículo para el frontend (mantener compatibilidad)
 function transformVehicleForFrontend(vehicle: any) {
-  // Retornar solo el formato camelCase, eliminando duplicación
-  return vehicle;
+  if (!vehicle) return vehicle;
+  
+  // Mapping de campos kebab-case a camelCase para el frontend
+  const fieldMapping = {
+    'tipus-propulsor': 'tipusPropulsor',
+    'estat-vehicle': 'estatVehicle', 
+    'carrosseria-cotxe': 'carrosseriaCotxe',
+    'carrosseria-moto': 'carrosseriaMoto',
+    'carrosseria-caravana': 'carrosseriaCaravana',
+    'tipus-combustible': 'tipusCombustible',
+    'tipus-canvi': 'tipusCanvi',
+    'tipus-vehicle': 'tipusVehicle',
+    'marca-cotxe': 'marcaCotxe',
+    'models-cotxe': 'modelsCotxe',
+    'marca-moto': 'marcaMoto',
+    'models-moto': 'modelsMoto',
+    'color-vehicle': 'colorVehicle',
+    'places-cotxe': 'placesCotxe',
+    'places-moto': 'placesMoto',
+    'portes-cotxe': 'portesCotxe',
+    'numero-maleters-cotxe': 'numeroMaleters',
+    'capacitat-maleters-cotxe': 'capacitatTotal',
+    'roda-recanvi': 'rodaRecanvi',
+    'velocitat-maxima': 'velocitatMaxima',
+    'acceleracio-0-100': 'acceleracio0100',
+    'potencia-cv': 'potenciaCv',
+    'potencia-kw': 'potenciaKw',
+    'emissions-vehicle': 'emissionsVehicle',
+    'emissions-co2': 'emissionsCo2',
+    'consum-urba': 'consumUrba',
+    'consum-carretera': 'consumCarretera',
+    'consum-mixt': 'consumMixt',
+    'acceleracio-0-100-cotxe': 'acceleracio0100Cotxe',
+    'tipus-canvi-moto': 'tipusCanviMoto',
+    'extres-cotxe': 'extresCotxe',
+    'extres-moto': 'extresMoto',
+    'extres-autocaravana': 'extresAutocaravana',
+    'extres-habitacle': 'extresHabitacle',
+    'imatge-destacada-url': 'imatgeDestacadaUrl',
+    'galeria-vehicle-urls': 'galeriaVehicleUrls',
+    'titol-anunci': 'titolAnunci',
+    'descripcio-anunci': 'descripcioAnunci',
+    'anunci-actiu': 'anunciActiu',
+    'anunci-destacat': 'anunciDestacat',
+    'vehicle-fumador': 'vehicleFumador',
+    'vehicle-accidentat': 'vehicleAccidentat',
+    'vehicle-a-canvi': 'vehicleACanvi',
+    'llibre-manteniment': 'llibreManteniment',
+    'revisions-oficials': 'revisionsOficials',
+    'impostos-deduibles': 'impostosDeduibles',
+    'nombre-propietaris': 'nombrePropietaris',
+    'preu-antic': 'preuAntic',
+    'data-creacio': 'dataCreacio',
+    'notes-internes': 'notesInternes'
+  };
+  
+  // Crear objeto transformado
+  const transformed = { ...vehicle };
+  
+  // Aplicar transformaciones de campo
+  Object.entries(fieldMapping).forEach(([kebabKey, camelKey]) => {
+    if (vehicle[kebabKey] !== undefined) {
+      transformed[camelKey] = vehicle[kebabKey];
+      // No eliminar el campo original por compatibilidad
+    }
+  });
+
+  // Mapeos adicionales para compatibilidad con formulario
+  if (vehicle.capacitatMaletersCotxe !== undefined) {
+    transformed.capacitatTotal = vehicle.capacitatMaletersCotxe;
+  }
+  if (vehicle.numeroMaletersCotxe !== undefined) {
+    transformed.numeroMaleters = vehicle.numeroMaletersCotxe;
+  }
+  if (vehicle.acceleracio0100Cotxe !== undefined) {
+    transformed.acceleracio0100 = vehicle.acceleracio0100Cotxe;
+  }
+  
+  // Asegurar que ciertos campos sean strings si existen
+  const stringFields = ['quilometratge', 'preu', 'any', 'cilindrada', 'potenciaCv', 'potenciaKw'];
+  stringFields.forEach(field => {
+    if (transformed[field] !== undefined && transformed[field] !== null) {
+      transformed[field] = String(transformed[field]);
+    }
+  });
+  
+  // Asegurar que ciertos campos sean boolean si existen  
+  const booleanFields = ['anunciActiu', 'venut', 'vehicleFumador', 'climatitzacio'];
+  booleanFields.forEach(field => {
+    if (transformed[field] !== undefined && transformed[field] !== null) {
+      transformed[field] = Boolean(transformed[field]);
+    }
+  });
+  
+  return transformed;
 }
 
 // POST /api/vehicles - Crear nuevo vehículo
@@ -728,7 +824,7 @@ router.post('/', async (req, res) => {
       'extresHabitacle', 'emissionsCo2', 'consumUrba', 'consumCarretera', 'consumMixt',
       'categoriaEcologica', 'origen', 'iva', 'finacament', 'garantia', 'vehicleAccidentat',
       'llibreManteniment', 'revisionsOficials', 'impostosDeduibles', 'vehicleACanvi', 'nombrePropietaris',
-      'preu', 'imatgeDestacadaUrl', 'galeriaVehicleUrls', 'dataCreacio', 'userId', 'professionalId',
+      'preu', 'imatgeDestacadaUrl', 'galeriaVehicleUrls', 'notesInternes', 'dataCreacio', 'userId', 'professionalId',
       'lastSyncAt', 'syncedToMotoraldiaAt', 'motoraldiaVehicleId', 'needsSync', 'syncError',
       'createdAt', 'updatedAt'
     ];

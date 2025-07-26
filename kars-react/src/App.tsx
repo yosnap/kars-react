@@ -84,8 +84,27 @@ function App() {
       if (searchTerm) params["search"] = searchTerm;
       const res = await axiosAdmin.get("/vehicles", { params });
       const items = Array.isArray(res.data.items) ? res.data.items : [];
-      console.log('Search results:', { params, total: res.data.total, itemsCount: items.length });
-      setSearchResults(items);
+      
+      // Transformar de camelCase (API) a kebab-case (componentes)
+      const transformedItems = items.map((v: any) => ({
+        id: String(v.id),
+        "titol-anunci": v.titolAnunci ?? "",
+        "descripcio-anunci": v.descripcioAnunci ?? "",
+        "marques-cotxe": v.marcaCotxe ?? "",
+        "models-cotxe": v.modelsCotxe ?? "",
+        "estat-vehicle": v.estatVehicle ?? "",
+        any: v.any ?? "",
+        quilometratge: v.quilometratge !== undefined && v.quilometratge !== null ? String(v.quilometratge) : "",
+        preu: v.preu !== undefined && v.preu !== null ? String(v.preu) : "",
+        "color-vehicle": v.colorVehicle ?? "",
+        "tipus-combustible": v.tipusCombustible ?? "",
+        "anunci-destacat": v.anunciDestacat !== undefined ? String(v.anunciDestacat) : "",
+        "imatge-destacada-url": v.imatgeDestacadaUrl ?? "",
+        "galeria-vehicle-urls": Array.isArray(v.galeriaVehicleUrls) ? v.galeriaVehicleUrls : [],
+        "anunci-actiu": v.anunciActiu !== undefined ? String(v.anunciActiu) : ""
+      }));
+      
+      setSearchResults(transformedItems);
     } catch (error) {
       console.error('Search error:', error);
       setSearchResults([]);

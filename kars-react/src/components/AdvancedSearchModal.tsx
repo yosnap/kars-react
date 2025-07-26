@@ -139,8 +139,8 @@ const getFilterLabel = (key: string, value: string | boolean): string => {
     switch (value) {
       case "COTXE": return "Coche";
       case "MOTO": return "Moto";
-      case "CARAVANA": return "Caravana";
-      case "VEHICLE COMERCIAL": return "Camión";
+      case "CARAVANA": return "Autocaravana";
+      case "VEHICLE COMERCIAL": return "Vehicle Comercial";
       default: return value as string;
     }
   }
@@ -202,10 +202,10 @@ const mapTaxonomyValueToFilterValue = (type: string, value: string): string => {
 };
 
 const mapVehicleCounts = (raw: Record<string, number>) => ({
-  COTXE: raw.COTXE || 0,
-  MOTO: raw.MOTO || 0,
-  CARAVANA: raw.AUTOCARAVANA || raw.CARAVANA || 0,
-  'VEHICLE COMERCIAL': raw['VEHICLE COMERCIAL'] || 0,
+  COTXE: raw.cotxe || raw.COTXE || 0,
+  MOTO: raw.moto || raw.MOTO || 0,
+  CARAVANA: raw['autocaravana-camper'] || raw.AUTOCARAVANA || raw.CARAVANA || 0,
+  'VEHICLE COMERCIAL': raw['vehicle-comercial'] || raw['VEHICLE COMERCIAL'] || 0,
 });
 
 const AdvancedSearchModal = ({ isOpen, onOpenChange, facets = {}, onFacetsUpdate }: AdvancedSearchModalProps) => {

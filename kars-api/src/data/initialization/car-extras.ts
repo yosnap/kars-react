@@ -1,4 +1,4 @@
-// Car extras with complete data from user - EXACTLY 58 elements as requested
+// Car extras with complete data - EXACTLY 88 elements as requested
 export const carExtras = [
   {
     value: "abs",
@@ -463,5 +463,285 @@ export const carExtras = [
     spanish: "Lector señales de tráfico",
     french: "Lecteur signaux circulation",
     english: "Traffic sign reader"
+  },
+  {
+    value: "limitador-velocitat",
+    name: "Limitador velocitat",
+    catalan: "Limitador velocitat",
+    spanish: "Limitador velocidad",
+    french: "Limiteur vitesse",
+    english: "Speed limiter"
+  },
+  {
+    value: "limitador-velocitat-adaptatiu",
+    name: "Limitador velocitat adaptatiu",
+    catalan: "Limitador velocitat adaptatiu",
+    spanish: "Limitador velocidad adaptativo",
+    french: "Limiteur vitesse adaptatif",
+    english: "Adaptive speed limiter"
+  },
+  {
+    value: "llandes-aliatge",
+    name: "Llandes al·liatge",
+    catalan: "Llandes al·liatge",
+    spanish: "Llantas aleación",
+    french: "Jantes alliage",
+    english: "Alloy wheels"
+  },
+  {
+    value: "llums-adaptatives",
+    name: "Llums adaptatives",
+    catalan: "Llums adaptatives",
+    spanish: "Luces adaptativas",
+    french: "Éclairage adaptatif",
+    english: "Adaptive lights"
+  },
+  {
+    value: "llums-antiboira",
+    name: "Llums anti-boira",
+    catalan: "Llums anti-boira",
+    spanish: "Luces antiniebla",
+    french: "Feux antibrouillard",
+    english: "Fog lights"
+  },
+  {
+    value: "llums-de-dia",
+    name: "Llums de dia",
+    catalan: "Llums de dia",
+    spanish: "Luces diurnas",
+    french: "Feux de jour",
+    english: "Daytime running lights"
+  },
+  {
+    value: "fars-led",
+    name: "Llums LED",
+    catalan: "Llums LED",
+    spanish: "Luces LED",
+    french: "Éclairage LED",
+    english: "LED lights"
+  },
+  {
+    value: "gps",
+    name: "Navegador GPS",
+    catalan: "Navegador GPS",
+    spanish: "Navegador GPS",
+    french: "Navigateur GPS",
+    english: "GPS Navigator"
+  },
+  {
+    value: "ordinador-de-bord",
+    name: "Ordinador de bord",
+    catalan: "Ordinador de bord",
+    spanish: "Ordenador de bordo",
+    french: "Ordinateur de bord",
+    english: "Trip computer"
+  },
+  {
+    value: "pintura-metalitzada",
+    name: "Pintura metal·litzada",
+    catalan: "Pintura metal·litzada",
+    spanish: "Pintura metalizada",
+    french: "Peinture métallisée",
+    english: "Metallic paint"
+  },
+  {
+    value: "pneumatics-hivern",
+    name: "Pneumàtics hivern",
+    catalan: "Pneumàtics hivern",
+    spanish: "Neumáticos invierno",
+    french: "Pneus hiver",
+    english: "Winter tires"
+  },
+  {
+    value: "porto-electric",
+    name: "Portò elèctric",
+    catalan: "Portò elèctric",
+    spanish: "Portón eléctrico",
+    french: "Hayon électrique",
+    english: "Electric tailgate"
+  },
+  {
+    value: "radio-cd",
+    name: "Ràdio CD",
+    catalan: "Ràdio CD",
+    spanish: "Radio CD",
+    french: "Radio CD",
+    english: "Radio CD"
+  },
+  {
+    value: "dvd",
+    name: "Reproductor DVD",
+    catalan: "Reproductor DVD",
+    spanish: "Reproductor DVD",
+    french: "Lecteur DVD",
+    english: "DVD player"
+  },
+  {
+    value: "retrovisors-calefactables",
+    name: "Retrovisors calefactables",
+    catalan: "Retrovisors calefactables",
+    spanish: "Retrovisores calefactables",
+    french: "Rétroviseurs chauffants",
+    english: "Heated mirrors"
+  },
+  {
+    value: "retrovisors-electrics",
+    name: "Retrovisors elèctrics",
+    catalan: "Retrovisors elèctrics",
+    spanish: "Retrovisores eléctricos",
+    french: "Rétroviseurs électriques",
+    english: "Electric mirrors"
+  },
+  {
+    value: "retrovisors-lateral-per-camera",
+    name: "Retrovisors lateral per càmera",
+    catalan: "Retrovisors lateral per càmera",
+    spanish: "Retrovisores laterales por cámara",
+    french: "Rétroviseurs latéraux par caméra",
+    english: "Side mirrors by camera"
+  },
+  {
+    value: "retrovisor-interior-per-camera",
+    name: "Retrovisor interior per càmera",
+    catalan: "Retrovisor interior per càmera",
+    spanish: "Retrovisor interior por cámara",
+    french: "Rétroviseur intérieur par caméra",
+    english: "Interior mirror by camera"
+  },
+  {
+    value: "seients-calefactables",
+    name: "Seients calefactables",
+    catalan: "Seients calefactables",
+    spanish: "Asientos calefactables",
+    french: "Sièges chauffants",
+    english: "Heated seats"
+  },
+  {
+    value: "seients-electrics",
+    name: "Seients elèctrics",
+    catalan: "Seients elèctrics",
+    spanish: "Asientos eléctricos",
+    french: "Sièges électriques",
+    english: "Electric seats"
+  },
+  {
+    value: "seients-esportius",
+    name: "Seients esportius",
+    catalan: "Seients esportius",
+    spanish: "Asientos deportivos",
+    french: "Sièges sport",
+    english: "Sport seats"
+  },
+  {
+    value: "seients-massatge",
+    name: "Seients massatge",
+    catalan: "Seients massatge",
+    spanish: "Asientos masaje",
+    french: "Sièges massage",
+    english: "Massage seats"
+  },
+  {
+    value: "sensors-aparcament",
+    name: "Sensors aparcament",
+    catalan: "Sensors aparcament",
+    spanish: "Sensores aparcamiento",
+    french: "Capteurs parking",
+    english: "Parking sensors"
+  },
+  {
+    value: "sensors-anti-colisio",
+    name: "Sensors anti-colisió",
+    catalan: "Sensors anti-colisió",
+    spanish: "Sensores anti-colisión",
+    french: "Capteurs anti-collision",
+    english: "Anti-collision sensors"
+  },
+  {
+    value: "sensors-llums",
+    name: "Sensors llums",
+    catalan: "Sensors llums",
+    spanish: "Sensores luces",
+    french: "Capteurs éclairage",
+    english: "Light sensors"
+  },
+  {
+    value: "sensors-pluja",
+    name: "Sensors pluja",
+    catalan: "Sensors pluja",
+    spanish: "Sensores lluvia",
+    french: "Capteurs pluie",
+    english: "Rain sensors"
+  },
+  {
+    value: "sostre-obert",
+    name: "Sostre obert",
+    catalan: "Sostre obert",
+    spanish: "Techo abierto",
+    french: "Toit ouvrant",
+    english: "Open roof"
+  },
+  {
+    value: "sostre-panoramic",
+    name: "Sostre panoràmic",
+    catalan: "Sostre panoràmic",
+    spanish: "Techo panorámico",
+    french: "Toit panoramique",
+    english: "Panoramic roof"
+  },
+  {
+    value: "start-stop",
+    name: "Start-Stop",
+    catalan: "Start-Stop",
+    spanish: "Start-Stop",
+    french: "Start-Stop",
+    english: "Start-Stop"
+  },
+  {
+    value: "tanca-centralitzada",
+    name: "Tanca centralitzada",
+    catalan: "Tanca centralitzada",
+    spanish: "Cierre centralizado",
+    french: "Verrouillage centralisé",
+    english: "Central locking"
+  },
+  {
+    value: "vidres-tintats",
+    name: "Vidres tintats",
+    catalan: "Vidres tintats",
+    spanish: "Cristales tintados",
+    french: "Vitres teintées",
+    english: "Tinted windows"
+  },
+  {
+    value: "vidres-electrics",
+    name: "Vidres elèctrics",
+    catalan: "Vidres elèctrics",
+    spanish: "Cristales eléctricos",
+    french: "Vitres électriques",
+    english: "Electric windows"
+  },
+  {
+    value: "visio-nocturna",
+    name: "Visió nocturna",
+    catalan: "Visió nocturna",
+    spanish: "Visión nocturna",
+    french: "Vision nocturne",
+    english: "Night vision"
+  },
+  {
+    value: "volant-calefactable",
+    name: "Volant Calefactable",
+    catalan: "Volant Calefactable",
+    spanish: "Volante Calefactable",
+    french: "Volant chauffant",
+    english: "Heated steering wheel"
+  },
+  {
+    value: "volant-multifuncio",
+    name: "Volant multifunció",
+    catalan: "Volant multifunció",
+    spanish: "Volante multifunción",
+    french: "Volant multifonction",
+    english: "Multifunction steering wheel"
   }
 ];

@@ -1,7 +1,7 @@
 // Script principal de inicialización de datos
-import carExtras from './car-extras.js';
-import motorhomeExtras from './motorhome-extras.js';
-import motorcycleExtras from './motorcycle-extras.js';
+import { carExtras } from './car-extras';
+import { motorhomeExtras } from './motorhome-extras';
+import { motorcycleExtras } from './motorcycle-extras';
 import { vehicleStates } from './vehicle-states';
 import { exteriorColors } from './exterior-colors';
 import { fuelTypes } from './fuel-types';

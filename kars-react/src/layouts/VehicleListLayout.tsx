@@ -263,15 +263,25 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
     // y no muestro el spinner ni skeletons
     if (error) return <div className="text-red-600">{error}</div>;
     if (!vehicles.length) return <div>No hay vehículos disponibles.</div>;
-    // Mapeo seguro a VehicleUI
-    const vehiclesUI = vehicles.map((v) => ({
-      ...v,
+    // Mapeo seguro a VehicleUI - convirtiendo de camelCase de la API a kebab-case para los componentes
+    const vehiclesUI = vehicles.map((v: any) => ({
+      id: String(v.id),
+      ["titol-anunci"]: v.titolAnunci ?? "",
+      ["descripcio-anunci"]: v.descripcioAnunci ?? "",
+      ["marques-cotxe"]: v.marcaCotxe ?? "",
+      ["models-cotxe"]: v.modelsCotxe ?? "",
+      ["estat-vehicle"]: v.estatVehicle ?? "",
+      any: v.any ?? "",
       quilometratge: v.quilometratge !== undefined && v.quilometratge !== null ? String(v.quilometratge) : "",
       preu: v.preu !== undefined && v.preu !== null ? String(v.preu) : "",
-      ["anunci-actiu"]: v["anunci-actiu"] !== undefined && v["anunci-actiu"] !== null ? String(v["anunci-actiu"]) : "",
-      venut: v.venut !== undefined && v.venut !== null ? String(v.venut) : "",
-      ["anunci-destacat"]: v["anunci-destacat"] !== undefined && v["anunci-destacat"] !== null ? String(v["anunci-destacat"]) : "",
-      ["potencia-cv"]: v["potencia-cv"] !== undefined && v["potencia-cv"] !== null ? String(v["potencia-cv"]) : "",
+      ["color-vehicle"]: v.colorVehicle ?? "",
+      ["tipus-combustible"]: v.tipusCombustible ?? "",
+      ["potencia-cv"]: v.potenciaCv !== undefined && v.potenciaCv !== null ? String(v.potenciaCv) : "",
+      slug: v.slug ?? "",
+      ["anunci-destacat"]: v.anunciDestacat !== undefined ? String(v.anunciDestacat) : "",
+      ["imatge-destacada-url"]: v.imatgeDestacadaUrl ?? "",
+      ["anunci-actiu"]: v.anunciActiu !== undefined ? String(v.anunciActiu) : "",
+      venut: v.venut !== undefined ? String(v.venut) : ""
     }));
     return (
       <div className={

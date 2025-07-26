@@ -199,7 +199,7 @@ const BasicVehicleFilters = ({ filters, onFilterChange, marcas, modelos, estados
   const vehicleTypes = [
     { value: "COTXE", label: "Coche", icon: Car },
     { value: "MOTO", label: "Moto", icon: Bike },
-    { value: "CARAVANA", label: "Caravana", icon: Home },
+    { value: "CARAVANA", label: "Autocaravana", icon: Home },
     { value: "VEHICLE COMERCIAL", label: "Vehicle Comercial", icon: Truck },
   ];
 
