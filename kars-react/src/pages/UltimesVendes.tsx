@@ -1,8 +1,10 @@
 import { useSearchParams } from "react-router-dom";
 import VehicleListLayout from "../layouts/VehicleListLayout";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function UltimesVendes() {
   const [searchParams] = useSearchParams();
+  const { t } = useLanguage();
   
   // Construir filtros iniciales desde los parámetros de búsqueda
   const initialFilters: Record<string, any> = { 
@@ -21,7 +23,7 @@ export default function UltimesVendes() {
 
   return (
     <VehicleListLayout
-      pageTitle="Últimes vendes"
+      pageTitle={t('pages.latest_sales')}
       breadcrumbs={[
         { label: { es: "Últimas ventas", ca: "Últimes vendes", en: "Latest sales", fr: "Dernières ventes" }, href: "/ultimes-vendes" }
       ]}

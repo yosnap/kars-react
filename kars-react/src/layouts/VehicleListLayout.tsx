@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { Vehicle } from "../types/Vehicle";
+import { useLanguage, getVehicleDescription } from "../context/LanguageContext";
 import Footer from "../components/Footer";
 import VehicleFilters, { defaultFilters as vehicleDefaultFilters } from "../components/VehicleFilters";
 import PageBreadcrumbs from "../components/PageBreadcrumbs";
@@ -74,6 +75,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
   // basePath = "/vehicles-andorra",
 }) => {
   const filters = useQueryParams();
+  const { t, currentLanguage } = useLanguage();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -254,13 +256,13 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
     }
     // Si está cargando pero ya hay vehículos, muestro la lista anterior
     // y no muestro el spinner ni skeletons
-    if (error) return <div className="text-red-600">{error}</div>;
-    if (!vehicles.length) return <div>No hay vehículos disponibles.</div>;
+    if (error) return <div className="text-red-600">{t('vehicles.error_loading')}: {error}</div>;
+    if (!vehicles.length) return <div>{t('vehicles.no_results')}</div>;
     // Mapeo seguro a VehicleUI - convirtiendo de camelCase de la API a kebab-case para los componentes
     const vehiclesUI = vehicles.map((v: any) => ({
       id: String(v.id),
       ["titol-anunci"]: v.titolAnunci ?? "",
-      ["descripcio-anunci"]: v.descripcioAnunci ?? "",
+      ["descripcio-anunci"]: getVehicleDescription(v, currentLanguage),
       ["marques-cotxe"]: v.marcaCotxe ?? "",
       ["models-cotxe"]: v.modelsCotxe ?? "",
       ["estat-vehicle"]: v.estatVehicle ?? "",
@@ -326,7 +328,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
         {!hideFilters && (
           <aside className="w-full md:w-72 flex-shrink-0 mb-8 md:mb-0">
             <div className="bg-gray-800/90 backdrop-blur-sm rounded-xl p-6 sticky top-8 text-white shadow-lg border border-gray-700/30">
-              <h2 className="text-xl font-bold mb-4 text-white">Filtrar vehículos</h2>
+              <h2 className="text-xl font-bold mb-4 text-white">{t('vehicles.filter_title')}</h2>
               <VehicleFilters
                 key={lockedStateValue ? `locked-${lockedStateValue}` : JSON.stringify(filtersForVehicleFilters)}
                 initialFilters={filtersForVehicleFilters}
@@ -363,7 +365,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
               );
               if (filterEntries.length === 0) return null;
               return <>
-                <span className="font-semibold text-gray-700">Filtros aplicados:</span>
+                <span className="font-semibold text-gray-700">{t('vehicles.applied_filters')}</span>
                 {filterEntries.map(([k, v]) => {
                   // Mapeo visual para mostrar 'km0' en vez de 'km0-gerencia'
                   let displayValue = v;
@@ -430,7 +432,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
                       <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="m15 18-6-6 6-6"/>
                       </svg>
-                      <span>Anterior</span>
+                      <span>{t('pagination.previous')}</span>
                     </button>
                   </PaginationItem>
                   {/* Números de página: sistema mejorado con inicio, fin y puntos suspensivos */}
@@ -520,7 +522,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
                       onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
                       disabled={currentPage >= totalPages}
                     >
-                      <span>Següent</span>
+                      <span>{t('pagination.next')}</span>
                       <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="m9 18 6-6-6-6"/>
                       </svg>

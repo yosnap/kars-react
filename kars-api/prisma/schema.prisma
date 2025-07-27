@@ -627,3 +627,28 @@ model BlogSyncLog {
   @@index([startedAt])
 }
 
+model VehicleTranslation {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Clave única de la traducción (ej: vehicle.engine, vehicle.power, etc.)
+  key           String   @unique
+  
+  // Categoría de la traducción
+  category      String   // "technical", "features", "commercial", "general"
+  
+  // Traducciones en los 4 idiomas
+  ca            String   // Catalán (idioma principal)
+  es            String   // Español
+  en            String   // Inglés
+  fr            String   // Francés
+  
+  // Descripción opcional del propósito de esta traducción
+  description   String?
+  
+  // Timestamps
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  @@index([category])
+}
+

@@ -5,6 +5,73 @@ Todos los cambios notables de este proyecto se documentarán en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-es/1.0.0/),
 y este proyecto adhiere al [Versionado Semántico](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-07-27
+
+### 🌐 Sistema de URLs Localizadas y Mejoras de Internacionalización
+
+### ✅ Añadido
+
+#### URLs Amigables con Prefijo de Idioma
+- **Sistema completo de URLs localizadas**:
+  - Español: `/es/vehiculos`, `/es/quienes-somos`, `/es/servicios`
+  - Inglés: `/en/vehicles`, `/en/about-us`, `/en/services`
+  - Francés: `/fr/vehicules`, `/fr/qui-sommes-nous`, `/fr/services`
+  - Catalán: `/vehicles`, `/qui-som`, `/serveis` (sin prefijo, idioma por defecto)
+
+#### Navegación Persistente de Idioma
+- **Hook `useLocalizedNavigation()`**: Navegación que preserva el idioma actual
+- **Función `getLocalizedPath()`**: Generación automática de URLs localizadas
+- **Detección automática**: El idioma se detecta desde la URL path
+- **Persistencia completa**: El idioma se mantiene en toda la navegación
+
+#### Páginas de Detalle Localizadas
+- **URLs de vehículos traducidas**:
+  - `/es/vehiculo/audi-a4-2020`
+  - `/en/vehicle/audi-a4-2020`
+  - `/fr/vehicule/audi-a4-2020`
+  - `/vehicle/audi-a4-2020` (catalán)
+- **Breadcrumbs localizados**: Enlaces de vuelta mantienen el idioma
+- **Componentes actualizados**: VehicleCard, VehicleListCard, Header
+
+#### Atributo HTML Lang Dinámico
+- **`<html lang="xx">`**: Se actualiza automáticamente según idioma seleccionado
+- **Detección por navegador**: Mejora accesibilidad y SEO
+- **Herramientas de traducción**: Funcionan correctamente con el idioma detectado
+
+#### Traducciones de Interface Completas
+- **Controles de listado**: "Mostrando X-Y de Z resultados", "Ordenar por", "Mostrar"
+- **Paginación**: "Anterior", "Siguiente", "Précédent", "Next"
+- **Títulos de páginas**: Todos los títulos ahora son dinámicos por idioma
+- **40+ nuevas traducciones** en 4 idiomas
+
+#### Banderas de Idiomas Corregidas
+- **Imágenes reales**: Reemplazado emojis por archivos PNG/SVG
+- **Bandera catalana correcta**: Usa `/flags/ca.png` con rayas amarillas y rojas
+- **Estilo consistente**: Todas las banderas con el mismo formato visual
+
+### 🔧 Técnico
+
+#### Archivos Nuevos
+- `hooks/useLocalizedNavigation.ts`: Hook para navegación localizada
+- `components/LocalizedRouter.tsx`: Enrutador con soporte multiidioma
+- `components/LocalizedRoute.tsx`: Componente de rutas localizadas
+
+#### Funciones Helper
+- `getLocalizedPath()`: Generar URLs con prefijo de idioma
+- `getPathWithoutLanguage()`: Extraer path sin prefijo
+- `getLanguageFromPath()`: Detectar idioma desde URL
+- Mapeo completo de rutas traducidas por idioma
+
+### 🚀 Beneficios
+
+- ✅ **UX mejorada**: Los usuarios nunca pierden su idioma al navegar
+- ✅ **SEO optimizado**: URLs específicas por idioma (`/es/vehiculos` vs `/en/vehicles`)
+- ✅ **Accesibilidad**: Lectores de pantalla detectan idioma correctamente
+- ✅ **Herramientas de traducción**: Navegadores ofrecen traducciones apropiadas
+- ✅ **Escalabilidad**: Fácil agregar nuevas rutas localizadas
+
+---
+
 ## [0.2.2] - 2025-07-27
 
 ### 🌐 Sistema de Traducciones Automáticas

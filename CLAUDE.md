@@ -32,7 +32,58 @@
 - Cuando subamos versión o algun cambio que eso implique, siempre tienes que preguntarme la versión a la que subimos
 
 ## Recent Updates (July 2025)
-### Latest: Frontend Improvements & Price Display Fix (July 26, 2025)
+### Latest: Localized URLs System & Internationalization v0.3.0 (July 27, 2025)
+
+#### ✅ Localized URLs System Implementation
+1. **Friendly URLs with Language Prefix** - Sistema completo de URLs amigables
+   - Spanish: `/es/vehiculos`, `/es/quienes-somos`, `/es/servicios`
+   - English: `/en/vehicles`, `/en/about-us`, `/en/services`  
+   - French: `/fr/vehicules`, `/fr/qui-sommes-nous`, `/fr/services`
+   - Catalan: `/vehicles`, `/qui-som`, `/serveis` (default, no prefix)
+
+2. **Persistent Language Navigation** - Navegación que preserva idioma
+   - Hook `useLocalizedNavigation()` for consistent navigation
+   - Function `getLocalizedPath()` for automatic URL generation
+   - Language detection from URL path instead of query parameters
+   - Complete persistence across all navigation
+
+3. **Localized Vehicle Detail Pages** - Páginas de detalle localizadas
+   - `/es/vehiculo/vehicle-slug` for Spanish
+   - `/en/vehicle/vehicle-slug` for English
+   - `/fr/vehicule/vehicle-slug` for French
+   - Updated VehicleCard, VehicleListCard components with localized navigation
+   - Breadcrumbs maintain language when navigating back
+
+4. **Dynamic HTML Lang Attribute** - Atributo lang dinámico
+   - `<html lang="xx">` updates automatically based on selected language
+   - Improves browser language detection and accessibility
+   - Better SEO and translation tools support
+
+5. **Complete Interface Translations** - Traducciones completas de interfaz
+   - List controls: "Showing X-Y of Z results", "Sort by", "Show"
+   - Pagination: "Previous", "Next", "Précédent", "Suivant"
+   - Dynamic page titles for all vehicle pages
+   - 40+ new translations across 4 languages
+
+6. **Fixed Language Flags** - Banderas de idiomas corregidas
+   - Replaced emojis with real PNG/SVG image files
+   - Correct Catalan flag with yellow and red stripes
+   - Consistent visual style across all language flags
+
+#### 🔧 Technical Implementation
+- **New Files**: `useLocalizedNavigation.ts`, `LocalizedRouter.tsx`, route mappings
+- **Updated Components**: Header, VehicleCard, VehicleListCard, VehicleDetail
+- **Helper Functions**: `getLocalizedPath()`, `getPathWithoutLanguage()`, `getLanguageFromPath()`
+- **Route Mappings**: Complete translation mapping for all public routes
+
+#### 🚀 System Benefits
+- ✅ Improved UX: Users never lose their language preference
+- ✅ SEO Optimized: Language-specific URLs for better search indexing
+- ✅ Accessibility: Screen readers detect language correctly
+- ✅ Translation Tools: Browsers offer appropriate translation suggestions
+- ✅ Scalability: Easy to add new localized routes
+
+### Previous: Frontend Improvements & Price Display Fix (July 26, 2025)
 
 #### ✅ Admin Dashboard Enhancements
 1. **Brand/Model Statistics** - Nuevo panel de estadísticas en admin dashboard

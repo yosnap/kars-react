@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Mail, Phone } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 // Logo moved to public/media folder
 
 const Footer = () => {
+  const { t } = useLanguage();
   return (
     <footer className="bg-gray-900 text-white">
       {/* Main Footer */}
@@ -19,23 +21,23 @@ const Footer = () => {
             </Link>
           </div>
 
-          {/* Nosaltres */}
+          {/* About Us */}
           <div>
-            <h4 className="text-lg font-semibold mb-4 text-white">Nosaltres</h4>
+            <h4 className="text-lg font-semibold mb-4 text-white">{t('footer.about_us')}</h4>
             <ul className="space-y-3 text-gray-300">
               <li>
                 <Link to="/qui-som" className="hover:text-primary transition-colors">
-                  Qui som
+                  {t('nav.about')}
                 </Link>
               </li>
               <li>
                 <Link to="/taller" className="hover:text-primary transition-colors">
-                  Taller
+                  {t('nav.workshop')}
                 </Link>
               </li>
               <li>
                 <Link to="/contacta" className="hover:text-primary transition-colors">
-                  Contacta
+                  {t('nav.contact')}
                 </Link>
               </li>
             </ul>
@@ -43,16 +45,16 @@ const Footer = () => {
 
           {/* Vehicles */}
           <div>
-            <h4 className="text-lg font-semibold mb-4 text-white">Vehicles</h4>
+            <h4 className="text-lg font-semibold mb-4 text-white">{t('footer.vehicles')}</h4>
             <ul className="space-y-3 text-gray-300">
               <li>
                 <Link to="/admin" className="hover:text-primary transition-colors">
-                  Accés professional
+                  {t('footer.professional_access')}
                 </Link>
               </li>
               <li>
                 <Link to="/vehicles" className="hover:text-primary transition-colors">
-                  Vehicles disponibles
+                  {t('footer.available_vehicles')}
                 </Link>
               </li>
             </ul>
@@ -60,24 +62,24 @@ const Footer = () => {
 
           {/* Legal */}
           <div>
-            <h4 className="text-lg font-semibold mb-4 text-white">Legal</h4>
+            <h4 className="text-lg font-semibold mb-4 text-white">{t('footer.legal')}</h4>
             <ul className="space-y-3 text-gray-300">
               <li>
                 <a href="/avis-legal" className="hover:text-primary transition-colors">
-                  Avís legal
+                  {t('footer.legal_notice')}
                 </a>
               </li>
               <li>
                 <a href="/politica-galetes" className="hover:text-primary transition-colors">
-                  Política de galetes
+                  {t('footer.cookies_policy')}
                 </a>
               </li>
             </ul>
           </div>
 
-          {/* Segueix-nos */}
+          {/* Follow us */}
           <div>
-            <h4 className="text-lg font-semibold mb-4 text-white">Segueix-nos</h4>
+            <h4 className="text-lg font-semibold mb-4 text-white">{t('footer.follow_us')}</h4>
             <div className="flex space-x-4 mb-6">
               <a 
                 href="https://facebook.com" 
@@ -111,7 +113,7 @@ const Footer = () => {
               <a 
                 href="tel:+376000000" 
                 className="bg-gray-800 hover:bg-primary p-3 rounded-lg transition-all hover:scale-105"
-                title="Telèfon"
+                title={t('footer.phone')}
               >
                 <Phone className="w-5 h-5" />
               </a>
@@ -125,10 +127,10 @@ const Footer = () => {
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center text-sm text-gray-400">
             <div>
-              © {new Date().getFullYear()} Kars.ad. Tots els drets reservats.
+              © {new Date().getFullYear()} Kars.ad. {t('footer.rights_reserved')}
             </div>
             <div className="mt-4 md:mt-0">
-              <span>Andorra la Vella, Principat d'Andorra</span>
+              <span>{t('footer.location')}</span>
             </div>
           </div>
         </div>

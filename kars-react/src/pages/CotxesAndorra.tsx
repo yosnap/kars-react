@@ -1,8 +1,10 @@
 import { useSearchParams } from "react-router-dom";
 import VehicleListLayout from "../layouts/VehicleListLayout";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function CotxesAndorra() {
   const [searchParams] = useSearchParams();
+  const { t } = useLanguage();
   
   // Construir filtros iniciales desde los parámetros de búsqueda
   const initialFilters: Record<string, any> = { 
@@ -21,7 +23,7 @@ export default function CotxesAndorra() {
 
   return (
     <VehicleListLayout
-      pageTitle="Tots els vehicles"
+      pageTitle={t('pages.all_vehicles')}
       breadcrumbs={[
         { label: { es: "Todos los vehículos", ca: "Tots els vehicles", en: "All vehicles", fr: "Tous les véhicules" }, href: "/vehicles" }
       ]}

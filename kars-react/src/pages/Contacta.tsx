@@ -1,8 +1,12 @@
 import { useState } from "react";
 import Footer from "../components/Footer";
 import PageBreadcrumbs from "../components/PageBreadcrumbs";
+import { useLanguage } from "../context/LanguageContext";
+import { staticPageTranslations } from "../translations/static-pages";
 
 export default function Contacta() {
+  const { currentLanguage } = useLanguage();
+  const t = staticPageTranslations.contact[currentLanguage];
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -43,11 +47,11 @@ export default function Contacta() {
         </div>
 
         {/* Título principal */}
-        <h1 className="text-5xl font-bold text-red-500 mb-4 text-center">Contacta</h1>
+        <h1 className="text-5xl font-bold text-red-500 mb-4 text-center">{t.title}</h1>
         
         {/* Horario */}
         <p className="text-white text-lg text-center mb-12">
-          Dilluns a dijous de 9:00 a 13:30 hores i de 15:00 a 19:00 hores - Divendres de 9:00 a 15:00 hores
+          {t.schedule}
         </p>
         
         {/* Grid con formulario y mapa */}
@@ -59,7 +63,7 @@ export default function Contacta() {
                 <input
                   type="text"
                   name="name"
-                  placeholder="Nom *"
+                  placeholder={t.nameLabel}
                   required
                   value={formData.name}
                   onChange={handleChange}
@@ -71,7 +75,7 @@ export default function Contacta() {
                 <input
                   type="email"
                   name="email"
-                  placeholder="Correu Electronic *"
+                  placeholder={t.emailLabel}
                   required
                   value={formData.email}
                   onChange={handleChange}
@@ -83,7 +87,7 @@ export default function Contacta() {
                 <input
                   type="tel"
                   name="phone"
-                  placeholder="Telèfon *"
+                  placeholder={t.phoneLabel}
                   required
                   value={formData.phone}
                   onChange={handleChange}
@@ -94,7 +98,7 @@ export default function Contacta() {
               <div>
                 <textarea
                   name="message"
-                  placeholder="Missatge *"
+                  placeholder={t.messageLabel}
                   required
                   rows={6}
                   value={formData.message}
@@ -107,7 +111,7 @@ export default function Contacta() {
                 type="submit"
                 className="w-full bg-red-500 text-white py-4 font-bold text-lg uppercase hover:bg-red-600 transition-colors rounded-lg"
               >
-                ENVIAR
+                {t.submitButton}
               </button>
             </form>
           </div>
@@ -131,7 +135,7 @@ export default function Contacta() {
         {/* Información adicional */}
         <div className="mt-12 text-center">
           <p className="text-white text-lg">
-            <strong>KARS Automòbils</strong><br />
+            <strong>{t.companyName}</strong><br />
             Baixada del Molí, 39<br />
             C/ Prada Motxilla, 2 Baixos<br />
             AD500 Andorra la Vella

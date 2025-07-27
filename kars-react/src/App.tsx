@@ -18,6 +18,8 @@ import SystemSetup from "./pages/Admin/SystemSetup";
 import SystemInstaller from "./components/Admin/SystemInstaller";
 import { useAuth } from "./context/AuthContext";
 import { VehicleProvider } from "./context/VehicleContext";
+import { useLanguage } from "./context/LanguageContext";
+import { LanguageProvider } from "./context/LanguageContext";
 import Header from "./components/Header";
 import CotxesAndorra from "./pages/CotxesAndorra";
 // Import subpages for vehicle states
@@ -53,13 +55,14 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
 // Página dinámica para estado de vehículo
 function EstatVehiclePage() {
   const { slug } = useParams();
+  const { t } = useLanguage();
   return (
     <VehicleListLayout
       initialFilters={{ "estat-vehicle": slug ?? "", "anunci-actiu": true }}
       breadcrumbs={[
         { label: { es: `Estado: ${slug}`, ca: `Estat: ${slug}` }, href: `/estat-vehicle/${slug}` }
       ]}
-      pageTitle={`Vehículos en estado: ${slug}`}
+      pageTitle={`${t('pages.vehicles_by_state')}: ${slug}`}
     />
   );
 }
@@ -125,8 +128,9 @@ function App() {
   }, [isAdvancedSearchOpen]);
 
   return (
-    <VehicleProvider>
-      <Router>
+    <LanguageProvider>
+      <VehicleProvider>
+        <Router>
         <Header onSearch={handleSearch} onOpenAdvancedSearch={() => setIsAdvancedSearchOpen(true)} />
         <MainLayout>
         <Routes>
@@ -165,6 +169,46 @@ function App() {
           <Route path="/admin/installer" element={<PrivateRoute><SystemInstaller /></PrivateRoute>} />
           {/* Ruta dinámica para estado de vehículo */}
           <Route path="/estat-vehicle/:slug" element={<EstatVehiclePage />} />
+          
+          {/* Rutas localizadas - Español */}
+          <Route path="/es" element={<Home onSearch={handleSearch} />} />
+          <Route path="/es/vehiculos" element={<CotxesAndorra />} />
+          <Route path="/es/vehiculo/:slug" element={<VehicleDetail />} />
+          <Route path="/es/ultimas-ventas" element={<UltimesVendes />} />
+          <Route path="/es/quienes-somos" element={<QuiSom />} />
+          <Route path="/es/taller" element={<Taller />} />
+          <Route path="/es/servicios" element={<Serveis />} />
+          <Route path="/es/contacto" element={<Contacta />} />
+          
+          {/* Rutas localizadas - Inglés */}
+          <Route path="/en" element={<Home onSearch={handleSearch} />} />
+          <Route path="/en/vehicles" element={<CotxesAndorra />} />
+          <Route path="/en/vehicle/:slug" element={<VehicleDetail />} />
+          <Route path="/en/latest-sales" element={<UltimesVendes />} />
+          <Route path="/en/about-us" element={<QuiSom />} />
+          <Route path="/en/workshop" element={<Taller />} />
+          <Route path="/en/services" element={<Serveis />} />
+          <Route path="/en/contact" element={<Contacta />} />
+          
+          {/* Rutas localizadas - Francés */}
+          <Route path="/fr" element={<Home onSearch={handleSearch} />} />
+          <Route path="/fr/vehicules" element={<CotxesAndorra />} />
+          <Route path="/fr/vehicule/:slug" element={<VehicleDetail />} />
+          <Route path="/fr/dernieres-ventes" element={<UltimesVendes />} />
+          <Route path="/fr/qui-sommes-nous" element={<QuiSom />} />
+          <Route path="/fr/atelier" element={<Taller />} />
+          <Route path="/fr/services" element={<Serveis />} />
+          <Route path="/fr/contact" element={<Contacta />} />
+          
+          {/* Rutas localizadas - Catalán */}
+          <Route path="/ca" element={<Home onSearch={handleSearch} />} />
+          <Route path="/ca/vehicles" element={<CotxesAndorra />} />
+          <Route path="/ca/vehicle/:slug" element={<VehicleDetail />} />
+          <Route path="/ca/ultimes-vendes" element={<UltimesVendes />} />
+          <Route path="/ca/qui-som" element={<QuiSom />} />
+          <Route path="/ca/taller" element={<Taller />} />
+          <Route path="/ca/serveis" element={<Serveis />} />
+          <Route path="/ca/contacta" element={<Contacta />} />
         </Routes>
       </MainLayout>
       <SearchModal
@@ -203,6 +247,7 @@ function App() {
       />
       </Router>
     </VehicleProvider>
+    </LanguageProvider>
   );
 }
 

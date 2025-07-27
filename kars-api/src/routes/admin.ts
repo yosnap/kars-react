@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { migrateAllUsers, getMigrationStats, syncUserFromOriginal, cleanMigrationData } from '../services/userMigrationService';
 import { initializeCronSync } from '../services/syncService';
 import { importFromDefaultJson, importVehiclesFromJson, getImportStatus } from '../services/vehicleImporter';
+import { createInitialTranslations } from '../data/initial-vehicle-translations';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -3382,6 +3383,472 @@ router.post('/receive-translations', async (req, res) => {
     return res.status(500).json({
       success: false,
       error: 'Error en guardar les traduccions',
+      details: error instanceof Error ? error.message : 'Error desconegut'
+    });
+  }
+});
+
+// ===========================
+// ENDPOINTS DE GESTIÓ DE TRADUCCIONS DE VEHICLES
+// ===========================
+
+// GET /api/admin/vehicle-translations - Obtenir totes les traduccions de vehicles
+router.get('/vehicle-translations', async (req, res) => {
+  try {
+    console.log('📋 Obtenint traduccions de vehicles...');
+    
+    const {
+      category = 'all',
+      search = ''
+    } = req.query;
+
+    const where: any = {};
+    
+    // Filtrar por categoría si se especifica
+    if (category !== 'all') {
+      where.category = category;
+    }
+
+    // Filtrar por búsqueda si se especifica
+    if (search) {
+      where.OR = [
+        { key: { contains: search as string, mode: 'insensitive' } },
+        { ca: { contains: search as string, mode: 'insensitive' } },
+        { es: { contains: search as string, mode: 'insensitive' } },
+        { en: { contains: search as string, mode: 'insensitive' } },
+        { fr: { contains: search as string, mode: 'insensitive' } },
+        { description: { contains: search as string, mode: 'insensitive' } }
+      ];
+    }
+
+    const translations = await prisma.vehicleTranslation.findMany({
+      where,
+      orderBy: [
+        { category: 'asc' },
+        { key: 'asc' }
+      ]
+    });
+
+    console.log(`✅ Trobades ${translations.length} traduccions`);
+
+    return res.json({
+      success: true,
+      translations,
+      total: translations.length
+    });
+
+  } catch (error) {
+    console.error('❌ Error obtenint traduccions de vehicles:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Error en obtenir les traduccions de vehicles',
+      details: error instanceof Error ? error.message : 'Error desconegut'
+    });
+  }
+});
+
+// POST /api/admin/vehicle-translations - Crear nova traducció de vehicle
+router.post('/vehicle-translations', async (req, res) => {
+  try {
+    console.log('➕ Creant nova traducció de vehicle...');
+    
+    const { key, category, ca, es, en, fr, description } = req.body;
+
+    // Validaciones
+    if (!key || !key.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'La clau és obligatòria'
+      });
+    }
+
+    if (!ca || !ca.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'La traducció en català és obligatòria'
+      });
+    }
+
+    if (!es || !es.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'La traducció en espanyol és obligatòria'
+      });
+    }
+
+    if (!en || !en.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'La traducció en anglès és obligatòria'
+      });
+    }
+
+    if (!fr || !fr.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'La traducció en francès és obligatòria'
+      });
+    }
+
+    // Validar formato de la clave
+    if (!/^[a-zA-Z0-9._-]+$/.test(key.trim())) {
+      return res.status(400).json({
+        success: false,
+        error: 'La clau només pot contenir lletres, números, punts, guions i guions baixos'
+      });
+    }
+
+    // Verificar que la clave no existe ya
+    const existingTranslation = await prisma.vehicleTranslation.findUnique({
+      where: { key: key.trim() }
+    });
+
+    if (existingTranslation) {
+      return res.status(400).json({
+        success: false,
+        error: 'Ja existeix una traducció amb aquesta clau'
+      });
+    }
+
+    // Crear la nueva traducción
+    const newTranslation = await prisma.vehicleTranslation.create({
+      data: {
+        key: key.trim(),
+        category: category || 'general',
+        ca: ca.trim(),
+        es: es.trim(),
+        en: en.trim(),
+        fr: fr.trim(),
+        description: description?.trim() || null
+      }
+    });
+
+    console.log(`✅ Traducció creada amb ID: ${newTranslation.id}`);
+
+    return res.json({
+      success: true,
+      translation: newTranslation,
+      message: 'Traducció creada correctament'
+    });
+
+  } catch (error) {
+    console.error('❌ Error creant traducció de vehicle:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Error en crear la traducció de vehicle',
+      details: error instanceof Error ? error.message : 'Error desconegut'
+    });
+  }
+});
+
+// PUT /api/admin/vehicle-translations/:id - Actualitzar traducció de vehicle
+router.put('/vehicle-translations/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`✏️ Actualitzant traducció de vehicle amb ID: ${id}...`);
+    
+    const { key, category, ca, es, en, fr, description } = req.body;
+
+    // Validaciones
+    if (!key || !key.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'La clau és obligatòria'
+      });
+    }
+
+    if (!ca || !ca.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'La traducció en català és obligatòria'
+      });
+    }
+
+    if (!es || !es.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'La traducció en espanyol és obligatòria'
+      });
+    }
+
+    if (!en || !en.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'La traducció en anglès és obligatòria'
+      });
+    }
+
+    if (!fr || !fr.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'La traducció en francès és obligatòria'
+      });
+    }
+
+    // Validar formato de la clave
+    if (!/^[a-zA-Z0-9._-]+$/.test(key.trim())) {
+      return res.status(400).json({
+        success: false,
+        error: 'La clau només pot contenir lletres, números, punts, guions i guions baixos'
+      });
+    }
+
+    // Verificar que la traducción existe
+    const existingTranslation = await prisma.vehicleTranslation.findUnique({
+      where: { id }
+    });
+
+    if (!existingTranslation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Traducció no trobada'
+      });
+    }
+
+    // Verificar que la clave no esté siendo usada por otra traducción
+    if (key.trim() !== existingTranslation.key) {
+      const keyConflict = await prisma.vehicleTranslation.findUnique({
+        where: { key: key.trim() }
+      });
+
+      if (keyConflict) {
+        return res.status(400).json({
+          success: false,
+          error: 'Ja existeix una altra traducció amb aquesta clau'
+        });
+      }
+    }
+
+    // Actualizar la traducción
+    const updatedTranslation = await prisma.vehicleTranslation.update({
+      where: { id },
+      data: {
+        key: key.trim(),
+        category: category || 'general',
+        ca: ca.trim(),
+        es: es.trim(),
+        en: en.trim(),
+        fr: fr.trim(),
+        description: description?.trim() || null
+      }
+    });
+
+    console.log(`✅ Traducció actualitzada correctament`);
+
+    return res.json({
+      success: true,
+      translation: updatedTranslation,
+      message: 'Traducció actualitzada correctament'
+    });
+
+  } catch (error) {
+    console.error('❌ Error actualitzant traducció de vehicle:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Error en actualitzar la traducció de vehicle',
+      details: error instanceof Error ? error.message : 'Error desconegut'
+    });
+  }
+});
+
+// DELETE /api/admin/vehicle-translations/:id - Eliminar traducció de vehicle
+router.delete('/vehicle-translations/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`🗑️ Eliminant traducció de vehicle amb ID: ${id}...`);
+
+    // Verificar que la traducción existe
+    const existingTranslation = await prisma.vehicleTranslation.findUnique({
+      where: { id }
+    });
+
+    if (!existingTranslation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Traducció no trobada'
+      });
+    }
+
+    // Eliminar la traducción
+    await prisma.vehicleTranslation.delete({
+      where: { id }
+    });
+
+    console.log(`✅ Traducció eliminada correctament`);
+
+    return res.json({
+      success: true,
+      message: 'Traducció eliminada correctament'
+    });
+
+  } catch (error) {
+    console.error('❌ Error eliminant traducció de vehicle:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Error en eliminar la traducció de vehicle',
+      details: error instanceof Error ? error.message : 'Error desconegut'
+    });
+  }
+});
+
+// GET /api/admin/vehicle-translations/search/:key - Buscar traducció per clau específica
+router.get('/vehicle-translations/search/:key', async (req, res) => {
+  try {
+    const { key } = req.params;
+    console.log(`🔍 Buscant traducció per clau: ${key}...`);
+
+    const translation = await prisma.vehicleTranslation.findUnique({
+      where: { key }
+    });
+
+    if (!translation) {
+      return res.status(404).json({
+        success: false,
+        error: 'Traducció no trobada per aquesta clau'
+      });
+    }
+
+    console.log(`✅ Traducció trobada per clau: ${key}`);
+
+    return res.json({
+      success: true,
+      translation
+    });
+
+  } catch (error) {
+    console.error('❌ Error buscant traducció per clau:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Error en buscar la traducció',
+      details: error instanceof Error ? error.message : 'Error desconegut'
+    });
+  }
+});
+
+// POST /api/admin/vehicle-translations/bulk-create - Crear múltiples traduccions de cop
+router.post('/vehicle-translations/bulk-create', async (req, res) => {
+  try {
+    console.log('📦 Creant múltiples traduccions de vehicles...');
+    
+    const { translations } = req.body;
+
+    if (!Array.isArray(translations) || translations.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Es requereix un array de traduccions'
+      });
+    }
+
+    // Validar que no hay claves duplicadas en el lote
+    const keys = translations.map(t => t.key?.trim()).filter(Boolean);
+    const uniqueKeys = new Set(keys);
+    
+    if (keys.length !== uniqueKeys.size) {
+      return res.status(400).json({
+        success: false,
+        error: 'Hi ha claus duplicades en el lote de traduccions'
+      });
+    }
+
+    // Verificar que las claves no existen ya en la base de datos
+    const existingTranslations = await prisma.vehicleTranslation.findMany({
+      where: {
+        key: { in: keys }
+      },
+      select: { key: true }
+    });
+
+    if (existingTranslations.length > 0) {
+      const existingKeys = existingTranslations.map(t => t.key);
+      return res.status(400).json({
+        success: false,
+        error: `Ja existeixen traduccions amb aquestes claus: ${existingKeys.join(', ')}`
+      });
+    }
+
+    // Preparar datos para inserción
+    const translationsData = translations.map(t => ({
+      key: t.key?.trim(),
+      category: t.category || 'general',
+      ca: t.ca?.trim(),
+      es: t.es?.trim(),
+      en: t.en?.trim(),
+      fr: t.fr?.trim(),
+      description: t.description?.trim() || null
+    }));
+
+    // Validar datos
+    for (const t of translationsData) {
+      if (!t.key || !t.ca || !t.es || !t.en || !t.fr) {
+        return res.status(400).json({
+          success: false,
+          error: 'Totes les traduccions han de tenir clau i tots els idiomes'
+        });
+      }
+    }
+
+    // Crear todas las traducciones una por una para manejar duplicados
+    let createdCount = 0;
+    
+    for (const translation of translationsData) {
+      try {
+        // Verificar si ya existe
+        const existing = await prisma.vehicleTranslation.findUnique({
+          where: { key: translation.key }
+        });
+        
+        if (!existing) {
+          await prisma.vehicleTranslation.create({
+            data: translation
+          });
+          createdCount++;
+          console.log(`✅ Creada traducció: ${translation.key}`);
+        } else {
+          console.log(`⏭️ Traducció ja existeix: ${translation.key}`);
+        }
+      } catch (error) {
+        console.error(`❌ Error creant traducció ${translation.key}:`, error);
+      }
+    }
+
+    console.log(`✅ Creades ${createdCount} traduccions de ${translationsData.length} totals`);
+
+    return res.json({
+      success: true,
+      created: createdCount,
+      message: `${createdCount} traduccions creades correctament`
+    });
+
+  } catch (error) {
+    console.error('❌ Error creant múltiples traduccions:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Error en crear les traduccions múltiples',
+      details: error instanceof Error ? error.message : 'Error desconegut'
+    });
+  }
+});
+
+// POST /api/admin/vehicle-translations/initialize - Inicialitzar traduccions per defecte
+router.post('/vehicle-translations/initialize', async (req, res) => {
+  try {
+    console.log('🚀 Inicialitzant traduccions per defecte de vehicles...');
+    
+    const created = await createInitialTranslations(prisma);
+    
+    console.log(`✅ Inicialització completada - ${created} traduccions creades`);
+
+    return res.json({
+      success: true,
+      created,
+      message: `Inicialització completada - ${created} traduccions creades`
+    });
+
+  } catch (error) {
+    console.error('❌ Error inicialitzant traduccions per defecte:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Error en inicialitzar les traduccions per defecte',
       details: error instanceof Error ? error.message : 'Error desconegut'
     });
   }

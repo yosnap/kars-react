@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Grid2X2, LayoutList } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
 
 interface ListViewControlsProps {
   viewMode: "grid" | "list";
@@ -27,12 +28,13 @@ const ListViewControls = ({
   startIndex = 0,
   endIndex = 0
 }: ListViewControlsProps) => {
+  const { t } = useLanguage();
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-gray-900/95 backdrop-blur-sm p-6 rounded-xl border border-gray-700/50 shadow-xl text-white">
       {/* Contador de resultados */}
       <div className="text-sm text-gray-300">
         <span className="font-medium">
-          Mostrant {startIndex + 1} - {Math.min(endIndex, totalItems)} de {totalItems.toLocaleString()} resultats
+          {t('controls.showing')} {startIndex + 1} - {Math.min(endIndex, totalItems)} {t('controls.of')} {totalItems.toLocaleString()} {t('controls.results')}
         </span>
       </div>
 
@@ -41,19 +43,19 @@ const ListViewControls = ({
         {/* Selector de ordenación */}
         {onSortByChange && (
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-300">Ordenar per:</span>
+            <span className="text-sm text-gray-300">{t('controls.sort_by')}</span>
             <Select value={sortBy} onValueChange={onSortByChange}>
               <SelectTrigger className="w-48 bg-gray-700/50 border-gray-600 text-white">
-                <SelectValue placeholder="Selecciona una opció" />
+                <SelectValue placeholder={t('controls.select_option')} />
               </SelectTrigger>
               <SelectContent className="bg-gray-900 border border-gray-700 shadow-xl z-50 text-white">
-                <SelectItem value="featured" className="text-white hover:bg-gray-700 focus:bg-gray-700">Destacats primer</SelectItem>
-                <SelectItem value="price_asc" className="text-white hover:bg-gray-700 focus:bg-gray-700">Preu: menor a major</SelectItem>
-                <SelectItem value="price_desc" className="text-white hover:bg-gray-700 focus:bg-gray-700">Preu: major a menor</SelectItem>
-                <SelectItem value="date_desc" className="text-white hover:bg-gray-700 focus:bg-gray-700">Més recents</SelectItem>
-                <SelectItem value="date_asc" className="text-white hover:bg-gray-700 focus:bg-gray-700">Més antics</SelectItem>
-                <SelectItem value="title_asc" className="text-white hover:bg-gray-700 focus:bg-gray-700">Alfabètic (A-Z)</SelectItem>
-                <SelectItem value="title_desc" className="text-white hover:bg-gray-700 focus:bg-gray-700">Alfabètic (Z-A)</SelectItem>
+                <SelectItem value="featured" className="text-white hover:bg-gray-700 focus:bg-gray-700">{t('controls.featured_first')}</SelectItem>
+                <SelectItem value="price_asc" className="text-white hover:bg-gray-700 focus:bg-gray-700">{t('controls.price_low_high')}</SelectItem>
+                <SelectItem value="price_desc" className="text-white hover:bg-gray-700 focus:bg-gray-700">{t('controls.price_high_low')}</SelectItem>
+                <SelectItem value="date_desc" className="text-white hover:bg-gray-700 focus:bg-gray-700">{t('controls.newest_first')}</SelectItem>
+                <SelectItem value="date_asc" className="text-white hover:bg-gray-700 focus:bg-gray-700">{t('controls.oldest_first')}</SelectItem>
+                <SelectItem value="title_asc" className="text-white hover:bg-gray-700 focus:bg-gray-700">{t('controls.alphabetic_az')}</SelectItem>
+                <SelectItem value="title_desc" className="text-white hover:bg-gray-700 focus:bg-gray-700">{t('controls.alphabetic_za')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -61,7 +63,7 @@ const ListViewControls = ({
 
         {/* Selector de elementos por página */}
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-300">Mostrar:</span>
+          <span className="text-sm text-gray-300">{t('controls.show')}</span>
           <Select value={itemsPerPage.toString()} onValueChange={(value) => onItemsPerPageChange(parseInt(value))}>
             <SelectTrigger className="w-20 bg-gray-700/50 border-gray-600 text-white">
               <SelectValue />

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { MessageCircle, Save, Phone, User, MessageSquare, RefreshCw, Database, Clock, CheckCircle, AlertCircle, Image, Settings, TestTube, Play, Users, Filter, Trash2, Eye, Calendar, Languages, Globe, Zap } from 'lucide-react';
+import { MessageCircle, Save, Phone, User, MessageSquare, RefreshCw, Database, Clock, CheckCircle, AlertCircle, Image, Settings, TestTube, Play, Users, Filter, Trash2, Eye, Calendar, Languages, Globe, Zap, Edit3, Plus, Search, Type } from 'lucide-react';
 import AdminLayout from '../../components/Admin/AdminLayout';
+import VehicleTranslationForm from '../../components/Admin/VehicleTranslationForm';
 import toast from 'react-hot-toast';
 
 interface WhatsAppConfig {
@@ -52,11 +53,31 @@ interface TranslationConfig {
   timeout: number;
 }
 
+interface VehicleTranslation {
+  id: string;
+  key: string;
+  category: 'technical' | 'features' | 'commercial' | 'general';
+  ca: string;
+  es: string;
+  en: string;
+  fr: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface VehicleTranslationCategory {
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+}
+
 export default function AdminSettings() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'whatsapp' | 'api-sync' | 'translations'>(() => {
+  const [activeTab, setActiveTab] = useState<'whatsapp' | 'api-sync' | 'translations' | 'vehicle-translations'>(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'whatsapp' || tab === 'api-sync' || tab === 'translations') {
+    if (tab === 'whatsapp' || tab === 'api-sync' || tab === 'translations' || tab === 'vehicle-translations') {
       return tab;
     }
     return 'whatsapp';
@@ -103,12 +124,31 @@ export default function AdminSettings() {
   const [selectedLogs, setSelectedLogs] = useState<string[]>([]);
   const [translationLoading, setTranslationLoading] = useState(false);
 
+  // Vehicle translations states
+  const [vehicleTranslations, setVehicleTranslations] = useState<VehicleTranslation[]>([]);
+  const [vehicleTranslationsLoading, setVehicleTranslationsLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [editingTranslation, setEditingTranslation] = useState<VehicleTranslation | null>(null);
+  const [isAddingTranslation, setIsAddingTranslation] = useState(false);
+
+  // Categories for vehicle translations
+  const translationCategories: VehicleTranslationCategory[] = [
+    { id: 'technical', name: 'Especificacions tècniques', description: 'Motor, potència, consum, etc.', color: 'blue' },
+    { id: 'features', name: 'Característiques', description: 'Colors, tapisseria, equipament', color: 'green' },
+    { id: 'commercial', name: 'Informació comercial', description: 'Estat, condició, garanties', color: 'purple' },
+    { id: 'general', name: 'General', description: 'Altres traduccions generals', color: 'gray' }
+  ];
+
   // Cargar configuración existente al montar el componente
   useEffect(() => {
     loadApiConfig();
     loadTranslationConfig();
     if (activeTab === 'api-sync') {
       loadSyncLogs();
+    }
+    if (activeTab === 'vehicle-translations') {
+      loadVehicleTranslations();
     }
   }, [activeTab]);
 
@@ -174,7 +214,7 @@ export default function AdminSettings() {
     }));
   };
 
-  const handleTabChange = (tab: 'whatsapp' | 'api-sync' | 'translations') => {
+  const handleTabChange = (tab: 'whatsapp' | 'api-sync' | 'translations' | 'vehicle-translations') => {
     setActiveTab(tab);
     setSearchParams({ tab });
   };
@@ -491,6 +531,126 @@ export default function AdminSettings() {
     }
   };
 
+  // Vehicle translations functions
+  const loadVehicleTranslations = async () => {
+    setVehicleTranslationsLoading(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/vehicle-translations`, {
+        headers: {
+          'Authorization': `Basic ${btoa(`${import.meta.env.VITE_API_ADMIN_USER}:${import.meta.env.VITE_API_ADMIN_PASS}`)}`
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setVehicleTranslations(result.translations || []);
+      } else {
+        console.error('Error loading vehicle translations');
+        toast.error('Error carregant traduccions de vehicles');
+      }
+    } catch (error) {
+      console.error('Error loading vehicle translations:', error);
+      toast.error('Error carregant traduccions de vehicles');
+    } finally {
+      setVehicleTranslationsLoading(false);
+    }
+  };
+
+  const saveVehicleTranslation = async (translation: Omit<VehicleTranslation, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const url = editingTranslation 
+        ? `${import.meta.env.VITE_API_BASE_URL}/admin/vehicle-translations/${editingTranslation.id}`
+        : `${import.meta.env.VITE_API_BASE_URL}/admin/vehicle-translations`;
+      
+      const method = editingTranslation ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${btoa(`${import.meta.env.VITE_API_ADMIN_USER}:${import.meta.env.VITE_API_ADMIN_PASS}`)}`
+        },
+        body: JSON.stringify(translation)
+      });
+
+      if (response.ok) {
+        toast.success(editingTranslation ? 'Traducció actualitzada correctament' : 'Traducció creada correctament');
+        setEditingTranslation(null);
+        setIsAddingTranslation(false);
+        loadVehicleTranslations();
+      } else {
+        toast.error('Error guardant la traducció');
+      }
+    } catch (error) {
+      console.error('Error saving vehicle translation:', error);
+      toast.error('Error guardant la traducció');
+    }
+  };
+
+  const deleteVehicleTranslation = async (id: string) => {
+    if (!confirm('Estàs segur que vols eliminar aquesta traducció?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/vehicle-translations/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Basic ${btoa(`${import.meta.env.VITE_API_ADMIN_USER}:${import.meta.env.VITE_API_ADMIN_PASS}`)}`
+        }
+      });
+
+      if (response.ok) {
+        toast.success('Traducció eliminada correctament');
+        loadVehicleTranslations();
+      } else {
+        toast.error('Error eliminant la traducció');
+      }
+    } catch (error) {
+      console.error('Error deleting vehicle translation:', error);
+      toast.error('Error eliminant la traducció');
+    }
+  };
+
+  const initializeVehicleTranslations = async () => {
+    setVehicleTranslationsLoading(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/vehicle-translations/initialize`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${btoa(`${import.meta.env.VITE_API_ADMIN_USER}:${import.meta.env.VITE_API_ADMIN_PASS}`)}`
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast.success(`Traduccions inicialitzades: ${result.created} creades`);
+        loadVehicleTranslations();
+      } else {
+        toast.error('Error inicialitzant traduccions');
+      }
+    } catch (error) {
+      console.error('Error initializing vehicle translations:', error);
+      toast.error('Error inicialitzant traduccions');
+    } finally {
+      setVehicleTranslationsLoading(false);
+    }
+  };
+
+  // Filter translations based on search and category
+  const filteredTranslations = vehicleTranslations.filter(translation => {
+    const matchesSearch = searchTerm === '' || 
+      translation.key.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      translation.ca.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      translation.es.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      translation.en.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      translation.fr.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesCategory = selectedCategory === 'all' || translation.category === selectedCategory;
+    
+    return matchesSearch && matchesCategory;
+  });
+
   const formatDuration = (milliseconds: number | null) => {
     if (!milliseconds) return 'N/A';
     const seconds = Math.floor(milliseconds / 1000);
@@ -572,6 +732,19 @@ export default function AdminSettings() {
               <div className="flex items-center gap-2">
                 <Languages className="w-4 h-4" />
                 Traduccions
+              </div>
+            </button>
+            <button
+              onClick={() => handleTabChange('vehicle-translations')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'vehicle-translations'
+                  ? 'border-orange-600 text-orange-600 dark:border-orange-400 dark:text-orange-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4" />
+                Traduccions Vehicles
               </div>
             </button>
           </nav>
@@ -1461,6 +1634,229 @@ export default function AdminSettings() {
             </div>
           </div>
         </div>
+      )}
+
+      {activeTab === 'vehicle-translations' && (
+        // Vehicle Translations Management Section
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
+                  <Globe className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+                    Gestió de Traduccions de Vehicles
+                  </h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Gestiona totes les traduccions utilitzades en les fitxes de vehicles
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={initializeVehicleTranslations}
+                  disabled={vehicleTranslationsLoading}
+                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Database className="w-4 h-4" />
+                  Inicialitzar
+                </button>
+                <button
+                  onClick={() => setIsAddingTranslation(true)}
+                  className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Afegir Traducció
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6">
+            {/* Search and Filter Section */}
+            <div className="mb-6 space-y-4">
+              <div className="flex flex-col md:flex-row gap-4">
+                {/* Search */}
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Cercar traduccions..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Category Filter */}
+                <div className="w-full md:w-64">
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  >
+                    <option value="all">Totes les categories</option>
+                    {translationCategories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Category Legend */}
+              <div className="flex flex-wrap gap-3">
+                {translationCategories.map((category) => (
+                  <div key={category.id} className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full bg-${category.color}-500`}></div>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      {category.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {vehicleTranslations.length}
+                </div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  Total traduccions
+                </div>
+              </div>
+              {translationCategories.map((category) => (
+                <div key={category.id} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {vehicleTranslations.filter(t => t.category === category.id).length}
+                  </div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    {category.name}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Translations Table */}
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+              {vehicleTranslationsLoading ? (
+                <div className="p-8 text-center">
+                  <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-gray-400" />
+                  <p className="text-gray-500 dark:text-gray-400">Carregant traduccions...</p>
+                </div>
+              ) : filteredTranslations.length === 0 ? (
+                <div className="p-8 text-center">
+                  <Type className="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+                  <p className="text-gray-500 dark:text-gray-400">
+                    {searchTerm || selectedCategory !== 'all' ? 'No s\'han trobat traduccions amb els filtres aplicats' : 'No hi ha traduccions disponibles'}
+                  </p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+                    Afegeix la primera traducció per començar
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 dark:bg-gray-700">
+                      <tr>
+                        <th className="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Clau/Categoria
+                        </th>
+                        <th className="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Català
+                        </th>
+                        <th className="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Espanyol
+                        </th>
+                        <th className="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Anglès
+                        </th>
+                        <th className="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Francès
+                        </th>
+                        <th className="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Accions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                      {filteredTranslations.map((translation) => {
+                        const category = translationCategories.find(c => c.id === translation.category);
+                        return (
+                          <tr key={translation.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td className="p-4">
+                              <div className="flex flex-col">
+                                <span className="font-medium text-gray-900 dark:text-white font-mono text-sm">
+                                  {translation.key}
+                                </span>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <div className={`w-2 h-2 rounded-full bg-${category?.color || 'gray'}-500`}></div>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    {category?.name || 'Sense categoria'}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-4 text-sm text-gray-900 dark:text-white max-w-xs truncate">
+                              {translation.ca}
+                            </td>
+                            <td className="p-4 text-sm text-gray-900 dark:text-white max-w-xs truncate">
+                              {translation.es}
+                            </td>
+                            <td className="p-4 text-sm text-gray-900 dark:text-white max-w-xs truncate">
+                              {translation.en}
+                            </td>
+                            <td className="p-4 text-sm text-gray-900 dark:text-white max-w-xs truncate">
+                              {translation.fr}
+                            </td>
+                            <td className="p-4">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => setEditingTranslation(translation)}
+                                  className="p-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                                  title="Editar traducció"
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => deleteVehicleTranslation(translation.id)}
+                                  className="p-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                                  title="Eliminar traducció"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Translation Form Modal */}
+      {(isAddingTranslation || editingTranslation) && (
+        <VehicleTranslationForm
+          translation={editingTranslation}
+          categories={translationCategories}
+          onSave={saveVehicleTranslation}
+          onCancel={() => {
+            setIsAddingTranslation(false);
+            setEditingTranslation(null);
+          }}
+        />
       )}
     </AdminLayout>
   );

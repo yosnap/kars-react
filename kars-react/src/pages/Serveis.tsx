@@ -2,8 +2,12 @@ import { CheckCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import Footer from "../components/Footer";
 import PageBreadcrumbs from "../components/PageBreadcrumbs";
+import { useLanguage } from "../context/LanguageContext";
+import { staticPageTranslations } from "../translations/static-pages";
 
 export default function Serveis() {
+  const { currentLanguage } = useLanguage();
+  const t = staticPageTranslations.services[currentLanguage];
   const breadcrumbs = [
     { 
       label: { 
@@ -29,41 +33,41 @@ export default function Serveis() {
           {/* Columna de servicios */}
           <div className="space-y-6">
             {/* Título principal */}
-            <h1 className="text-5xl font-bold text-red-500 mb-8">Serveis</h1>
+            <h1 className="text-5xl font-bold text-red-500 mb-8">{t.title}</h1>
             
             <ul className="space-y-4">
               <li className="flex items-start">
                 <CheckCircle className="w-6 h-6 text-red-500 mr-3 mt-1 flex-shrink-0" />
                 <span className="text-white text-lg">
-                  <strong>Servei multi-idioma:</strong> A Kars us podem atendre de forma personalitzada en 6 idiomes: català, francès, castellà, anglès, italià i portuguès.
+                  <strong>{t.service1.split(':')[0]}:</strong> {t.service1.split(':')[1]}
                 </span>
               </li>
               
               <li className="flex items-start">
                 <CheckCircle className="w-6 h-6 text-red-500 mr-3 mt-1 flex-shrink-0" />
                 <span className="text-white text-lg">
-                  Servei integral d'importació i exportació de vehicles.
+                  {t.service2}
                 </span>
               </li>
               
               <li className="flex items-start">
                 <CheckCircle className="w-6 h-6 text-red-500 mr-3 mt-1 flex-shrink-0" />
                 <span className="text-white text-lg">
-                  Servei de represa de vehicles (inclou dipòsits venda)
+                  {t.service3}
                 </span>
               </li>
               
               <li className="flex items-start">
                 <CheckCircle className="w-6 h-6 text-red-500 mr-3 mt-1 flex-shrink-0" />
                 <span className="text-white text-lg">
-                  Servei de compra instantània de vehicles (sempre després d'un exhaustiu control)
+                  {t.service4}
                 </span>
               </li>
               
               <li className="flex items-start">
                 <CheckCircle className="w-6 h-6 text-red-500 mr-3 mt-1 flex-shrink-0" />
                 <span className="text-white text-lg">
-                  Accés a productes exclusius i edicions limitades
+                  {t.service5}
                 </span>
               </li>
             </ul>
@@ -74,7 +78,7 @@ export default function Serveis() {
                 to="/contacta"
                 className="inline-block bg-red-500 text-white px-8 py-4 font-bold text-lg uppercase hover:bg-red-600 transition-colors rounded-lg"
               >
-                CONTACTA AMB NOSALTRES
+                {t.contact}
               </Link>
             </div>
           </div>

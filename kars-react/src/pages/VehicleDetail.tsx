@@ -1,8 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useVehicleContext } from "../context/VehicleContext";
 import { useVehicleTypes } from "../hooks/useVehicleTypes";
+import { useLanguage, getVehicleDescription } from "../context/LanguageContext";
+import { useLocalizedNavigation } from "../hooks/useLocalizedNavigation";
+import useVehicleTranslations from "../hooks/useVehicleTranslations";
+import useVehicleDisplay from "../hooks/useVehicleDisplay";
 import { axiosAdmin } from "../api/axiosClient";
 import { ChevronLeft, ChevronRight, Phone, MessageCircle, Star, Mail, CheckCircle, MapPin } from "lucide-react";
 import Footer from "../components/Footer";
@@ -35,11 +39,7 @@ interface Professional {
   "registered_date"?: string;
 }
 
-// Function to get the current language (similar to PageBreadcrumbs)
-const getCurrentLanguage = () => {
-  // Default to Catalan, but can be extended to detect from URL or user preferences
-  return "ca";
-};
+// Esta función ya no es necesaria porque usamos useLanguage()
 
 // Mapeo condicional para valores de BD que no coinciden exactamente con el instalador
 const EXTRA_VALUE_MAPPING: Record<string, string> = {
@@ -68,37 +68,26 @@ const getExtraLabelFromDB = (dbValue: string, extrasLabels: Record<string, strin
   return dbValue.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 };
 
-// Function to get the description in the current language
-const getVehicleDescription = (vehicle: Vehicle) => {
-  const currentLang = getCurrentLanguage();
-  
-  // Map language codes to field names (using camelCase as in the API)
-  const descriptionFields = {
-    'ca': 'descripcioAnunciCa',
-    'es': 'descripcioAnunciEs', 
-    'en': 'descripcioAnunciEn',
-    'fr': 'descripcioAnunciFr'
-  };
-  
-  const fieldName = descriptionFields[currentLang as keyof typeof descriptionFields];
-  let description = (vehicle as any)[fieldName] as string;
-  
-  // Fallback hierarchy: current language -> Catalan -> Spanish -> English -> legacy field
-  if (!description || description.trim() === '') {
-    description = (vehicle as any).descripcioAnunciCa ||
-                 (vehicle as any).descripcioAnunciEs ||
-                 (vehicle as any).descripcioAnunciEn ||
-                 (vehicle as any).descripcioAnunci || '';
-  }
-  
-  return description;
-};
+// Esta función ya no es necesaria porque usamos getVehicleDescription del LanguageContext
 
 const VehicleDetail = () => {
   const { slug } = useParams();
   const { user } = useAuth();
   const { setCurrentVehicle, setIsVehicleDetailPage } = useVehicleContext();
   const { emissions, upholsteryColors } = useVehicleTypes();
+  const { currentLanguage, t } = useLanguage();
+  const { getLocalizedHref } = useLocalizedNavigation();
+  const { vehicleLabels } = useVehicleTranslations();
+  const { 
+    getFuelTypeDisplay, 
+    getTransmissionDisplay, 
+    getVehicleStateDisplay, 
+    getTractionDisplay,
+    getBodyworkDisplay,
+    getColorDisplay,
+    translateBooleanValue,
+    translateSpecificValue 
+  } = useVehicleDisplay();
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -113,12 +102,18 @@ const VehicleDetail = () => {
   const { isFavorite, toggleFavorite } = useFavorites();
   const isFav = vehicle ? isFavorite(String(vehicle.id)) : false;
 
+  // Memoizar la descripción para evitar re-cálculos innecesarios
+  const vehicleDescription = useMemo(() => {
+    return vehicle ? getVehicleDescription(vehicle, currentLanguage) : '';
+  }, [vehicle, currentLanguage]);
+
   useEffect(() => {
     setLoading(true);
     axiosAdmin
       .get(`/vehicles/${slug}`)
       .then((res: { data: Vehicle }) => {
         const veh = res.data;
+        
         
         if (veh) {
           setVehicle(veh);
@@ -326,7 +321,7 @@ const VehicleDetail = () => {
         en: "Vehicles",
         fr: "Véhicules"
       },
-      href: `/vehicles`
+      href: getLocalizedHref(`/vehicles`)
     } : null,
     marcaSlug ? {
       label: {
@@ -335,7 +330,7 @@ const VehicleDetail = () => {
         en: marcaLabel.charAt(0).toUpperCase() + marcaLabel.slice(1),
         fr: marcaLabel.charAt(0).toUpperCase() + marcaLabel.slice(1)
       },
-      href: `/vehicles?${marcaParam}${tipusVehicleSlug ? `&tipus-vehicle=${tipusVehicleSlug}` : ''}`
+      href: getLocalizedHref(`/vehicles?${marcaParam}${tipusVehicleSlug ? `&tipus-vehicle=${tipusVehicleSlug}` : ''}`)
     } : null,
     {
       label: {
@@ -429,24 +424,21 @@ const VehicleDetail = () => {
               </h1>
             </div>
 
-            {(() => {
-              const description = getVehicleDescription(vehicle);
-              return Boolean(description) && (
-                <div className="bg-gray-900 rounded-lg p-6">
-                  <h2 className="text-xl font-semibold text-gray-300 mb-4">Descripció</h2>
-                  <div 
-                    className="text-white prose prose-invert max-w-none [&_p]:mb-4 [&_br]:block [&_br]:content-[''] [&_br]:mt-2 [&_h1]:text-2xl [&_h2]:text-xl [&_h3]:text-lg [&_strong]:font-bold [&_em]:italic [&_ul]:list-disc [&_ol]:list-decimal [&_blockquote]:border-l-4 [&_blockquote]:border-gray-600 [&_blockquote]:pl-4 [&_blockquote]:italic"
-                    dangerouslySetInnerHTML={{ 
-                      __html: String(description) 
-                    }}
-                  />
-                </div>
-              );
-            })()}
+            {Boolean(vehicleDescription) && (
+              <div className="bg-gray-900 rounded-lg p-6">
+                <h2 className="text-xl font-semibold text-gray-300 mb-4">{vehicleLabels.description}</h2>
+                <div 
+                  className="text-white prose prose-invert max-w-none [&_p]:mb-4 [&_br]:block [&_br]:content-[''] [&_br]:mt-2 [&_h1]:text-2xl [&_h2]:text-xl [&_h3]:text-lg [&_strong]:font-bold [&_em]:italic [&_ul]:list-disc [&_ol]:list-decimal [&_blockquote]:border-l-4 [&_blockquote]:border-gray-600 [&_blockquote]:pl-4 [&_blockquote]:italic"
+                  dangerouslySetInnerHTML={{ 
+                    __html: String(vehicleDescription) 
+                  }}
+                />
+              </div>
+            )}
 
             {/* Fixa tècnica */}
             <div className="bg-gray-900 rounded-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-300 mb-6">Fitxa tècnica</h2>
+              <h2 className="text-xl font-semibold text-gray-300 mb-6">{vehicleLabels.technicalSpecs}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                 {/* Versió */}
                 {Boolean((vehicle as any).versio) && (
@@ -459,7 +451,7 @@ const VehicleDetail = () => {
                 {/* Any */}
                 {Boolean((vehicle as any).any) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Any</span>
+                    <span className="text-gray-400">{vehicleLabels.year}</span>
                     <span className="font-medium text-white">{String((vehicle as any).any)}</span>
                   </div>
                 )}
@@ -467,48 +459,48 @@ const VehicleDetail = () => {
                 {/* Tracció */}
                 {Boolean((vehicle as any).traccio) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Tracció</span>
-                    <span className="font-medium text-white capitalize">{String((vehicle as any).traccio)}</span>
+                    <span className="text-gray-400">{vehicleLabels.traction}</span>
+                    <span className="font-medium text-white">{getTractionDisplay((vehicle as any).traccio)}</span>
                   </div>
                 )}
 
                 {/* Cilindrada */}
                 {Boolean((vehicle as any).cilindrada) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Cilindrada</span>
-                    <span className="font-medium text-white">{String((vehicle as any).cilindrada)}</span>
+                    <span className="text-gray-400">{vehicleLabels.engine}</span>
+                    <span className="font-medium text-white">{String((vehicle as any).cilindrada)} {vehicleLabels.cc}</span>
                   </div>
                 )}
 
                 {/* Potència (CV) */}
                 {Boolean((vehicle as any).potenciaCv) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Potència (CV)</span>
-                    <span className="font-medium text-white">{String((vehicle as any).potenciaCv)}</span>
+                    <span className="text-gray-400">{vehicleLabels.power}</span>
+                    <span className="font-medium text-white">{String((vehicle as any).potenciaCv)} {vehicleLabels.cv}</span>
                   </div>
                 )}
 
                 {/* Potència (kW) */}
                 {Boolean((vehicle as any).potenciaKw) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Potència (kW)</span>
-                    <span className="font-medium text-white">{String((vehicle as any).potenciaKw)}</span>
+                    <span className="text-gray-400">{vehicleLabels.power} (kW)</span>
+                    <span className="font-medium text-white">{String((vehicle as any).potenciaKw)} kW</span>
                   </div>
                 )}
 
                 {/* Tipus combustible */}
                 {Boolean((vehicle as any).tipusCombustible) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Combustible</span>
-                    <span className="font-medium text-white capitalize">{String((vehicle as any).tipusCombustible)}</span>
+                    <span className="text-gray-400">{vehicleLabels.fuelType}</span>
+                    <span className="font-medium text-white">{getFuelTypeDisplay((vehicle as any).tipusCombustible)}</span>
                   </div>
                 )}
 
                 {/* Tipus canvi */}
                 {Boolean((vehicle as any).tipusCanvi) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Tipus canvi</span>
-                    <span className="font-medium text-white capitalize">{String((vehicle as any).tipusCanvi)}</span>
+                    <span className="text-gray-400">{vehicleLabels.transmission}</span>
+                    <span className="font-medium text-white">{getTransmissionDisplay((vehicle as any).tipusCanvi)}</span>
                   </div>
                 )}
 
@@ -523,24 +515,9 @@ const VehicleDetail = () => {
                 {/* Carrosseria */}
                 {Boolean((vehicle as any).carrosseriaCotxe || (vehicle as any).carrosseriaMoto || (vehicle as any).carrosseriaCaravana) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Carrosseria</span>
+                    <span className="text-gray-400">{vehicleLabels.bodywork}</span>
                     <span className="font-medium text-white">{
-                      (() => {
-                        const carroceria = String((vehicle as any).carrosseriaCotxe || (vehicle as any).carrosseriaMoto || (vehicle as any).carrosseriaCaravana);
-                        // Mapear valores comunes a etiquetas legibles
-                        const carroceriaMap: Record<string, string> = {
-                          'familiar': 'Familiar',
-                          'sedan': 'Sedán',
-                          'hatchback': 'Hatchback',
-                          'coupe': 'Cupé',
-                          'suv': 'SUV',
-                          'cabriolet': 'Cabriolet',
-                          'monovolumen': 'Monovolum',
-                          'pick-up': 'Pick-up',
-                          'roadster': 'Roadster'
-                        };
-                        return carroceriaMap[carroceria.toLowerCase()] || carroceria;
-                      })()
+                      getBodyworkDisplay(String((vehicle as any).carrosseriaCotxe || (vehicle as any).carrosseriaMoto || (vehicle as any).carrosseriaCaravana))
                     }</span>
                   </div>
                 )}
@@ -612,12 +589,12 @@ const VehicleDetail = () => {
 
             {/* Característiques */}
             <div className="bg-gray-900 rounded-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-300 mb-6">Característiques</h2>
+              <h2 className="text-xl font-semibold text-gray-300 mb-6">{vehicleLabels.features}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                 {/* Portes */}
                 {Boolean((vehicle as any).portesCotxe) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Portes</span>
+                    <span className="text-gray-400">{vehicleLabels.doors}</span>
                     <span className="font-medium text-white">{String((vehicle as any).portesCotxe)}</span>
                   </div>
                 )}
@@ -625,7 +602,7 @@ const VehicleDetail = () => {
                 {/* Places */}
                 {Boolean((vehicle as any).placesCotxe) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Places</span>
+                    <span className="text-gray-400">{vehicleLabels.seats}</span>
                     <span className="font-medium text-white">{String((vehicle as any).placesCotxe)}</span>
                   </div>
                 )}
@@ -633,15 +610,15 @@ const VehicleDetail = () => {
                 {/* Color exterior */}
                 {Boolean((vehicle as any).colorVehicle) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Color exterior</span>
-                    <span className="font-medium text-white capitalize">{String((vehicle as any).colorVehicle)}</span>
+                    <span className="text-gray-400">{vehicleLabels.color}</span>
+                    <span className="font-medium text-white">{getColorDisplay(String((vehicle as any).colorVehicle))}</span>
                   </div>
                 )}
 
                 {/* Color tapisseria */}
                 {Boolean((vehicle as any).colorTapisseria) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Color tapisseria</span>
+                    <span className="text-gray-400">{vehicleLabels.upholsteryColor}</span>
                     <span className="font-medium text-white">{
                       (() => {
                         const colorValue = String((vehicle as any).colorTapisseria);
@@ -656,7 +633,7 @@ const VehicleDetail = () => {
                 {/* Tipus tapisseria */}
                 {Boolean((vehicle as any).tipusTapisseria) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Tipus tapisseria</span>
+                    <span className="text-gray-400">{vehicleLabels.upholsteryType}</span>
                     <span className="font-medium text-white capitalize">{String((vehicle as any).tipusTapisseria)}</span>
                   </div>
                 )}
@@ -664,17 +641,17 @@ const VehicleDetail = () => {
                 {/* Climatització */}
                 {((vehicle as any).climatitzacio === true || (vehicle as any).climatitzacio === 'true') && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Climatització</span>
-                    <span className="font-medium text-white">Sí</span>
+                    <span className="text-gray-400">{vehicleLabels.airConditioning}</span>
+                    <span className="font-medium text-white">{translateBooleanValue(true)}</span>
                   </div>
                 )}
 
                 {/* Aire acondicionat */}
                 {Boolean((vehicle as any).aireAcondicionat) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Aire acondicionat</span>
+                    <span className="text-gray-400">{vehicleLabels.airConditioner}</span>
                     <span className="font-medium text-white">
-                      {(vehicle as any).aireAcondicionat === 'true' || (vehicle as any).aireAcondicionat === true ? 'Sí' : 'No'}
+                      {translateBooleanValue((vehicle as any).aireAcondicionat)}
                     </span>
                   </div>
                 )}
@@ -682,23 +659,23 @@ const VehicleDetail = () => {
                 {/* Vehicle fumador */}
                 {((vehicle as any).vehicleFumador === true || (vehicle as any).vehicleFumador === 'true') && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Vehicle fumador</span>
-                    <span className="font-medium text-white">Sí</span>
+                    <span className="text-gray-400">{vehicleLabels.smokerVehicle}</span>
+                    <span className="font-medium text-white">{translateBooleanValue(true)}</span>
                   </div>
                 )}
 
                 {/* Estat vehicle */}
                 {Boolean((vehicle as any).estatVehicle) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Estat</span>
-                    <span className="font-medium text-white capitalize">{String((vehicle as any).estatVehicle)}</span>
+                    <span className="text-gray-400">{vehicleLabels.condition}</span>
+                    <span className="font-medium text-white">{getVehicleStateDisplay((vehicle as any).estatVehicle)}</span>
                   </div>
                 )}
 
                 {/* Capacitat total */}
                 {Boolean((vehicle as any).capacitatTotal) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Capacitat total</span>
+                    <span className="text-gray-400">{vehicleLabels.totalCapacity}</span>
                     <span className="font-medium text-white">{String((vehicle as any).capacitatTotal)} kg</span>
                   </div>
                 )}
@@ -749,7 +726,7 @@ const VehicleDetail = () => {
 
             {/* Informació comercial */}
             <div className="bg-gray-900 rounded-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-300 mb-6">Informació comercial</h2>
+              <h2 className="text-xl font-semibold text-gray-300 mb-6">{vehicleLabels.commercialInfo}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                 {/* Garantia */}
                 {Boolean((vehicle as any).garantia) && (
@@ -758,11 +735,11 @@ const VehicleDetail = () => {
                     <span className="font-medium text-white">{
                       (() => {
                         const garantia = String((vehicle as any).garantia);
-                        // Convertir valores booleanos o textuales a Sí/No en catalán
+                        // Convertir valores booleanos o textuales usando traducciones dinámicas
                         if (garantia === 'true' || garantia === '1' || garantia === 'si' || garantia === 'sí' || garantia === 'yes') {
-                          return 'Sí';
+                          return translateBooleanValue(true);
                         } else if (garantia === 'false' || garantia === '0' || garantia === 'no') {
-                          return 'No';
+                          return translateBooleanValue(false);
                         }
                         // Si es otro valor, intentar capitalizar
                         return garantia.charAt(0).toUpperCase() + garantia.slice(1).toLowerCase();
@@ -775,7 +752,14 @@ const VehicleDetail = () => {
                 {Boolean((vehicle as any).origen) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
                     <span className="text-gray-400">Origen</span>
-                    <span className="font-medium text-white capitalize">{String((vehicle as any).origen)}</span>
+                    <span className="font-medium text-white">{
+                      (() => {
+                        const origen = String((vehicle as any).origen).toLowerCase();
+                        const translatedOrigin = translateSpecificValue(origen);
+                        // Si no encuentra traducción, capitalizar el original
+                        return translatedOrigin !== origen ? translatedOrigin : origen.charAt(0).toUpperCase() + origen.slice(1);
+                      })()
+                    }</span>
                   </div>
                 )}
 
@@ -800,7 +784,7 @@ const VehicleDetail = () => {
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
                     <span className="text-gray-400">Vehicle accidentat</span>
                     <span className="font-medium text-white">
-                      {(vehicle as any).vehicleAccidentat === 'true' || (vehicle as any).vehicleAccidentat === true ? 'Sí' : 'No'}
+                      {translateBooleanValue((vehicle as any).vehicleAccidentat)}
                     </span>
                   </div>
                 )}
@@ -809,7 +793,7 @@ const VehicleDetail = () => {
                 {((vehicle as any).llibreManteniment === true || (vehicle as any).llibreManteniment === 'true') && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
                     <span className="text-gray-400">Llibre manteniment</span>
-                    <span className="font-medium text-white">Sí</span>
+                    <span className="font-medium text-white">{translateBooleanValue(true)}</span>
                   </div>
                 )}
 
@@ -817,7 +801,7 @@ const VehicleDetail = () => {
                 {((vehicle as any).revisionsOficials === true || (vehicle as any).revisionsOficials === 'true') && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
                     <span className="text-gray-400">Revisions oficials</span>
-                    <span className="font-medium text-white">Sí</span>
+                    <span className="font-medium text-white">{translateBooleanValue(true)}</span>
                   </div>
                 )}
 
@@ -849,7 +833,7 @@ const VehicleDetail = () => {
                 {((vehicle as any).impostosDeduibles === true || (vehicle as any).impostosDeduibles === 'true') && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
                     <span className="text-gray-400">Impostos deduïbles</span>
-                    <span className="font-medium text-white">Sí</span>
+                    <span className="font-medium text-white">{translateBooleanValue(true)}</span>
                   </div>
                 )}
 
@@ -857,7 +841,7 @@ const VehicleDetail = () => {
                 {((vehicle as any).vehicleACanvi === true || (vehicle as any).vehicleACanvi === 'true') && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
                     <span className="text-gray-400">Vehicle a canvi</span>
-                    <span className="font-medium text-white">Accepta</span>
+                    <span className="font-medium text-white">{translateSpecificValue('accepta')}</span>
                   </div>
                 )}
 
@@ -895,7 +879,7 @@ const VehicleDetail = () => {
             {/* Extras */}
             {extrasArray.length > 0 && (
               <div>
-                <h2 className="text-2xl font-bold text-white mb-4">Extras</h2>
+                <h2 className="text-2xl font-bold text-white mb-4">{vehicleLabels.extras}</h2>
                 <div className="bg-gray-900 rounded-lg p-6">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {extrasArray.map((extra, idx) => {
@@ -961,88 +945,56 @@ const VehicleDetail = () => {
                 <div className="space-y-3 text-white">
                   {Boolean((vehicle as any).any) && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Any:</span>
+                      <span className="text-gray-400">{vehicleLabels.year}:</span>
                       <span className="font-medium">{String((vehicle as any).any)}</span>
                     </div>
                   )}
                   {Boolean((vehicle as any).cilindrada) && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Motor:</span>
+                      <span className="text-gray-400">{vehicleLabels.engine}:</span>
                       <span className="font-medium">{String((vehicle as any).cilindrada)} cc</span>
                     </div>
                   )}
                   {Boolean((vehicle as any).potenciaCv) && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Potència:</span>
+                      <span className="text-gray-400">{vehicleLabels.power}:</span>
                       <span className="font-medium">{String((vehicle as any).potenciaCv)} CV</span>
                     </div>
                   )}
                   {Boolean((vehicle as any).carrosseriaCotxe) && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Carrocería:</span>
-                      <span className="font-medium capitalize">{
-                        (() => {
-                          const carroceria = String((vehicle as any).carrosseriaCotxe);
-                          // Mapear valores comunes a etiquetas legibles
-                          const carroceriaMap: Record<string, string> = {
-                            'familiar': 'Familiar',
-                            'sedan': 'Sedán',
-                            'hatchback': 'Hatchback',
-                            'coupe': 'Cupé',
-                            'suv': 'SUV',
-                            'cabriolet': 'Cabriolet',
-                            'monovolumen': 'Monovolum',
-                            'pick-up': 'Pick-up',
-                            'roadster': 'Roadster'
-                          };
-                          return carroceriaMap[carroceria.toLowerCase()] || carroceria;
-                        })()
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.bodywork}:</span>
+                      <span className="font-medium">{getBodyworkDisplay(String((vehicle as any).carrosseriaCotxe))}</span>
                     </div>
                   )}
                   {Boolean((vehicle as any).marcaCotxe) && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Marca:</span>
+                      <span className="text-gray-400">{vehicleLabels.brand}:</span>
                       <span className="font-medium capitalize">{String((vehicle as any).marcaCotxe)}</span>
                     </div>
                   )}
                   {Boolean((vehicle as any).modelsCotxe) && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Model:</span>
+                      <span className="text-gray-400">{vehicleLabels.model}:</span>
                       <span className="font-medium capitalize">{String((vehicle as any).modelsCotxe)}</span>
                     </div>
                   )}
                   {Boolean((vehicle as any).quilometratge) && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Quilometratge:</span>
+                      <span className="text-gray-400">{vehicleLabels.mileage}:</span>
                       <span className="font-medium">{formatKilometers((vehicle as any).quilometratge)}</span>
                     </div>
                   )}
                   {Boolean((vehicle as any).tipusCombustible) && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Combustible:</span>
-                      <span className="font-medium capitalize">{
-                        (() => {
-                          const combustible = String((vehicle as any).tipusCombustible);
-                          // Mapear valores comunes a etiquetas legibles
-                          const combustibleMap: Record<string, string> = {
-                            'benzina': 'Benzina',
-                            'gasoil': 'Gasoil',
-                            'diesel': 'Dièsel',
-                            'electric': 'Elèctric',
-                            'hibrido': 'Híbrid',
-                            'gas': 'Gas',
-                            'gasolina': 'Gasolina'
-                          };
-                          return combustibleMap[combustible.toLowerCase()] || combustible;
-                        })()
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.fuelType}:</span>
+                      <span className="font-medium">{getFuelTypeDisplay(String((vehicle as any).tipusCombustible))}</span>
                     </div>
                   )}
                   {Boolean((vehicle as any).estatVehicle) && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Estat:</span>
-                      <span className="font-medium capitalize">{String((vehicle as any).estatVehicle)}</span>
+                      <span className="text-gray-400">{vehicleLabels.condition}:</span>
+                      <span className="font-medium">{getVehicleStateDisplay(String((vehicle as any).estatVehicle))}</span>
                     </div>
                   )}
                 </div>
@@ -1066,7 +1018,7 @@ const VehicleDetail = () => {
                     }`}
                   >
                     <Star className={`w-5 h-5 ${isFav ? 'fill-current' : ''}`} />
-                    {isFav ? 'Eliminar dels favorits' : 'Afegir als favorits'}
+                    {isFav ? vehicleLabels.removeFromFavorites : vehicleLabels.addToFavorites}
                   </button>
                 )}
 

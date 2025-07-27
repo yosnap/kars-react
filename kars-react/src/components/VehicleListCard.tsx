@@ -3,6 +3,7 @@ import { Badge } from "./ui/badge";
 import { Crown, Star, Calendar, Gauge, Fuel, Palette } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useFavorites } from "../hooks/useFavorites";
+import { useLocalizedNavigation } from "../hooks/useLocalizedNavigation";
 import { useToast } from "../hooks/use-toast";
 import React from "react";
 
@@ -51,6 +52,7 @@ function highlightText(text: string, query?: string) {
 
 const VehicleListCard = ({ vehicle, onUserAction, searchQuery, showSoldButton = false }: VehicleListCardProps) => {
   const navigate = useNavigate();
+  const { navigate: localizedNavigate } = useLocalizedNavigation();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { showToast } = useToast();
 
@@ -69,7 +71,7 @@ const VehicleListCard = ({ vehicle, onUserAction, searchQuery, showSoldButton = 
 
   const handleViewMore = () => {
     if (onUserAction) onUserAction();
-    navigate(`/vehicle/${vehicle.slug}`);
+    localizedNavigate(`/vehicle/${vehicle.slug}`);
   };
 
   const handleFavorite = () => {

@@ -3,6 +3,9 @@ import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Crown, Star } from "lucide-react";
 import { useFavorites } from "../hooks/useFavorites";
+import { useLanguage } from "../context/LanguageContext";
+import { useLocalizedNavigation } from "../hooks/useLocalizedNavigation";
+import useVehicleTranslations from "../hooks/useVehicleTranslations";
 import { useRef, useState } from "react";
 import { useToast } from "../hooks/use-toast";
 import React from "react";
@@ -55,13 +58,16 @@ function highlightText(text: string, query?: string) {
 
 const VehicleCard = ({ vehicle, onUserAction, searchQuery, showSoldButton = false }: VehicleCardProps) => {
   const navigate = useNavigate();
+  const { navigate: localizedNavigate } = useLocalizedNavigation();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { showToast } = useToast();
+  const { t } = useLanguage();
+  const { vehicleLabels } = useVehicleTranslations();
   const [favAnim, setFavAnim] = useState(false);
   const favTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const formatPrice = (price?: number | string) => {
-    if (!price || Number(price) === 0) return "A consultar";
+    if (!price || Number(price) === 0) return vehicleLabels.consultPrice;
     return new Intl.NumberFormat('es-ES', {
       style: 'currency',
       currency: 'EUR',
@@ -77,7 +83,7 @@ const VehicleCard = ({ vehicle, onUserAction, searchQuery, showSoldButton = fals
   const handleViewMore = () => {
     if (onUserAction) onUserAction();
     const slugOrId = vehicle.slug || vehicle.id;
-    navigate(`/vehicle/${slugOrId}`);
+    localizedNavigate(`/vehicle/${slugOrId}`);
   };
 
   const handleToggleFavorite = (e: React.MouseEvent) => {
@@ -102,7 +108,7 @@ const VehicleCard = ({ vehicle, onUserAction, searchQuery, showSoldButton = fals
       {isSold && (
         <div className="absolute -left-8 top-4 z-30" style={{ transform: 'rotate(-45deg)' }}>
           <span className="bg-red-600 text-white text-xs font-bold px-8 py-1 shadow-lg uppercase tracking-wider select-none">
-            Venut
+{vehicleLabels.sold}
           </span>
         </div>
       )}
@@ -221,7 +227,7 @@ const VehicleCard = ({ vehicle, onUserAction, searchQuery, showSoldButton = fals
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd"/>
               </svg>
-              <span>{vehicle["potencia-cv"]} cv</span>
+              <span>{vehicle["potencia-cv"]} {vehicleLabels.cv}</span>
             </div>
           )}
           
@@ -245,7 +251,7 @@ const VehicleCard = ({ vehicle, onUserAction, searchQuery, showSoldButton = fals
             }`}
             onClick={handleViewMore}
           >
-            {showSoldButton ? "Venut" : "Veure vehicle"}
+            {showSoldButton ? vehicleLabels.sold : vehicleLabels.viewVehicle}
           </button>
         </div>
       </div>

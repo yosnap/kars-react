@@ -3,6 +3,8 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, Autoplay } from 'swiper/modules';
 import VehicleCard from "./VehicleCard";
 import { axiosAdmin } from "../api/axiosClient";
+import { useLanguage, getVehicleDescription } from "../context/LanguageContext";
+import useVehicleTranslations from "../hooks/useVehicleTranslations";
 import type { Vehicle } from "../types/Vehicle";
 import { VehicleCardSkeleton } from "./VehicleCard";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -16,6 +18,8 @@ import 'swiper/css/autoplay';
 const FeaturedVehicles = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t, currentLanguage } = useLanguage();
+  const { vehicleLabels } = useVehicleTranslations();
 
   useEffect(() => {
     setLoading(true);
@@ -47,7 +51,7 @@ const FeaturedVehicles = () => {
     return (
       <section className="py-12 w-full">
         <div className="container mx-auto px-0 w-full">
-          <h2 className="text-4xl font-bold text-center mb-8 text-white">Vehicles Destacats</h2>
+          <h2 className="text-4xl font-bold text-center mb-8 text-white">{vehicleLabels.featuredTitle}</h2>
           <div className="flex gap-6 overflow-hidden px-4">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="flex-shrink-0 w-[calc(25%-18px)]">
@@ -64,7 +68,7 @@ const FeaturedVehicles = () => {
     return (
       <section className="py-12 w-full">
         <div className="container mx-auto px-0 w-full">
-          <h2 className="text-4xl font-bold text-center mb-8 text-white">Vehicles Destacats</h2>
+          <h2 className="text-4xl font-bold text-center mb-8 text-white">{vehicleLabels.featuredTitle}</h2>
           <div className="text-center py-8 text-white">
             No hi ha vehicles destacats en aquest moment.
           </div>
@@ -76,7 +80,7 @@ const FeaturedVehicles = () => {
   return (
     <section className="py-12 w-full">
       <div className="container mx-auto px-0 w-full relative">
-        <h2 className="text-4xl font-bold text-center mb-8 text-white">Vehicles Destacats</h2>
+        <h2 className="text-4xl font-bold text-center mb-8 text-white">{t('vehicles.featured_title')}</h2>
         
         <div className="relative px-4">
           {/* Botones de navegación personalizados */}
@@ -122,7 +126,7 @@ const FeaturedVehicles = () => {
               const uiVehicle = {
                 id: String(vehicle.id),
                 ["titol-anunci"]: vehicle.titolAnunci ?? vehicle["titol-anunci"] ?? "",
-                ["descripcio-anunci"]: vehicle.descripcioAnunci ?? vehicle["descripcio-anunci"] ?? "",
+                ["descripcio-anunci"]: getVehicleDescription(vehicle, currentLanguage),
                 ["marques-cotxe"]: vehicle.marcaCotxe ?? vehicle["marques-cotxe"] ?? "",
                 ["models-cotxe"]: vehicle.modelsCotxe ?? vehicle["models-cotxe"] ?? "",
                 ["estat-vehicle"]: vehicle.estatVehicle ?? vehicle["estat-vehicle"] ?? "",
