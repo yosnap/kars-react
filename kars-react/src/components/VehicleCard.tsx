@@ -87,7 +87,7 @@ const VehicleCard = ({ vehicle, onUserAction, searchQuery, showSoldButton = fals
   const handleViewMore = () => {
     if (onUserAction) onUserAction();
     const slugOrId = vehicle.slug || vehicle.id;
-    const isSold = vehicle.venut === "true" || vehicle.venut === true;
+    const isSold = vehicle.venut === "true" || vehicle.venut === "1";
     const basePath = isSold ? "/ultimes-vendes/vehicle" : "/vehicle";
     localizedNavigate(`${basePath}/${slugOrId}`);
   };
