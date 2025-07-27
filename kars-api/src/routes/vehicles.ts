@@ -20,6 +20,9 @@ router.get('/', async (req, res) => {
       'estat-vehicle': estatVehicle,
       'marca-cotxe': marcaCotxe,
       'marca-moto': marcaMoto,
+      'marques-cotxe': marquesCotxe,
+      'marques-moto': marquesMoto,
+      'marca': marca, // Filtro unificado para marca
       model,
       'any-fabricacio': any,
       preu,
@@ -51,12 +54,20 @@ router.get('/', async (req, res) => {
       where.estatVehicle = estatVehicle;
     }
     
-    if (marcaCotxe) {
-      where.marcaCotxe = marcaCotxe;
+    if (marcaCotxe || marquesCotxe) {
+      where.marcaCotxe = marcaCotxe || marquesCotxe;
     }
     
-    if (marcaMoto) {
-      where.marcaMoto = marcaMoto;
+    if (marcaMoto || marquesMoto) {
+      where.marcaMoto = marcaMoto || marquesMoto;
+    }
+    
+    // Filtro unificado de marca (busca en ambos campos)
+    if (marca) {
+      where.OR = [
+        { marcaCotxe: marca },
+        { marcaMoto: marca }
+      ];
     }
     
     if (model) {

@@ -32,7 +32,48 @@
 - Cuando subamos versión o algun cambio que eso implique, siempre tienes que preguntarme la versión a la que subimos
 
 ## Recent Updates (July 2025)
-### Latest: Localized URLs System & Internationalization v0.3.0 (July 27, 2025)
+### Latest: Separate Vehicle URLs & SEO Improvements v0.3.1 (July 27, 2025)
+
+#### ✅ Separate URLs for Sold vs Available Vehicles
+1. **URL Structure Differentiation** - Estructuras de URL específicas
+   - **Available vehicles**: `/vehicles/brand`, `/vehicle/slug`
+   - **Sold vehicles**: `/ultimes-vendes/marca/brand`, `/ultimes-vendes/vehicle/slug`
+   - Multilingual support for all routes across 4 languages
+   - Clear semantic separation for SEO and user experience
+
+2. **Active Menu State System** - Sistema de estado activo en menú
+   - Intelligent route detection for parent menu items
+   - Handles nested routes correctly (vehicle detail pages activate parent menu)
+   - Works with all language variations and URL structures
+   - Proper highlighting in both desktop and mobile menus
+
+3. **SEO-Critical Improvements** - Mejoras críticas para SEO
+   - Dynamic `lang` attribute in HTML based on current language
+   - Proper language detection by search engines
+   - Eliminates incorrect SEO indexing (all pages were indexed as Catalan)
+   - Full multilingual SEO compliance
+
+4. **Breadcrumb Navigation Enhancements** - Mejoras en navegación breadcrumbs
+   - Context-aware breadcrumbs for sold vs available vehicles
+   - Fixed hover effects to only affect individual links
+   - Proper brand linking that maintains vehicle state context
+   - Localized breadcrumb text for all languages
+
+#### 🔧 Technical Implementation
+- **Router Configuration**: Complete route mapping for sold/available vehicles
+- **Navigation Hooks**: Enhanced `useLocalizedNavigation` for complex routing
+- **State Detection**: Intelligent `isActiveRoute()` function for menu states
+- **SEO Optimization**: Dynamic HTML lang attribute management
+- **Component Updates**: VehicleCard, VehicleDetail, Header, PageBreadcrumbs
+
+#### 🎯 System Status
+- ✅ Separate URLs: Complete implementation for all languages
+- ✅ Menu states: Active highlighting working correctly
+- ✅ SEO compliance: Dynamic lang attribute functioning
+- ✅ Breadcrumbs: Context-aware navigation implemented
+- ✅ User experience: Clear distinction between sold/available vehicles
+
+### Previous: Localized URLs System & Internationalization v0.3.0 (July 27, 2025)
 
 #### ✅ Localized URLs System Implementation
 1. **Friendly URLs with Language Prefix** - Sistema completo de URLs amigables
