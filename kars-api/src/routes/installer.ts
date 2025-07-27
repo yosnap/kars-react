@@ -94,17 +94,17 @@ router.get('/status', async (req, res) => {
       {
         id: 'brands',
         name: 'Marcas de Vehículos',
-        description: 'Importar 275 marcas (137 coches + 140 motos)',
-        status: brandsCount >= 275 ? 'completed' : 'pending',
-        progress: brandsCount >= 275 ? 100 : 0,
+        description: 'Importar 268 marcas únicas (137 coches + 140 motos - 9 duplicadas)',
+        status: brandsCount >= 268 ? 'completed' : 'pending',
+        progress: brandsCount >= 268 ? 100 : Math.round((brandsCount / 268) * 100),
         count: brandsCount
       },
       {
         id: 'models',
         name: 'Modelos de Vehículos',
-        description: 'Importar 2,816 modelos vinculados a sus marcas',
-        status: modelsCount >= 2800 ? 'completed' : 'pending',
-        progress: modelsCount >= 2800 ? 100 : Math.round((modelsCount / 2816) * 100),
+        description: 'Importar 3,900 modelos vinculados a sus marcas (2,234 coches + 1,666 motos)',
+        status: modelsCount >= 3900 ? 'completed' : 'pending',
+        progress: modelsCount >= 3900 ? 100 : Math.round((modelsCount / 3900) * 100),
         count: modelsCount
       },
       {
@@ -411,9 +411,9 @@ router.post('/install', async (req, res) => {
       const path = require('path');
       
       const possiblePaths = [
-        path.join(process.cwd(), 'data/models.json'),
-        path.join(__dirname, '../../../data/models.json'),
-        path.join(__dirname, '../../data/models.json')
+        path.join(process.cwd(), 'data/brands-and-models.json'),
+        path.join(__dirname, '../../../data/brands-and-models.json'),
+        path.join(__dirname, '../../data/brands-and-models.json')
       ];
       
       let modelsData: any;
@@ -426,7 +426,7 @@ router.post('/install', async (req, res) => {
       }
 
       if (!modelsData) {
-        throw new Error('Models file not found');
+        throw new Error('brands-and-models.json file not found');
       }
 
       // Importar modelos de coches

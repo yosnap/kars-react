@@ -2,8 +2,16 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 
-// Payloads de marcas que ya tenemos
-const CAR_BRANDS_PAYLOAD = [
+// Importar marcas desde el archivo actualizado
+const { brandsData } = require('../dist/data/brands-data.js');
+
+// Usar las marcas del archivo brands-data.ts
+const CAR_BRANDS_PAYLOAD = brandsData.carBrands;
+const MOTORCYCLE_BRANDS_PAYLOAD = brandsData.motorcycleBrands;
+
+/*
+// Comentado: marcas hardcodeadas obsoletas
+const CAR_BRANDS_PAYLOAD_OLD = [
   {"value":"abarth","label":"Abarth"},
   {"value":"acura","label":"Acura"},
   {"value":"alfa-romeo","label":"Alfa Romeo"},
@@ -85,7 +93,7 @@ const CAR_BRANDS_PAYLOAD = [
   {"value":"xpeng","label":"XPeng"}
 ];
 
-const MOTORCYCLE_BRANDS_PAYLOAD = [
+const MOTORCYCLE_BRANDS_PAYLOAD_OLD = [
   {"value":"aprilia","label":"Aprilia"},
   {"value":"benelli","label":"Benelli"},
   {"value":"beta","label":"Beta"},
@@ -112,6 +120,7 @@ const MOTORCYCLE_BRANDS_PAYLOAD = [
   {"value":"vespa","label":"Vespa"},
   {"value":"yamaha","label":"Yamaha"}
 ];
+*/
 
 // Cliente axios con timeout
 const apiClient = axios.create({
@@ -126,8 +135,8 @@ async function downloadModelsForBrand(brand, vehicleType) {
     console.log(`📡 Descargando modelos para ${vehicleType === 'car' ? 'coche' : 'moto'}: ${brand.label}...`);
     
     const endpoint = vehicleType === 'car' 
-      ? `https://api.motoraldia.com/wp-json/api-motor/v1/marques-cotxe?marca=${brand.value}`
-      : `https://api.motoraldia.com/wp-json/api-motor/v1/marques-moto?marca=${brand.value}`;
+      ? `https://motoraldia.net/wp-json/api-motor/v1/marques-cotxe?marca=${brand.value}`
+      : `https://motoraldia.net/wp-json/api-motor/v1/marques-moto?marca=${brand.value}`;
     
     const response = await apiClient.get(endpoint);
     
