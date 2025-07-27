@@ -87,7 +87,9 @@ const VehicleCard = ({ vehicle, onUserAction, searchQuery, showSoldButton = fals
   const handleViewMore = () => {
     if (onUserAction) onUserAction();
     const slugOrId = vehicle.slug || vehicle.id;
-    localizedNavigate(`/vehicle/${slugOrId}`);
+    const isSold = vehicle.venut === "true" || vehicle.venut === true;
+    const basePath = isSold ? "/ultimes-vendes/vehicle" : "/vehicle";
+    localizedNavigate(`${basePath}/${slugOrId}`);
   };
 
   const handleToggleFavorite = (e: React.MouseEvent) => {

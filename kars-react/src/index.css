@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Breadcrumb hover fix */
+.breadcrumb-container .breadcrumb-link a:hover {
+  color: rgb(var(--primary)) !important;
+}
+
 /* TipTap Editor Styles */
 .ProseMirror {
   outline: none;

@@ -70,7 +70,11 @@ const getExtraLabelFromDB = (dbValue: string, extrasLabels: Record<string, strin
 
 // Esta función ya no es necesaria porque usamos getVehicleDescription del LanguageContext
 
-const VehicleDetail = () => {
+interface VehicleDetailProps {
+  isSoldVehicle?: boolean;
+}
+
+const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
   const { slug } = useParams();
   const { user } = useAuth();
   const { setCurrentVehicle, setIsVehicleDetailPage } = useVehicleContext();
@@ -310,18 +314,22 @@ const VehicleDetail = () => {
   const brandObj = brands.find(b => b.label.toLowerCase() === marcaLabel.toLowerCase());
   const marcaSlug = brandObj ? brandObj.value : marcaLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   
-  // Construir el parámetro de filtro de marca correcto
-  const marcaParam = isMoto ? `marques-moto=${marcaSlug}` : `marques-cotxe=${marcaSlug}`;
-  
   const breadcrumbItems = [
     tipusVehicleSlug ? {
-      label: {
+      label: isSoldVehicle ? {
+        es: "Últimas ventas",
+        ca: "Últimes vendes", 
+        en: "Latest sales",
+        fr: "Dernières ventes"
+      } : {
         es: "Vehículos",
         ca: "Vehicles", 
         en: "Vehicles",
         fr: "Véhicules"
       },
-      href: getLocalizedHref(`/vehicles`)
+      href: isSoldVehicle 
+        ? getLocalizedHref(`/ultimes-vendes`)
+        : getLocalizedHref(`/vehicles`)
     } : null,
     marcaSlug ? {
       label: {
@@ -330,7 +338,9 @@ const VehicleDetail = () => {
         en: marcaLabel.charAt(0).toUpperCase() + marcaLabel.slice(1),
         fr: marcaLabel.charAt(0).toUpperCase() + marcaLabel.slice(1)
       },
-      href: getLocalizedHref(`/vehicles?${marcaParam}${tipusVehicleSlug ? `&tipus-vehicle=${tipusVehicleSlug}` : ''}`)
+      href: isSoldVehicle 
+        ? getLocalizedHref(`/ultimes-vendes/marca/${marcaSlug}`)
+        : getLocalizedHref(`/vehicles/${marcaSlug}`)
     } : null,
     {
       label: {
@@ -1124,7 +1134,7 @@ const VehicleDetail = () => {
         {/* Disclaimer */}
         <div className="mt-12 p-4 bg-gray-900 rounded-lg">
           <p className="text-gray-400 text-sm text-center">
-            *HEM ESTAT CUROSOS EN LA DESCRIPCIÓ DE LES CARACTERÍSTIQUES D'AQUEST VEHICLE. TOT I AIXÍ NO REPRESENTEN UNA GARANTIA PER ERRORS D'ESCRIPTURA I LA TRANSMISSIÓ DE LES DADES.
+            {t('disclaimer')}
           </p>
         </div>
       </div>

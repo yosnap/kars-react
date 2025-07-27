@@ -31,6 +31,8 @@ import CotxesLloguerPage from "./pages/cotxes-lloguer-a-andorra";
 import CotxesClassicsPage from "./pages/cotxes-classics-a-andorra";
 import CotxesRentingPage from "./pages/cotxes-renting-a-andorra";
 import FavoritosPage from "./pages/favorits";
+import BrandPage from "./pages/BrandPage";
+import SoldBrandPage from "./pages/SoldBrandPage";
 import UltimesVendes from "./pages/UltimesVendes";
 import QuiSom from "./pages/QuiSom";
 import Taller from "./pages/Taller";
@@ -141,8 +143,11 @@ function App() {
           <Route path="/new" element={<NewVehicle />} />
           <Route path="/login" element={<Login />} />
           <Route path="/vehicles" element={<CotxesAndorra />} />
+          <Route path="/vehicles/:brand" element={<BrandPage />} />
           <Route path="/favorits" element={<FavoritosPage />} />
           <Route path="/ultimes-vendes" element={<UltimesVendes />} />
+          <Route path="/ultimes-vendes/marca/:brand" element={<SoldBrandPage />} />
+          <Route path="/ultimes-vendes/vehicle/:slug" element={<VehicleDetail isSoldVehicle={true} />} />
           <Route path="/qui-som" element={<QuiSom />} />
           <Route path="/taller" element={<Taller />} />
           <Route path="/serveis" element={<Serveis />} />
@@ -173,8 +178,11 @@ function App() {
           {/* Rutas localizadas - Español */}
           <Route path="/es" element={<Home onSearch={handleSearch} />} />
           <Route path="/es/vehiculos" element={<CotxesAndorra />} />
+          <Route path="/es/vehiculos/:brand" element={<BrandPage />} />
           <Route path="/es/vehiculo/:slug" element={<VehicleDetail />} />
           <Route path="/es/ultimas-ventas" element={<UltimesVendes />} />
+          <Route path="/es/ultimas-ventas/marca/:brand" element={<SoldBrandPage />} />
+          <Route path="/es/ultimas-ventas/vehicle/:slug" element={<VehicleDetail isSoldVehicle={true} />} />
           <Route path="/es/quienes-somos" element={<QuiSom />} />
           <Route path="/es/taller" element={<Taller />} />
           <Route path="/es/servicios" element={<Serveis />} />
@@ -183,8 +191,11 @@ function App() {
           {/* Rutas localizadas - Inglés */}
           <Route path="/en" element={<Home onSearch={handleSearch} />} />
           <Route path="/en/vehicles" element={<CotxesAndorra />} />
+          <Route path="/en/vehicles/:brand" element={<BrandPage />} />
           <Route path="/en/vehicle/:slug" element={<VehicleDetail />} />
           <Route path="/en/latest-sales" element={<UltimesVendes />} />
+          <Route path="/en/latest-sales/brand/:brand" element={<SoldBrandPage />} />
+          <Route path="/en/latest-sales/vehicle/:slug" element={<VehicleDetail isSoldVehicle={true} />} />
           <Route path="/en/about-us" element={<QuiSom />} />
           <Route path="/en/workshop" element={<Taller />} />
           <Route path="/en/services" element={<Serveis />} />
@@ -193,8 +204,11 @@ function App() {
           {/* Rutas localizadas - Francés */}
           <Route path="/fr" element={<Home onSearch={handleSearch} />} />
           <Route path="/fr/vehicules" element={<CotxesAndorra />} />
+          <Route path="/fr/vehicules/:brand" element={<BrandPage />} />
           <Route path="/fr/vehicule/:slug" element={<VehicleDetail />} />
           <Route path="/fr/dernieres-ventes" element={<UltimesVendes />} />
+          <Route path="/fr/dernieres-ventes/marque/:brand" element={<SoldBrandPage />} />
+          <Route path="/fr/dernieres-ventes/vehicle/:slug" element={<VehicleDetail isSoldVehicle={true} />} />
           <Route path="/fr/qui-sommes-nous" element={<QuiSom />} />
           <Route path="/fr/atelier" element={<Taller />} />
           <Route path="/fr/services" element={<Serveis />} />
@@ -203,8 +217,11 @@ function App() {
           {/* Rutas localizadas - Catalán */}
           <Route path="/ca" element={<Home onSearch={handleSearch} />} />
           <Route path="/ca/vehicles" element={<CotxesAndorra />} />
+          <Route path="/ca/vehicles/:brand" element={<BrandPage />} />
           <Route path="/ca/vehicle/:slug" element={<VehicleDetail />} />
           <Route path="/ca/ultimes-vendes" element={<UltimesVendes />} />
+          <Route path="/ca/ultimes-vendes/marca/:brand" element={<SoldBrandPage />} />
+          <Route path="/ca/ultimes-vendes/vehicle/:slug" element={<VehicleDetail isSoldVehicle={true} />} />
           <Route path="/ca/qui-som" element={<QuiSom />} />
           <Route path="/ca/taller" element={<Taller />} />
           <Route path="/ca/serveis" element={<Serveis />} />

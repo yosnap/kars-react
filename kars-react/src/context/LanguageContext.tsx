@@ -596,6 +596,11 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
 
   const [currentLanguage, setCurrentLanguage] = useState<Language>(getInitialLanguage);
 
+  // Establecer el idioma en el HTML cuando cambie
+  useEffect(() => {
+    document.documentElement.lang = currentLanguage;
+  }, [currentLanguage]);
+
   // Función para cambiar idioma
   const setLanguage = (language: Language) => {
     setCurrentLanguage(language);
@@ -699,6 +704,8 @@ const routeMappings: Record<string, Record<Language, string>> = {
   '/vehicles': { ca: '/vehicles', es: '/vehiculos', en: '/vehicles', fr: '/vehicules' },
   '/vehicle': { ca: '/vehicle', es: '/vehiculo', en: '/vehicle', fr: '/vehicule' },
   '/ultimes-vendes': { ca: '/ultimes-vendes', es: '/ultimas-ventas', en: '/latest-sales', fr: '/dernieres-ventes' },
+  '/ultimes-vendes/vehicle': { ca: '/ultimes-vendes/vehicle', es: '/ultimas-ventas/vehicle', en: '/latest-sales/vehicle', fr: '/dernieres-ventes/vehicle' },
+  '/ultimes-vendes/marca': { ca: '/ultimes-vendes/marca', es: '/ultimas-ventas/marca', en: '/latest-sales/brand', fr: '/dernieres-ventes/marque' },
   '/qui-som': { ca: '/qui-som', es: '/quienes-somos', en: '/about-us', fr: '/qui-sommes-nous' },
   '/taller': { ca: '/taller', es: '/taller', en: '/workshop', fr: '/atelier' },
   '/serveis': { ca: '/serveis', es: '/servicios', en: '/services', fr: '/services' },
@@ -712,22 +719,51 @@ export const getLocalizedPath = (path: string, language: Language = 'ca'): strin
     return path;
   }
   
-  // Separar el path base de los parámetros dinámicos (ej: /vehicle/:slug)
-  const pathParts = path.split('/');
-  const basePath = pathParts.slice(0, 2).join('/'); // ej: /vehicle
-  const dynamicParts = pathParts.slice(2); // ej: [:slug] o [actualSlug]
+  // Separar path de query parameters
+  const [basePath, queryString] = path.split('?');
   
-  // Buscar mapeo para el path base
-  const mapping = routeMappings[basePath];
-  const localizedBasePath = mapping ? mapping[language] : basePath;
+  // Separar el path base de los parámetros dinámicos
+  const pathParts = basePath.split('/');
+  
+  // Buscar el mapeo más específico primero (3 segmentos, luego 2, luego 1)
+  let basePathSegment = '';
+  let dynamicParts: string[] = [];
+  let mapping = null;
+  
+  // Intentar con 3 segmentos (/ultimes-vendes/vehicle)
+  if (pathParts.length >= 3) {
+    basePathSegment = pathParts.slice(0, 3).join('/');
+    mapping = routeMappings[basePathSegment];
+    if (mapping) {
+      dynamicParts = pathParts.slice(3);
+    }
+  }
+  
+  // Si no hay mapeo, intentar con 2 segmentos (/vehicle)
+  if (!mapping && pathParts.length >= 2) {
+    basePathSegment = pathParts.slice(0, 2).join('/');
+    mapping = routeMappings[basePathSegment];
+    if (mapping) {
+      dynamicParts = pathParts.slice(2);
+    }
+  }
+  
+  // Si no hay mapeo, usar el path completo como base
+  if (!mapping) {
+    basePathSegment = basePath;
+    dynamicParts = [];
+  }
+  
+  const localizedBasePath = mapping ? mapping[language] : basePathSegment;
   
   // Reconstruir path completo
   const fullLocalizedPath = dynamicParts.length > 0 
     ? `${localizedBasePath}/${dynamicParts.join('/')}`
     : localizedBasePath;
   
-  // Agregar prefijo de idioma
-  return `/${language}${fullLocalizedPath}`;
+  // Agregar prefijo de idioma y query parameters si existen
+  const localizedPathWithPrefix = `/${language}${fullLocalizedPath}`;
+  return queryString ? `${localizedPathWithPrefix}?${queryString}` : localizedPathWithPrefix;
 };
 
 // Función helper para extraer el path sin prefijo de idioma

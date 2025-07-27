@@ -20,6 +20,18 @@ export default function CotxesAndorra() {
   if (searchParams.get("search")) {
     initialFilters["search"] = searchParams.get("search");
   }
+  
+  if (searchParams.get("marques-cotxe")) {
+    initialFilters["marques-cotxe"] = searchParams.get("marques-cotxe");
+  }
+  
+  if (searchParams.get("marques-moto")) {
+    initialFilters["marques-moto"] = searchParams.get("marques-moto");
+  }
+  
+  if (searchParams.get("estat-vehicle")) {
+    initialFilters["estat-vehicle"] = searchParams.get("estat-vehicle");
+  }
 
   return (
     <VehicleListLayout

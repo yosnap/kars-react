@@ -77,7 +77,10 @@ const VehicleListCard = ({ vehicle, onUserAction, searchQuery, showSoldButton = 
 
   const handleViewMore = () => {
     if (onUserAction) onUserAction();
-    localizedNavigate(`/vehicle/${vehicle.slug}`);
+    const slugOrId = vehicle.slug || vehicle.id;
+    const isSold = vehicle.venut === "true" || vehicle.venut === true;
+    const basePath = isSold ? "/ultimes-vendes/vehicle" : "/vehicle";
+    localizedNavigate(`${basePath}/${slugOrId}`);
   };
 
   const handleFavorite = () => {

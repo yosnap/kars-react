@@ -22,6 +22,58 @@ export default function Header({ onSearch, onOpenAdvancedSearch }: HeaderProps) 
   const { getLocalizedHref } = useLocalizedNavigation();
   const navigate = useNavigate();
 
+  // Función para determinar si una ruta está activa
+  const isActiveRoute = (routePath: string): boolean => {
+    const currentPath = location.pathname;
+    
+    // Remover prefijos de idioma para comparar
+    const cleanPath = currentPath.replace(/^\/(ca|es|en|fr)/, '') || '/';
+    
+    
+    // Mapeo de rutas base con todas sus traducciones
+    const routeTranslations: Record<string, string[]> = {
+      '/': ['/'],
+      '/vehicles': ['/vehicles', '/vehiculos', '/vehicules'],
+      '/ultimes-vendes': ['/ultimes-vendes', '/ultimas-ventas', '/latest-sales', '/dernieres-ventes'],
+      '/qui-som': ['/qui-som', '/quienes-somos', '/about-us', '/qui-sommes-nous'],
+      '/taller': ['/taller', '/workshop', '/atelier'],
+      '/serveis': ['/serveis', '/servicios', '/services'],
+      '/contacta': ['/contacta', '/contacto', '/contact']
+    };
+    
+    // Casos especiales para rutas anidadas
+    if (routePath === '/vehicles') {
+      const vehicleRoutes = routeTranslations['/vehicles'];
+      // También incluir rutas de detalle de vehículo (/vehicle/slug)
+      const vehicleDetailRoutes = ['/vehicle', '/vehiculo', '/vehicule'];
+      return vehicleRoutes.some(route => 
+        cleanPath === route || cleanPath.startsWith(route + '/')
+      ) || vehicleDetailRoutes.some(route => 
+        cleanPath.startsWith(route + '/')
+      );
+    }
+    
+    if (routePath === '/ultimes-vendes') {
+      const salesRoutes = routeTranslations['/ultimes-vendes'];
+      return salesRoutes.some(route => 
+        cleanPath === route || cleanPath.startsWith(route + '/')
+      );
+    }
+    
+    // Para home, ser más específico
+    if (routePath === '/') {
+      return cleanPath === '/';
+    }
+    
+    // Para otras rutas, verificar todas las traducciones
+    const translations = routeTranslations[routePath] || [routePath];
+    const result = translations.some(route => 
+      cleanPath === route || cleanPath === route + '/'
+    );
+    
+    return result;
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/');
@@ -51,43 +103,43 @@ export default function Header({ onSearch, onOpenAdvancedSearch }: HeaderProps) 
           <nav className="hidden md:flex items-center space-x-8">
             <Link 
               to={getLocalizedHref("/")} 
-              className={`text-white hover:text-primary transition-colors text-sm font-medium ${location.pathname === '/' ? 'text-primary' : ''}`}
+              className={`text-white hover:text-primary transition-colors text-sm font-medium ${isActiveRoute('/') ? '!text-primary' : ''}`}
             >
               {t('nav.home')}
             </Link>
             <Link 
               to={getLocalizedHref("/qui-som")} 
-              className={`text-white hover:text-primary transition-colors text-sm font-medium ${location.pathname === '/qui-som' ? 'text-primary' : ''}`}
+              className={`text-white hover:text-primary transition-colors text-sm font-medium ${isActiveRoute('/qui-som') ? '!text-primary' : ''}`}
             >
               {t('nav.about')}
             </Link>
             <Link 
               to={getLocalizedHref("/taller")} 
-              className={`text-white hover:text-primary transition-colors text-sm font-medium ${location.pathname === '/taller' ? 'text-primary' : ''}`}
+              className={`text-white hover:text-primary transition-colors text-sm font-medium ${isActiveRoute('/taller') ? '!text-primary' : ''}`}
             >
               {t('nav.workshop')}
             </Link>
             <Link 
               to={getLocalizedHref("/serveis")} 
-              className={`text-white hover:text-primary transition-colors text-sm font-medium ${location.pathname === '/serveis' ? 'text-primary' : ''}`}
+              className={`text-white hover:text-primary transition-colors text-sm font-medium ${isActiveRoute('/serveis') ? '!text-primary' : ''}`}
             >
               {t('nav.services')}
             </Link>
             <Link 
               to={getLocalizedHref("/vehicles")} 
-              className={`text-white hover:text-primary transition-colors text-sm font-medium ${location.pathname === '/vehicles' ? 'text-primary' : ''}`}
+              className={`text-white hover:text-primary transition-colors text-sm font-medium ${isActiveRoute('/vehicles') ? '!text-primary' : ''}`}
             >
               {t('nav.vehicles')}
             </Link>
             <Link 
               to={getLocalizedHref("/ultimes-vendes")} 
-              className={`text-white hover:text-primary transition-colors text-sm font-medium ${location.pathname === '/ultimes-vendes' ? 'text-primary' : ''}`}
+              className={`text-white hover:text-primary transition-colors text-sm font-medium ${isActiveRoute('/ultimes-vendes') ? '!text-primary' : ''}`}
             >
               {t('nav.latest_sales')}
             </Link>
             <Link 
               to={getLocalizedHref("/contacta")} 
-              className={`text-white hover:text-primary transition-colors text-sm font-medium ${location.pathname === '/contacta' ? 'text-primary' : ''}`}
+              className={`text-white hover:text-primary transition-colors text-sm font-medium ${isActiveRoute('/contacta') ? '!text-primary' : ''}`}
             >
               {t('nav.contact')}
             </Link>
@@ -159,13 +211,13 @@ export default function Header({ onSearch, onOpenAdvancedSearch }: HeaderProps) 
       {mobileMenuOpen && (
         <div className="md:hidden bg-black border-t border-gray-800">
           <div className="px-2 pt-2 pb-3 space-y-1">
-            <Link to={getLocalizedHref("/")} className="block px-3 py-2 text-white hover:text-primary">{t('nav.home')}</Link>
-            <Link to={getLocalizedHref("/qui-som")} className="block px-3 py-2 text-white hover:text-primary">{t('nav.about')}</Link>
-            <Link to={getLocalizedHref("/taller")} className="block px-3 py-2 text-white hover:text-primary">{t('nav.workshop')}</Link>
-            <Link to={getLocalizedHref("/serveis")} className="block px-3 py-2 text-white hover:text-primary">{t('nav.services')}</Link>
-            <Link to={getLocalizedHref("/vehicles")} className="block px-3 py-2 text-white hover:text-primary">{t('nav.vehicles')}</Link>
-            <Link to={getLocalizedHref("/ultimes-vendes")} className="block px-3 py-2 text-white hover:text-primary">{t('nav.latest_sales')}</Link>
-            <Link to={getLocalizedHref("/contacta")} className="block px-3 py-2 text-white hover:text-primary">{t('nav.contact')}</Link>
+            <Link to={getLocalizedHref("/")} className={`block px-3 py-2 text-white hover:text-primary ${isActiveRoute('/') ? '!text-primary bg-gray-800' : ''}`}>{t('nav.home')}</Link>
+            <Link to={getLocalizedHref("/qui-som")} className={`block px-3 py-2 text-white hover:text-primary ${isActiveRoute('/qui-som') ? '!text-primary bg-gray-800' : ''}`}>{t('nav.about')}</Link>
+            <Link to={getLocalizedHref("/taller")} className={`block px-3 py-2 text-white hover:text-primary ${isActiveRoute('/taller') ? '!text-primary bg-gray-800' : ''}`}>{t('nav.workshop')}</Link>
+            <Link to={getLocalizedHref("/serveis")} className={`block px-3 py-2 text-white hover:text-primary ${isActiveRoute('/serveis') ? '!text-primary bg-gray-800' : ''}`}>{t('nav.services')}</Link>
+            <Link to={getLocalizedHref("/vehicles")} className={`block px-3 py-2 text-white hover:text-primary ${isActiveRoute('/vehicles') ? '!text-primary bg-gray-800' : ''}`}>{t('nav.vehicles')}</Link>
+            <Link to={getLocalizedHref("/ultimes-vendes")} className={`block px-3 py-2 text-white hover:text-primary ${isActiveRoute('/ultimes-vendes') ? '!text-primary bg-gray-800' : ''}`}>{t('nav.latest_sales')}</Link>
+            <Link to={getLocalizedHref("/contacta")} className={`block px-3 py-2 text-white hover:text-primary ${isActiveRoute('/contacta') ? '!text-primary bg-gray-800' : ''}`}>{t('nav.contact')}</Link>
             {/* Mobile Auth Section */}
             <div className="px-3 py-2 space-y-2">
               {user ? (

@@ -301,7 +301,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
 
         {/* Migas de pan minimalistas */}
         {breadcrumbs.length > 0 && (
-          <div className="mb-4 text-white [&_*]:!text-white [&_a]:!text-white [&_a]:hover:!text-primary [&_.text-primary]:!text-primary [&_[aria-current='page']]:!text-primary">
+          <div className="mb-4 text-white [&_*]:!text-white [&_a]:!text-white [&_.text-primary]:!text-primary [&_[aria-current='page']]:!text-primary breadcrumb-container">
             <PageBreadcrumbs
               items={breadcrumbs.map(b => ({
                 ...b,
@@ -356,7 +356,8 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
                 endIndex={endIndex}
               />
             </div>
-          {/* Fila de filtros aplicados y botón quitar filtros (solo si hay filtros activos) */}
+          {/* Fila de filtros aplicados y botón quitar filtros (solo si hay filtros activos y no están ocultos) */}
+          {!hideFilters && (
           <div className="mb-6 flex flex-wrap gap-2 items-center min-h-[40px]">
             {(() => {
               const appliedFilters: Record<string, string | boolean> = { ...initialFilters, ...filters };
@@ -413,6 +414,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
               </>;
             })()}
           </div>
+          )}
           {renderVehicles()}
           {/* Paginación visual */}
           <div className="flex justify-center items-center gap-4 mt-8">
