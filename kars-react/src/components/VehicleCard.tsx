@@ -6,6 +6,7 @@ import { useFavorites } from "../hooks/useFavorites";
 import { useLanguage } from "../context/LanguageContext";
 import { useLocalizedNavigation } from "../hooks/useLocalizedNavigation";
 import useVehicleTranslations from "../hooks/useVehicleTranslations";
+import { useVehicleDisplay } from "../hooks/useVehicleDisplay";
 import { useRef, useState } from "react";
 import { useToast } from "../hooks/use-toast";
 import React from "react";
@@ -23,6 +24,8 @@ export interface VehicleUI {
   preu?: string;
   "preu-antic"?: string;
   "preu-anterior"?: string;
+  preuAntic?: string;
+  preuAnterior?: string;
   "color-vehicle"?: string;
   "tipus-combustible"?: string;
   "potencia-cv"?: string;
@@ -61,8 +64,9 @@ const VehicleCard = ({ vehicle, onUserAction, searchQuery, showSoldButton = fals
   const { navigate: localizedNavigate } = useLocalizedNavigation();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { showToast } = useToast();
-  const { t } = useLanguage();
+  const { t, currentLanguage } = useLanguage();
   const { vehicleLabels } = useVehicleTranslations();
+  const { getVehicleStateDisplay } = useVehicleDisplay();
   const [favAnim, setFavAnim] = useState(false);
   const favTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -168,7 +172,7 @@ const VehicleCard = ({ vehicle, onUserAction, searchQuery, showSoldButton = fals
         {vehicle["estat-vehicle"] && (
           <div className="mb-3">
             <span className="inline-block text-xs font-medium px-2 py-1 rounded text-primary" style={{ backgroundColor: '#eeeeee' }}>
-              {vehicle["estat-vehicle"]}
+              {getVehicleStateDisplay(vehicle["estat-vehicle"])}
             </span>
           </div>
         )}

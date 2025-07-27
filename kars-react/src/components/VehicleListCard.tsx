@@ -5,6 +5,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useFavorites } from "../hooks/useFavorites";
 import { useLocalizedNavigation } from "../hooks/useLocalizedNavigation";
 import { useToast } from "../hooks/use-toast";
+import { useVehicleDisplay } from "../hooks/useVehicleDisplay";
+import { useLanguage } from "../context/LanguageContext";
 import React from "react";
 
 // Función para decodificar entidades HTML
@@ -25,6 +27,8 @@ export interface VehicleUI {
   any?: string;
   quilometratge?: string;
   preu?: string;
+  preuAntic?: string;
+  preuAnterior?: string;
   "color-vehicle"?: string;
   "tipus-combustible"?: string;
   "potencia-cv"?: string;
@@ -55,6 +59,8 @@ const VehicleListCard = ({ vehicle, onUserAction, searchQuery, showSoldButton = 
   const { navigate: localizedNavigate } = useLocalizedNavigation();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { showToast } = useToast();
+  const { currentLanguage } = useLanguage();
+  const { getVehicleStateDisplay, getColorDisplay, getFuelTypeDisplay } = useVehicleDisplay();
 
   const formatPrice = (price: string) => {
     if (!price || Number(price) === 0) return "A consultar";
@@ -86,6 +92,8 @@ const VehicleListCard = ({ vehicle, onUserAction, searchQuery, showSoldButton = 
   // Mapeo de estado a URL dinámica
   const estado = vehicle["estat-vehicle"];
   const estadoUrl = typeof estado === "string" && estado.length > 0 ? `/estat-vehicle/${estado}` : null;
+  const estadoLabel = estado ? getVehicleStateDisplay(estado) : '';
+  const colorLabel = vehicle["color-vehicle"] ? getColorDisplay(vehicle["color-vehicle"]) : '';
 
   const isInactive = false; // Assuming the vehicle is always active in this component
 
@@ -109,14 +117,6 @@ const VehicleListCard = ({ vehicle, onUserAction, searchQuery, showSoldButton = 
                 </div>
               </div>
             )}
-            <div className="absolute top-2 right-2 z-10">
-              <div
-                className={`rounded-full p-2 shadow transition-colors cursor-pointer ${isFavorite(String(vehicle.id)) ? "bg-primary" : "bg-white/80 backdrop-blur-sm hover:bg-white"}`}
-                onClick={handleFavorite}
-              >
-                <Star className={`w-4 h-4 transition-colors ${isFavorite(String(vehicle.id)) ? "text-white" : "text-gray-600 hover:text-primary"}`} />
-              </div>
-            </div>
             <img
               src={vehicle["imatge-destacada-url"]}
               alt={decodeHtmlEntities(vehicle["titol-anunci"] ?? "")}
@@ -131,7 +131,7 @@ const VehicleListCard = ({ vehicle, onUserAction, searchQuery, showSoldButton = 
                 {estadoUrl && (
                   <Link to={estadoUrl} className="inline-block">
                     <Badge variant="secondary" className="text-xs bg-primary/10 text-primary mb-2">
-                      {vehicle["estat-vehicle"]}
+                      {estadoLabel}
                     </Badge>
                   </Link>
                 )}
@@ -142,14 +142,21 @@ const VehicleListCard = ({ vehicle, onUserAction, searchQuery, showSoldButton = 
                 </h3>
                 <p className="text-gray-600 text-sm line-clamp-2" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} dangerouslySetInnerHTML={{ __html: highlightText(vehicle["descripcio-anunci"] ?? "", searchQuery) }} />
               </div>
-              {/* Precio y badge usuario */}
+              {/* Precio y marca/modelo */}
               <div className="flex flex-col items-end min-w-[110px] ml-4">
+                {(vehicle.preuAntic || vehicle.preuAnterior) && (
+                  <p className="text-sm text-gray-500 line-through">
+                    {formatPrice(vehicle.preuAntic || vehicle.preuAnterior || "")}
+                  </p>
+                )}
                 <p className="text-2xl font-bold text-primary">
                   {formatPrice(vehicle["preu"] ?? "")}
                 </p>
-                <Badge variant="outline" className="text-xs mt-1">
-                  Profesional
-                </Badge>
+                {vehicle["tipus-combustible"] && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    {getFuelTypeDisplay(vehicle["tipus-combustible"])}
+                  </p>
+                )}
               </div>
             </div>
             {/* Fila info técnica + botón */}
@@ -174,20 +181,33 @@ const VehicleListCard = ({ vehicle, onUserAction, searchQuery, showSoldButton = 
                 )}
                 <div className="flex items-center gap-2">
                   <Palette className="w-4 h-4" />
-                  <span>{vehicle["color-vehicle"]}</span>
+                  <span>{colorLabel || vehicle["color-vehicle"]}</span>
                 </div>
               </div>
-              {/* Botón */}
-              <button 
-                onClick={handleViewMore}
-                className={`py-2 px-6 rounded-lg font-medium transition-colors ml-2 ${
-                  showSoldButton 
-                    ? "bg-black text-white hover:bg-primary" 
-                    : "bg-primary hover:bg-secondary text-white"
-                }`}
-              >
-                {showSoldButton ? "Venut" : "Veure més"}
-              </button>
+              {/* Botón favoritos y ver más */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleFavorite}
+                  className={`p-2 rounded-lg transition-colors ${
+                    isFavorite(String(vehicle.id)) 
+                      ? "bg-primary text-white" 
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                  aria-label={isFavorite(String(vehicle.id)) ? "Eliminar de favorits" : "Afegir a favorits"}
+                >
+                  <Star className="w-4 h-4" fill={isFavorite(String(vehicle.id)) ? "currentColor" : "none"} />
+                </button>
+                <button 
+                  onClick={handleViewMore}
+                  className={`py-2 px-6 rounded-lg font-medium transition-colors ${
+                    showSoldButton 
+                      ? "bg-black text-white hover:bg-primary" 
+                      : "bg-primary hover:bg-secondary text-white"
+                  }`}
+                >
+                  {showSoldButton ? "Venut" : "Veure més"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

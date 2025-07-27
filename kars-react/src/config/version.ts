@@ -1,4 +1,4 @@
-export const APP_VERSION = '0.2.1';
+export const APP_VERSION = '0.3.0';
 export const BUILD_DATE = new Date().toISOString();
 export const ENVIRONMENT = import.meta.env.MODE || 'development';
 

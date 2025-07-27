@@ -66,6 +66,12 @@ const translations: Record<Language, Record<string, string>> = {
     'vehicles.consult_price': 'A consultar',
     'vehicles.featured_title': 'Vehicles Destacats',
     
+    // Favorites
+    'favorites.title': 'Els Meus Favorits',
+    'favorites.error_loading': 'Error en carregar favorits',
+    'favorites.no_vehicles': 'No tens vehicles guardats als favorits.',
+    'favorites.back_home': 'TORNAR A L\'INICI',
+    
     // Página Qui Som
     'about.title': 'Qui som?',
     'about.intro1': "Que avui dia KARS estigui considerat un referent en el sector de vehicles premium multimarca, no és resultat de la casualitat. Trenta anys d'experiència i de creixement constant, tant de la nostra empresa, com del nombre de clients satisfets, són les garanties més sòlides de la qualitat del servei que oferim.",
@@ -198,6 +204,12 @@ const translations: Record<Language, Record<string, string>> = {
     'vehicles.sold': 'Vendido',
     'vehicles.consult_price': 'A consultar',
     'vehicles.featured_title': 'Vehículos Destacados',
+    
+    // Favorites
+    'favorites.title': 'Mis Favoritos',
+    'favorites.error_loading': 'Error al cargar favoritos',
+    'favorites.no_vehicles': 'No tienes vehículos guardados en favoritos.',
+    'favorites.back_home': 'VOLVER AL INICIO',
     
     // Página Qui Som
     'about.title': '¿Quiénes somos?',
@@ -332,6 +344,12 @@ const translations: Record<Language, Record<string, string>> = {
     'vehicles.consult_price': 'Price on request',
     'vehicles.featured_title': 'Featured Vehicles',
     
+    // Favorites
+    'favorites.title': 'My Favorites',
+    'favorites.error_loading': 'Error loading favorites',
+    'favorites.no_vehicles': 'You have no vehicles saved in favorites.',
+    'favorites.back_home': 'BACK TO HOME',
+    
     // About Page
     'about.title': 'Who are we?',
     'about.intro1': "That today KARS is considered a benchmark in the multi-brand premium vehicle sector is not the result of chance. Thirty years of experience and constant growth, both of our company and the number of satisfied customers, are the most solid guarantees of the quality of the service we offer.",
@@ -464,6 +482,12 @@ const translations: Record<Language, Record<string, string>> = {
     'vehicles.sold': 'Vendu',
     'vehicles.consult_price': 'Prix sur demande',
     'vehicles.featured_title': 'Véhicules En Vedette',
+    
+    // Favorites
+    'favorites.title': 'Mes Favoris',
+    'favorites.error_loading': 'Erreur lors du chargement des favoris',
+    'favorites.no_vehicles': 'Vous n\'avez aucun véhicule sauvegardé dans les favoris.',
+    'favorites.back_home': 'RETOUR À L\'ACCUEIL',
     
     // Page À propos
     'about.title': 'Qui sommes-nous ?',
