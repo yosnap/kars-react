@@ -5,6 +5,7 @@ import { useLanguage, Language } from '../context/LanguageContext';
 let translationsCache: Record<string, Record<Language, string>> = {};
 let isLoading = false;
 let hasInitialized = false;
+let serverLoadAttempted = false;
 
 interface VehicleTranslation {
   key: string;
@@ -91,9 +92,9 @@ export const useVehicleTranslations = () => {
     initializeStaticTranslations();
   }
 
-  // Cargar traducciones adicionales del servidor de forma asíncrona
+  // Cargar traducciones adicionales del servidor de forma asíncrona (solo una vez)
   useEffect(() => {
-    if (hasInitialized && !isLoading) {
+    if (hasInitialized && !isLoading && !serverLoadAttempted && import.meta.env.VITE_API_BASE_URL) {
       loadServerTranslations();
     }
   }, []);
@@ -111,15 +112,17 @@ export const useVehicleTranslations = () => {
 
   // Función para cargar traducciones adicionales del servidor
   const loadServerTranslations = async (): Promise<void> => {
-    if (isLoading) return;
+    if (isLoading || serverLoadAttempted) return;
     
     isLoading = true;
+    serverLoadAttempted = true;
     try {
-      if (!import.meta.env.DEV) {
-        // En producción, hacer llamada real a la API
-        const response = await fetch('/api/admin/vehicle-translations', {
+      // Intentar cargar traducciones del servidor si está disponible
+      const apiUrl = import.meta.env.VITE_API_BASE_URL;
+      if (apiUrl) {
+        const response = await fetch(`${apiUrl}/admin/vehicle-translations`, {
           headers: {
-            'Authorization': 'Basic ' + btoa('admin:admin123')
+            'Authorization': 'Basic ' + btoa(`${import.meta.env.VITE_API_ADMIN_USER || 'admin'}:${import.meta.env.VITE_API_ADMIN_PASS || 'admin123'}`)
           }
         });
         
@@ -138,7 +141,8 @@ export const useVehicleTranslations = () => {
         }
       }
     } catch (error) {
-      console.error('Error loading server translations:', error);
+      console.warn('No se pudieron cargar las traducciones del servidor, usando valores estáticos:', error);
+      // No marcar como error crítico, las traducciones estáticas están disponibles
     } finally {
       isLoading = false;
     }
