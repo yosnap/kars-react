@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, Save, Phone, User, MessageSquare, RefreshCw, Database, Clock, CheckCircle, AlertCircle, Image, Settings, TestTube, Play, Users, Filter, Trash2, Eye, Calendar } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { MessageCircle, Save, Phone, User, MessageSquare, RefreshCw, Database, Clock, CheckCircle, AlertCircle, Image, Settings, TestTube, Play, Users, Filter, Trash2, Eye, Calendar, Languages, Globe, Zap } from 'lucide-react';
 import AdminLayout from '../../components/Admin/AdminLayout';
 import toast from 'react-hot-toast';
 
@@ -40,8 +41,26 @@ interface SyncLog {
   duration: number | null;
 }
 
+interface TranslationConfig {
+  webhookUrl: string;
+  username: string;
+  password: string;
+  enabled: boolean;
+  autoTranslateNewVehicles: boolean;
+  sourceLanguage: 'catalan' | 'spanish' | 'french' | 'english';
+  targetLanguages: string[];
+  timeout: number;
+}
+
 export default function AdminSettings() {
-  const [activeTab, setActiveTab] = useState<'whatsapp' | 'api-sync'>('whatsapp');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<'whatsapp' | 'api-sync' | 'translations'>(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'whatsapp' || tab === 'api-sync' || tab === 'translations') {
+      return tab;
+    }
+    return 'whatsapp';
+  });
   
   const [whatsAppConfig, setWhatsAppConfig] = useState<WhatsAppConfig>({
     number: '34612345678',
@@ -67,14 +86,27 @@ export default function AdminSettings() {
     connectionStatus: 'idle'
   });
 
+  const [translationConfig, setTranslationConfig] = useState<TranslationConfig>({
+    webhookUrl: '',
+    username: '',
+    password: '',
+    enabled: false,
+    autoTranslateNewVehicles: false,
+    sourceLanguage: 'catalan',
+    targetLanguages: ['spanish', 'french', 'english'],
+    timeout: 30000
+  });
+
   const [loading, setLoading] = useState(false);
   const [syncLogs, setSyncLogs] = useState<SyncLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
   const [selectedLogs, setSelectedLogs] = useState<string[]>([]);
+  const [translationLoading, setTranslationLoading] = useState(false);
 
   // Cargar configuración existente al montar el componente
   useEffect(() => {
     loadApiConfig();
+    loadTranslationConfig();
     if (activeTab === 'api-sync') {
       loadSyncLogs();
     }
@@ -101,6 +133,26 @@ export default function AdminSettings() {
     }
   };
 
+  const loadTranslationConfig = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/translation-config`, {
+        headers: {
+          'Authorization': `Basic ${btoa(`${import.meta.env.VITE_API_ADMIN_USER}:${import.meta.env.VITE_API_ADMIN_PASS}`)}`
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.config) {
+          setTranslationConfig(result.config);
+          console.log('Translation config loaded:', result.config);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading translation config:', error);
+    }
+  };
+
   const handleWhatsAppChange = (field: keyof WhatsAppConfig, value: string | boolean) => {
     setWhatsAppConfig(prev => ({
       ...prev,
@@ -113,6 +165,18 @@ export default function AdminSettings() {
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleTranslationChange = (field: keyof TranslationConfig, value: string | boolean | number | string[]) => {
+    setTranslationConfig(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleTabChange = (tab: 'whatsapp' | 'api-sync' | 'translations') => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
   };
 
   const handleSaveWhatsApp = async () => {
@@ -339,6 +403,94 @@ export default function AdminSettings() {
     }
   };
 
+  const testTranslationWebhook = async () => {
+    setTranslationLoading(true);
+    try {
+      // Usar el endpoint del backend que maneja el test del webhook
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/test-translation-webhook`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${btoa(`${import.meta.env.VITE_API_ADMIN_USER}:${import.meta.env.VITE_API_ADMIN_PASS}`)}`
+        }
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        toast.success('Webhook de traducció funcionant correctament');
+        console.log('Translation test result:', result);
+      } else {
+        console.error('Test webhook error response:', result);
+        toast.error(result.error || `Error ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Translation webhook test error:', error);
+      toast.error('Error en provar el webhook de traducció');
+    } finally {
+      setTranslationLoading(false);
+    }
+  };
+
+  const saveTranslationConfig = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/translation-config`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${btoa('admin:Motoraldia.2025!')}`
+        },
+        body: JSON.stringify(translationConfig)
+      });
+
+      if (response.ok) {
+        toast.success('Configuració de traduccions guardada correctament');
+      } else {
+        toast.error('Error en guardar la configuració de traduccions');
+      }
+    } catch (error) {
+      console.error('Error saving translation config:', error);
+      toast.error('Error en guardar la configuració');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const syncExistingTranslations = async () => {
+    setTranslationLoading(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/sync-translations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${btoa('admin:Motoraldia.2025!')}`
+        },
+        body: JSON.stringify({
+          webhookUrl: translationConfig.webhookUrl,
+          username: translationConfig.username,
+          password: translationConfig.password,
+          sourceLanguage: translationConfig.sourceLanguage,
+          targetLanguages: translationConfig.targetLanguages,
+          timeout: translationConfig.timeout
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success(`Sincronització de traduccions iniciada - ${result.vehiclesFound} vehicles trobats`);
+      } else {
+        toast.error(result.error || 'Error en sincronitzar traduccions');
+      }
+    } catch (error) {
+      console.error('Error syncing translations:', error);
+      toast.error('Error en sincronitzar traduccions');
+    } finally {
+      setTranslationLoading(false);
+    }
+  };
+
   const formatDuration = (milliseconds: number | null) => {
     if (!milliseconds) return 'N/A';
     const seconds = Math.floor(milliseconds / 1000);
@@ -384,7 +536,7 @@ export default function AdminSettings() {
         <div className="border-b border-gray-200 dark:border-gray-700">
           <nav className="-mb-px flex space-x-8">
             <button
-              onClick={() => setActiveTab('whatsapp')}
+              onClick={() => handleTabChange('whatsapp')}
               className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === 'whatsapp'
                   ? 'border-green-600 text-green-600 dark:border-green-400 dark:text-green-400'
@@ -397,7 +549,7 @@ export default function AdminSettings() {
               </div>
             </button>
             <button
-              onClick={() => setActiveTab('api-sync')}
+              onClick={() => handleTabChange('api-sync')}
               className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === 'api-sync'
                   ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
@@ -407,6 +559,19 @@ export default function AdminSettings() {
               <div className="flex items-center gap-2">
                 <RefreshCw className="w-4 h-4" />
                 Sincronización API
+              </div>
+            </button>
+            <button
+              onClick={() => handleTabChange('translations')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'translations'
+                  ? 'border-purple-600 text-purple-600 dark:border-purple-400 dark:text-purple-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Languages className="w-4 h-4" />
+                Traduccions
               </div>
             </button>
           </nav>
@@ -1023,6 +1188,278 @@ export default function AdminSettings() {
             </div>
           </div>
         </div>
+        </div>
+      )}
+
+      {activeTab === 'translations' && (
+        // Translation Configuration Section
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                <Languages className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+                  Configuració de Traduccions Automàtiques
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Configura les traduccions automàtiques de descripcions de vehicles mitjançant n8n
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-8">
+            {/* Webhook Configuration */}
+            <div>
+              <h3 className="flex items-center gap-2 text-md font-medium text-gray-900 dark:text-white mb-4">
+                <Globe className="w-5 h-5" />
+                Configuració del Webhook N8N
+              </h3>
+              
+              <div className="space-y-6">
+                {/* Enable/Disable Toggle */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white">
+                      Habilitar traduccions automàtiques
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Activar el sistema de traduccions automàtiques
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={translationConfig.enabled}
+                      onChange={(e) => handleTranslationChange('enabled', e.target.checked)}
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 dark:peer-focus:ring-purple-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-600"></div>
+                  </label>
+                </div>
+
+                {/* Webhook URL */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    URL del Webhook N8N
+                  </label>
+                  <input
+                    type="url"
+                    value={translationConfig.webhookUrl}
+                    onChange={(e) => handleTranslationChange('webhookUrl', e.target.value)}
+                    placeholder="https://your-n8n-instance.com/webhook/translate"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    URL del webhook de N8N que processarà les traduccions
+                  </p>
+                </div>
+
+                {/* Credentials */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white mb-2">
+                      <User className="w-4 h-4" />
+                      Usuari N8N
+                    </label>
+                    <input
+                      type="text"
+                      value={translationConfig.username}
+                      onChange={(e) => handleTranslationChange('username', e.target.value)}
+                      placeholder="username"
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Usuari per a autenticació Basic Auth (opcional)
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white mb-2">
+                      <Database className="w-4 h-4" />
+                      Contrasenya N8N
+                    </label>
+                    <input
+                      type="password"
+                      value={translationConfig.password}
+                      onChange={(e) => handleTranslationChange('password', e.target.value)}
+                      placeholder="password"
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Contrasenya per a autenticació Basic Auth (opcional)
+                    </p>
+                  </div>
+                </div>
+
+                {/* Test Webhook Button */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={testTranslationWebhook}
+                    disabled={translationLoading || !translationConfig.webhookUrl}
+                    className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <TestTube className="w-4 h-4" />
+                    {translationLoading ? 'Provant...' : 'Provar Webhook'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Language Configuration */}
+            <div>
+              <h3 className="flex items-center gap-2 text-md font-medium text-gray-900 dark:text-white mb-4">
+                <Languages className="w-5 h-5" />
+                Configuració d'Idiomes
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Source Language */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    Idioma d'origen
+                  </label>
+                  <select
+                    value={translationConfig.sourceLanguage}
+                    onChange={(e) => handleTranslationChange('sourceLanguage', e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  >
+                    <option value="catalan">Català</option>
+                    <option value="spanish">Espanyol</option>
+                    <option value="french">Francès</option>
+                    <option value="english">Anglès</option>
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Idioma del text original que es traduirà
+                  </p>
+                </div>
+
+                {/* Timeout */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    Timeout (mil·lisegons)
+                  </label>
+                  <input
+                    type="number"
+                    min="5000"
+                    max="120000"
+                    step="1000"
+                    value={translationConfig.timeout}
+                    onChange={(e) => handleTranslationChange('timeout', parseInt(e.target.value))}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Temps màxim d'espera per a les traduccions (5-120 segons)
+                  </p>
+                </div>
+              </div>
+
+              {/* Target Languages */}
+              <div className="mt-6">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">
+                  Idiomes de destinació
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {['spanish', 'french', 'english'].map((lang) => {
+                    const langLabels = {
+                      spanish: 'Espanyol',
+                      french: 'Francès', 
+                      english: 'Anglès'
+                    };
+                    
+                    return (
+                      <label key={lang} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={translationConfig.targetLanguages.includes(lang)}
+                          onChange={(e) => {
+                            const newTargetLanguages = e.target.checked
+                              ? [...translationConfig.targetLanguages, lang]
+                              : translationConfig.targetLanguages.filter(l => l !== lang);
+                            handleTranslationChange('targetLanguages', newTargetLanguages);
+                          }}
+                          className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500 focus:ring-2"
+                        />
+                        <span className="text-sm text-gray-900 dark:text-white">
+                          {langLabels[lang as keyof typeof langLabels]}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  Selecciona els idiomes als quals es traduiran les descripcions
+                </p>
+              </div>
+            </div>
+
+            {/* Auto-translation for new vehicles */}
+            <div>
+              <h3 className="flex items-center gap-2 text-md font-medium text-gray-900 dark:text-white mb-4">
+                <Zap className="w-5 h-5" />
+                Traduccions Automàtiques
+              </h3>
+              
+              <div className="space-y-4">
+                {/* Auto-translate new vehicles toggle */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white">
+                      Traduir automàticament nous vehicles
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Tradueix automàticament les descripcions en crear nous vehicles
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={translationConfig.autoTranslateNewVehicles}
+                      onChange={(e) => handleTranslationChange('autoTranslateNewVehicles', e.target.checked)}
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 dark:peer-focus:ring-purple-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-600"></div>
+                  </label>
+                </div>
+
+                {/* Sync existing translations button */}
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                        Sincronitzar traduccions existents
+                      </h4>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Tradueix les descripcions de tots els vehicles existents en la base de dades
+                      </p>
+                    </div>
+                    <button
+                      onClick={syncExistingTranslations}
+                      disabled={translationLoading || !translationConfig.webhookUrl || !translationConfig.enabled}
+                      className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${translationLoading ? 'animate-spin' : ''}`} />
+                      {translationLoading ? 'Sincronitzant...' : 'Sincronitzar Ara'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end pt-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={saveTranslationConfig}
+                disabled={loading}
+                className="flex items-center gap-2 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Save className="w-4 h-4" />
+                {loading ? 'Guardant...' : 'Guardar Configuració'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </AdminLayout>

@@ -28,6 +28,9 @@
   - Other website content
 - Dashboard will be accessible only to administrators
 
+## Version and Update Guidelines
+- Cuando subamos versión o algun cambio que eso implique, siempre tienes que preguntarme la versión a la que subimos
+
 ## Recent Updates (July 2025)
 ### Latest: Frontend Improvements & Price Display Fix (July 26, 2025)
 

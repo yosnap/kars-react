@@ -5,6 +5,70 @@ Todos los cambios notables de este proyecto se documentarán en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-es/1.0.0/),
 y este proyecto adhiere al [Versionado Semántico](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2025-07-27
+
+### 🌐 Sistema de Traducciones Automáticas
+
+### ✅ Añadido
+
+#### Panel de Configuración de Traducciones
+- **Nueva pestaña "Traduccions"** en configuración de administrador
+  - Configuración completa de webhook n8n para traducciones automáticas
+  - Campos para URL del webhook, usuario y contraseña
+  - Selección de idioma fuente (catalán) y idiomas objetivo
+  - Toggle para habilitar/deshabilitar traducciones automáticas
+  - Configuración de timeout personalizable
+- **Navegación con parámetros URL**: Las pestañas ahora usan parámetros URL
+  - `/admin/settings?tab=whatsapp`
+  - `/admin/settings?tab=api-sync` 
+  - `/admin/settings?tab=translations`
+  - Navegación persistente y enlaces directos a pestañas específicas
+
+#### Traducción Automática en Formularios
+- **Integración en formulario de vehículos**: Al guardar/editar vehículo con descripción en catalán
+  - Envío automático al servicio de traducción n8n
+  - Traducción en background sin bloquear la navegación
+  - Notificaciones de progreso para el usuario
+  - Logging detallado para debugging
+
+#### Endpoints del Backend
+- **POST /api/admin/translation-config**: Guardar configuración de traducciones
+- **GET /api/admin/translation-config**: Obtener configuración actual
+- **POST /api/admin/receive-translations**: Recibir traducciones desde n8n
+  - Actualización automática de campos `descripcioAnunciES`, `descripcioAnunciEN`, `descripcioAnunciFR`
+  - Validación de vehículo existente
+  - Logging completo del proceso
+- **POST /api/admin/sync-translations**: Sincronizar traducciones de vehículos existentes
+- **POST /api/admin/test-translation-webhook**: Probar conexión con webhook
+
+### 🛠️ Flujo de Traducción Implementado
+
+1. **Frontend → n8n**: Envía descripción en catalán + ID del vehículo
+2. **n8n → OpenRouter/LLM**: Procesa traducciones automáticas  
+3. **n8n → Backend**: Devuelve traducciones al endpoint `/receive-translations`
+4. **Backend → Database**: Guarda automáticamente en campos multiidioma
+
+### 🔧 Mejoras Técnicas
+
+#### Frontend (v0.2.2)
+- **AdminSettings.tsx**: Panel completo de configuración de traducciones en catalán
+- **VehicleForm.tsx**: Integración con servicio de traducción automática
+- **useSearchParams**: Navegación con parámetros URL para pestañas
+- **Persistent configuration**: Carga automática de configuración guardada
+
+#### Backend (v0.2.3)
+- **admin.ts**: Nuevos endpoints para gestión completa de traducciones
+- **Validación robusta**: Verificación de vehículos existentes y configuración válida
+- **Error handling**: Manejo completo de errores y logging detallado
+- **Webhook integration**: Soporte completo para recepción de traducciones desde n8n
+
+### 🎯 Sistema Listo para Producción
+- ✅ Configuración persistente de traducciones
+- ✅ Integración completa con n8n workflows
+- ✅ Traducción automática al guardar vehículos
+- ✅ Soporte multiidioma (catalán, español, inglés, francés)
+- ✅ Interface en catalán según especificaciones del proyecto
+
 ## [0.2.1] - 2025-07-26
 
 ### 🎉 Vehicle Form Complete Fix - Extras and Commercial Vehicles

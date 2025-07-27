@@ -2886,6 +2886,507 @@ router.post('/clean-imported-data', async (req, res) => {
   }
 });
 
+// ===========================
+// ENDPOINTS DE CONFIGURACIÓ DE TRADUCCIÓ
+// ===========================
+
+// GET /api/admin/translation-config - Obtenir configuració de traducció
+router.get('/translation-config', async (req, res) => {
+  try {
+    console.log('📋 Obtenint configuració de traducció...');
+    
+    const config = await prisma.config.findFirst({
+      where: { key: 'translation-config' }
+    });
+    
+    if (!config) {
+      // Retornar configuració per defecte
+      const defaultConfig = {
+        webhookUrl: '',
+        username: '',
+        password: '',
+        enabled: false,
+        autoTranslateNewVehicles: false,
+        sourceLanguage: 'catalan',
+        targetLanguages: ['spanish', 'french', 'english'],
+        timeout: 30000
+      };
+      
+      return res.json({
+        success: true,
+        config: defaultConfig,
+        isDefault: true
+      });
+    }
+    
+    const translationConfig = JSON.parse(config.value);
+    
+    return res.json({
+      success: true,
+      config: translationConfig,
+      isDefault: false,
+      updatedAt: config.updatedAt
+    });
+    
+  } catch (error) {
+    console.error('❌ Error obtenint configuració de traducció:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Error en obtenir la configuració de traducció',
+      details: error instanceof Error ? error.message : 'Error desconegut'
+    });
+  }
+});
+
+// POST /api/admin/translation-config - Guardar configuració de traducció
+router.post('/translation-config', async (req, res) => {
+  try {
+    console.log('💾 Guardant configuració de traducció...');
+    
+    const {
+      webhookUrl,
+      username,
+      password,
+      enabled,
+      autoTranslateNewVehicles,
+      sourceLanguage,
+      targetLanguages,
+      timeout
+    } = req.body;
+    
+    // Validacions bàsiques
+    if (!webhookUrl || typeof webhookUrl !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'La URL del webhook és obligatòria i ha de ser una cadena vàlida'
+      });
+    }
+    
+    if (!Array.isArray(targetLanguages) || targetLanguages.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Almenys un idioma de destinació ha de ser especificat'
+      });
+    }
+    
+    const validLanguages = ['catalan', 'spanish', 'french', 'english'];
+    if (!validLanguages.includes(sourceLanguage)) {
+      return res.status(400).json({
+        success: false,
+        error: `L'idioma d'origen ha de ser un de: ${validLanguages.join(', ')}`
+      });
+    }
+    
+    const invalidTargetLanguages = targetLanguages.filter(lang => !validLanguages.includes(lang));
+    if (invalidTargetLanguages.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: `Idiomes de destinació no vàlids: ${invalidTargetLanguages.join(', ')}`
+      });
+    }
+    
+    const translationConfig = {
+      webhookUrl: webhookUrl.trim(),
+      username: username || '',
+      password: password || '',
+      enabled: Boolean(enabled),
+      autoTranslateNewVehicles: Boolean(autoTranslateNewVehicles),
+      sourceLanguage,
+      targetLanguages,
+      timeout: parseInt(timeout) || 30000,
+      updatedAt: new Date().toISOString()
+    };
+    
+    // Guardar o actualitzar configuració
+    await prisma.config.upsert({
+      where: { key: 'translation-config' },
+      create: {
+        key: 'translation-config',
+        value: JSON.stringify(translationConfig),
+        description: 'Configuració per a traducció automàtica de descripcions de vehicles via webhook n8n'
+      },
+      update: {
+        value: JSON.stringify(translationConfig),
+        updatedAt: new Date()
+      }
+    });
+    
+    console.log('✅ Configuració de traducció guardada correctament');
+    
+    return res.json({
+      success: true,
+      message: 'Configuració de traducció guardada correctament',
+      config: translationConfig
+    });
+    
+  } catch (error) {
+    console.error('❌ Error guardant configuració de traducció:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Error en guardar la configuració de traducció',
+      details: error instanceof Error ? error.message : 'Error desconegut'
+    });
+  }
+});
+
+// POST /api/admin/test-translation-webhook - Provar webhook de traducció
+router.post('/test-translation-webhook', async (req, res) => {
+  try {
+    console.log('🧪 Provant webhook de traducció...');
+    
+    // Obtenir configuració
+    const configRecord = await prisma.config.findFirst({
+      where: { key: 'translation-config' }
+    });
+    
+    if (!configRecord) {
+      return res.status(400).json({
+        success: false,
+        error: 'Configuració de traducció no trobada'
+      });
+    }
+    
+    const config = JSON.parse(configRecord.value);
+    
+    if (!config.webhookUrl) {
+      return res.status(400).json({
+        success: false,
+        error: 'URL del webhook no configurada'
+      });
+    }
+    
+    // Dades de prova
+    const testData = {
+      text: 'Aquest és un text de prova per comprovar la traducció automàtica.',
+      sourceLanguage: config.sourceLanguage,
+      targetLanguages: config.targetLanguages
+    };
+    
+    // Preparar capçaleres
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (config.username && config.password) {
+      const credentials = Buffer.from(`${config.username}:${config.password}`).toString('base64');
+      headers['Authorization'] = `Basic ${credentials}`;
+    }
+    
+    // Fer petició al webhook
+    const fetch = (await import('node-fetch')).default;
+    const response = await fetch(config.webhookUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(testData),
+      timeout: config.timeout || 30000
+    });
+    
+    const responseData = await response.json();
+    
+    console.log(`📡 Estat de resposta del webhook: ${response.status}`);
+    
+    if (!response.ok) {
+      return res.status(400).json({
+        success: false,
+        error: 'Prova del webhook fallida',
+        status: response.status,
+        statusText: response.statusText,
+        responseData
+      });
+    }
+    
+    return res.json({
+      success: true,
+      message: 'Prova del webhook exitosa',
+      status: response.status,
+      testData,
+      responseData
+    });
+    
+  } catch (error) {
+    console.error('❌ Error provant webhook de traducció:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Error en provar el webhook de traducció',
+      details: error instanceof Error ? error.message : 'Error desconegut'
+    });
+  }
+});
+
+// POST /api/admin/sync-translations - Sincronitzar traduccions per a vehicles existents
+router.post('/sync-translations', async (req, res) => {
+  try {
+    console.log('🔄 Iniciant sincronització de traduccions per a vehicles existents...');
+    
+    // Obtenir configuració
+    const configRecord = await prisma.config.findFirst({
+      where: { key: 'translation-config' }
+    });
+    
+    if (!configRecord) {
+      return res.status(400).json({
+        success: false,
+        error: 'Configuració de traducció no trobada'
+      });
+    }
+    
+    const config = JSON.parse(configRecord.value);
+    
+    if (!config.enabled || !config.webhookUrl) {
+      return res.status(400).json({
+        success: false,
+        error: 'El servei de traducció no està habilitat o la URL del webhook no està configurada'
+      });
+    }
+    
+    const { vehicleIds, forceUpdate = false } = req.body;
+    
+    // Si s'especifiquen IDs específics, usar aquests; sinó, obtenir vehicles que necessiten traducció
+    let vehicles;
+    if (vehicleIds && Array.isArray(vehicleIds)) {
+      vehicles = await prisma.vehicle.findMany({
+        where: { 
+          id: { in: vehicleIds },
+          descripcioAnunci: { not: null }
+        },
+        select: {
+          id: true,
+          slug: true,
+          descripcioAnunci: true,
+          descripcioAnunciCA: true,
+          descripcioAnunciES: true,
+          descripcioAnunciFR: true,
+          descripcioAnunciEN: true
+        }
+      });
+    } else {
+      // Obtenir vehicles que tenen descripció en català però els falten traduccions
+      const whereCondition: any = {
+        descripcioAnunci: { not: null },
+        OR: []
+      };
+      
+      if (forceUpdate) {
+        // Si és forçat, actualitzar tots els que tinguin descripció
+        whereCondition.OR.push({ descripcioAnunci: { not: '' } });
+      } else {
+        // Només els que els faltin traduccions
+        if (config.targetLanguages.includes('spanish')) {
+          whereCondition.OR.push({ descripcioAnunciES: null });
+        }
+        if (config.targetLanguages.includes('english')) {
+          whereCondition.OR.push({ descripcioAnunciEN: null });
+        }
+        if (config.targetLanguages.includes('french')) {
+          whereCondition.OR.push({ descripcioAnunciFR: null });
+        }
+      }
+      
+      vehicles = await prisma.vehicle.findMany({
+        where: whereCondition,
+        select: {
+          id: true,
+          slug: true,
+          descripcioAnunci: true,
+          descripcioAnunciCA: true,
+          descripcioAnunciES: true,
+          descripcioAnunciFR: true,
+          descripcioAnunciEN: true
+        },
+        take: 50 // Limitar a 50 per evitar sobrecàrrega
+      });
+    }
+    
+    if (vehicles.length === 0) {
+      return res.json({
+        success: true,
+        message: 'Cap vehicle necessita actualitzacions de traducció',
+        processed: 0,
+        errors: 0
+      });
+    }
+    
+    console.log(`📝 Trobats ${vehicles.length} vehicles per traduir`);
+    
+    let processed = 0;
+    let errors = 0;
+    const errorDetails: any[] = [];
+    
+    // Processar vehicles en lots per evitar sobrecarregar el webhook
+    const batchSize = 5;
+    for (let i = 0; i < vehicles.length; i += batchSize) {
+      const batch = vehicles.slice(i, i + batchSize);
+      
+      for (const vehicle of batch) {
+        try {
+          const sourceText = vehicle.descripcioAnunci || vehicle.descripcioAnunciCA;
+          
+          if (!sourceText || sourceText.trim() === '') {
+            console.log(`⚠️ Saltant vehicle ${vehicle.slug} - no hi ha text d'origen`);
+            continue;
+          }
+          
+          const translationData = {
+            text: sourceText,
+            sourceLanguage: config.sourceLanguage,
+            targetLanguages: config.targetLanguages
+          };
+          
+          // Preparar capçaleres
+          const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+          };
+          
+          if (config.username && config.password) {
+            const credentials = Buffer.from(`${config.username}:${config.password}`).toString('base64');
+            headers['Authorization'] = `Basic ${credentials}`;
+          }
+          
+          // Cridar al webhook
+          const fetch = (await import('node-fetch')).default;
+          const response = await fetch(config.webhookUrl, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(translationData),
+            timeout: config.timeout || 30000
+          });
+          
+          if (!response.ok) {
+            throw new Error(`El webhook ha respost amb estat ${response.status}`);
+          }
+          
+          const translations = await response.json();
+          
+          // Actualitzar vehicle amb les traduccions
+          const updateData: any = {};
+          
+          if (translations.spanish && config.targetLanguages.includes('spanish')) {
+            updateData.descripcioAnunciES = translations.spanish;
+          }
+          if (translations.english && config.targetLanguages.includes('english')) {
+            updateData.descripcioAnunciEN = translations.english;
+          }
+          if (translations.french && config.targetLanguages.includes('french')) {
+            updateData.descripcioAnunciFR = translations.french;
+          }
+          
+          if (Object.keys(updateData).length > 0) {
+            await prisma.vehicle.update({
+              where: { id: vehicle.id },
+              data: {
+                ...updateData,
+                updatedAt: new Date()
+              }
+            });
+          }
+          
+          processed++;
+          console.log(`✅ Vehicle ${vehicle.slug} traduït (${processed}/${vehicles.length})`);
+          
+        } catch (error) {
+          errors++;
+          const errorMessage = error instanceof Error ? error.message : 'Error desconegut';
+          console.error(`❌ Error traduint vehicle ${vehicle.slug}:`, errorMessage);
+          errorDetails.push({
+            vehicleId: vehicle.id,
+            vehicleSlug: vehicle.slug,
+            error: errorMessage
+          });
+        }
+      }
+      
+      // Pausa entre lots per no sobrecarregar el webhook
+      if (i + batchSize < vehicles.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    console.log(`🎉 Sincronització de traduccions completada: ${processed} processats, ${errors} errors`);
+    
+    return res.json({
+      success: true,
+      message: 'Sincronització de traduccions completada',
+      totalVehicles: vehicles.length,
+      processed,
+      errors,
+      errorDetails: errorDetails.slice(0, 10) // Només els primers 10 errors
+    });
+    
+  } catch (error) {
+    console.error('❌ Error sincronitzant traduccions:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Error en sincronitzar les traduccions',
+      details: error instanceof Error ? error.message : 'Error desconegut'
+    });
+  }
+});
+
+// POST /api/admin/receive-translations - Rebre traduccions des de n8n
+router.post('/receive-translations', async (req, res) => {
+  try {
+    const { vehicleId, translations } = req.body;
+
+    if (!vehicleId || !translations) {
+      return res.status(400).json({
+        success: false,
+        error: 'vehicleId i translations són obligatoris'
+      });
+    }
+
+    // Verificar que el vehículo existe
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id: vehicleId }
+    });
+
+    if (!vehicle) {
+      return res.status(404).json({
+        success: false,
+        error: 'Vehicle no trobat'
+      });
+    }
+
+    console.log(`📝 Rebent traduccions per al vehicle ${vehicleId}:`, translations);
+
+    // Preparar datos de actualización
+    const updateData: any = {};
+    
+    if (translations.spanish) {
+      updateData.descripcioAnunciES = translations.spanish;
+    }
+    if (translations.english) {
+      updateData.descripcioAnunciEN = translations.english;
+    }
+    if (translations.french) {
+      updateData.descripcioAnunciFR = translations.french;
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      await prisma.vehicle.update({
+        where: { id: vehicleId },
+        data: updateData
+      });
+      
+      console.log(`✅ Vehicle ${vehicleId} actualitzat amb ${Object.keys(updateData).length} traduccions`);
+    }
+
+    return res.json({
+      success: true,
+      message: 'Traduccions guardades correctament',
+      vehicleId,
+      translationsApplied: Object.keys(updateData)
+    });
+
+  } catch (error) {
+    console.error('❌ Error rebent traduccions:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Error en guardar les traduccions',
+      details: error instanceof Error ? error.message : 'Error desconegut'
+    });
+  }
+});
+
 // Función auxiliar para formatear tamaño de archivo
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 Bytes';
