@@ -80,7 +80,7 @@ const SearchResults = ({ vehicles, searchQuery, isLoading = false }: SearchResul
   if (isLoading) {
     return (
       <section className="py-8 bg-gray-50">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto">
           <Card>
             <CardContent className="p-8 text-center">
               <div className="animate-pulse">
@@ -97,7 +97,7 @@ const SearchResults = ({ vehicles, searchQuery, isLoading = false }: SearchResul
   if (vehicles.length === 0) {
     return (
       <section className="py-8 bg-gray-50">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto">
           <Card>
             <CardContent className="p-8 text-center">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">

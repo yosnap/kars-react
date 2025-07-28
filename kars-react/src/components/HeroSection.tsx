@@ -33,8 +33,8 @@ const HeroSection = ({ onSearch }: HeroSectionProps) => {
   };
 
   return (
-    <section className="container mx-auto px-4 py-8">
-      <div className="relative h-[600px] rounded-lg overflow-hidden mb-4">
+    <section className="container mx-auto py-8">
+      <div className="relative h-[200px] md:h-[400px] lg:h-[600px] rounded-lg overflow-hidden mb-4">
         {/* Image Slider */}
         {heroImages.map((image, index) => (
           <div
@@ -46,7 +46,7 @@ const HeroSection = ({ onSearch }: HeroSectionProps) => {
             <img
               src={image}
               alt={`Hero slide ${index + 1}`}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover bg-gray-900"
             />
           </div>
         ))}

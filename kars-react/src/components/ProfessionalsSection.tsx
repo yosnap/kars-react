@@ -35,7 +35,7 @@ const ProfessionalsSection = () => {
 
   return (
     <section className="py-12 bg-primary/5">
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto">
         <div className="bg-white/80 rounded-lg shadow p-6 border border-primary/10">
           <h2 className="text-2xl font-bold text-primary mb-2">Professionals</h2>
           <p className="text-gray-700 mb-6">Concesionarios y profesionales de confianza</p>

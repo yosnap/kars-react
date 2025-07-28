@@ -297,7 +297,7 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
 
   return (
     <div className="min-h-screen">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto py-8">
 
         {/* Migas de pan minimalistas */}
         {breadcrumbs.length > 0 && (

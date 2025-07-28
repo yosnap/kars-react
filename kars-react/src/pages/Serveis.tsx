@@ -22,7 +22,7 @@ export default function Serveis() {
 
   return (
     <div className="min-h-screen">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto py-8">
         {/* Breadcrumbs */}
         <div className="mb-8">
           <PageBreadcrumbs items={breadcrumbs} />
@@ -88,7 +88,7 @@ export default function Serveis() {
             <img 
               src="/media/2025/01/serveis-kars.jpeg" 
               alt="KARS Serveis - Entrega de claus"
-              className="w-full rounded-lg shadow-2xl"
+              className="w-full h-auto md:h-[400px] lg:h-auto rounded-lg shadow-2xl object-cover"
             />
           </div>
         </div>

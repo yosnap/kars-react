@@ -52,7 +52,7 @@ const FeaturedVehicles = () => {
       <section className="py-12 w-full">
         <div className="container mx-auto px-0 w-full">
           <h2 className="text-4xl font-bold text-center mb-8 text-white">{vehicleLabels.featuredTitle}</h2>
-          <div className="flex gap-6 overflow-hidden px-4">
+          <div className="flex gap-6 overflow-hidden">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="flex-shrink-0 w-[calc(25%-18px)]">
                 <VehicleCardSkeleton />
@@ -82,13 +82,13 @@ const FeaturedVehicles = () => {
       <div className="container mx-auto px-0 w-full relative">
         <h2 className="text-4xl font-bold text-center mb-8 text-white">{t('vehicles.featured_title')}</h2>
         
-        <div className="relative px-4">
+        <div className="relative px-12 md:px-0">
           {/* Botones de navegación personalizados */}
-          <div className="swiper-button-prev-custom absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-primary text-white rounded-full p-2 shadow-lg hover:bg-secondary transition-all cursor-pointer" style={{ marginLeft: '-32px' }}>
+          <div className="swiper-button-prev-custom absolute left-2 md:-left-8 top-1/2 -translate-y-1/2 z-10 bg-primary text-white rounded-full p-2 shadow-lg hover:bg-secondary transition-all cursor-pointer">
             <ChevronLeft className="w-5 h-5" />
           </div>
           
-          <div className="swiper-button-next-custom absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-primary text-white rounded-full p-2 shadow-lg hover:bg-secondary transition-all cursor-pointer" style={{ marginRight: '-32px' }}>
+          <div className="swiper-button-next-custom absolute right-2 md:-right-8 top-1/2 -translate-y-1/2 z-10 bg-primary text-white rounded-full p-2 shadow-lg hover:bg-secondary transition-all cursor-pointer">
             <ChevronRight className="w-5 h-5" />
           </div>
 
@@ -109,6 +109,10 @@ const FeaturedVehicles = () => {
             breakpoints={{
               640: {
                 slidesPerView: 1,
+                spaceBetween: 24,
+              },
+              768: {
+                slidesPerView: 2,
                 spaceBetween: 24,
               },
               1024: {

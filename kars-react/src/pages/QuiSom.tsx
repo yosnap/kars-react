@@ -21,7 +21,7 @@ export default function QuiSom() {
 
   return (
     <div className="min-h-screen">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto py-8">
         {/* Breadcrumbs */}
         <div className="mb-8">
           <PageBreadcrumbs items={breadcrumbs} />
