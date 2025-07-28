@@ -67,7 +67,6 @@ async function verifyWithOriginalAPI(username: string, password: string): Promis
 
     return response.data.user || null;
   } catch (error) {
-    console.log('Original API verification failed:', error instanceof Error ? error.message : 'Unknown error');
     return null;
   }
 }
@@ -109,7 +108,6 @@ async function migrateUserFromOriginalAPI(originalUser: any, password: string) {
       });
     }
 
-    console.log(`✅ User migrated automatically: ${originalUser.username}`);
     return newUser;
   } catch (error) {
     console.error('❌ Error migrating user:', error);
@@ -176,7 +174,6 @@ export const authenticateUser = async (req: Request, res: Response, next: NextFu
     }
 
     // 2. Si no existe o la contraseña no coincide, intentar con API original
-    console.log(`🔄 Attempting migration for user: ${username}`);
     
     const originalUser = await verifyWithOriginalAPI(username, password);
     
@@ -197,7 +194,6 @@ export const authenticateUser = async (req: Request, res: Response, next: NextFu
           }
         });
         user = { ...user, ...updatedUser };
-        console.log(`🔄 Password updated for user: ${username}`);
       }
 
       req.user = {

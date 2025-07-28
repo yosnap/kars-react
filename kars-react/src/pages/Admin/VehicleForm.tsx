@@ -273,14 +273,12 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
     try {
       // Verificar si hay descripción en catalán para traducir
       if (!description || description.trim() === '') {
-        console.log('No hay descripción para traducir');
         return;
       }
 
       // Obtener configuración de traducción
       const configResponse = await axiosAdmin.get('/admin/translation-config');
       if (!configResponse.data.success || !configResponse.data.config.enabled) {
-        console.log('Traducciones automáticas desactivadas');
         return;
       }
 
@@ -295,9 +293,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
         callbackUrl: `${import.meta.env.VITE_API_BASE_URL}/admin/receive-translations`
       };
 
-      console.log('📤 Enviant a n8n per a traducció:', translationData);
-      console.log('🔗 Webhook URL:', config.webhookUrl);
-      console.log('🔐 Auth header:', `Basic ${btoa(`${config.username}:${config.password}`)}`);
 
       // Enviar al webhook de n8n
       const response = await fetch(config.webhookUrl, {
@@ -310,14 +305,10 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
         signal: AbortSignal.timeout(config.timeout || 30000)
       });
 
-      console.log('📡 Response status:', response.status);
-      console.log('📡 Response headers:', response.headers);
       
       if (response.ok) {
         const responseData = await response.text();
-        console.log('📡 Response data:', responseData);
         toast.success('🌐 Traduccions enviades a processar');
-        console.log('Translation request sent successfully');
       } else {
         const errorData = await response.text();
         console.error('❌ n8n response error:', errorData);

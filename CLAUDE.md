@@ -32,7 +32,41 @@
 - Cuando subamos versión o algun cambio que eso implique, siempre tienes que preguntarme la versión a la que subimos
 
 ## Recent Updates (July 2025)
-### Latest: Separate Vehicle URLs & SEO Improvements v0.3.1 (July 27, 2025)
+### Latest: Vehicle Deletion System & Production Log Cleanup v0.3.2 (July 28, 2025)
+
+#### ✅ Vehicle Deletion from Motoraldia API
+1. **Complete Deletion Workflow** - Sistema completo de eliminación de vehículos
+   - DELETE endpoint `/vehicles/:id/sync-to-motoraldia/remove` implementado
+   - Eliminación directa desde tabla de listado de vehículos admin
+   - Credenciales de API enviadas desde configuración almacenada
+   - Limpieza automática de campos de sincronización en base de datos
+
+2. **Enhanced Sync Configuration** - Configuración de sincronización mejorada
+   - Persistencia de credenciales en localStorage para facilidad de uso
+   - Eliminación del campo userId innecesario (WordPress auto-detecta usuario)
+   - Configuración de URL base para imágenes con variable `PUBLIC_BASE_URL`
+   - Sistema robusto de manejo de errores y logs de sincronización
+
+3. **Production Log Cleanup** - Limpieza de logs para producción
+   - Eliminación masiva de console.log de debug en toda la aplicación
+   - Conservación de console.error críticos para monitoreo en producción
+   - Limpieza de logs con emojis y mensajes de desarrollo
+   - Aplicación lista para despliegue en producción sin logs innecesarios
+
+#### 🔧 Technical Implementation
+- **DELETE Endpoint**: Implementación completa en `vehicles.ts:1200+`
+- **Credential Management**: Sistema mejorado en AdminSettings para persistencia
+- **Image URL Conversion**: `convertToFullUrl()` function en motoraldiaMapper
+- **Log Cleanup**: Eliminación selectiva de logs de debug manteniendo errores críticos
+
+#### 🎯 System Status
+- ✅ Vehicle deletion: Funcionalidad completa desde admin panel
+- ✅ Credential persistence: Guardado automático en configuración
+- ✅ Production ready: Logs limpiados para despliegue
+- ✅ Image sync: URLs convertidas correctamente para API externa
+- ✅ Error handling: Sistema robusto de manejo de errores
+
+### Previous: Separate Vehicle URLs & SEO Improvements v0.3.1 (July 27, 2025)
 
 #### ✅ Separate URLs for Sold vs Available Vehicles
 1. **URL Structure Differentiation** - Estructuras de URL específicas

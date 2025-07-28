@@ -200,9 +200,7 @@ router.get('/', async (req, res) => {
     // Calcular facets si se solicitan (sin filtros aplicados para mostrar todas las opciones disponibles)
     let facets = {};
     if (req.query.facets === 'true') {
-      console.log('🔍 Calculating facets...');
       facets = await calculateFacets({});
-      console.log('📊 Facets result:', JSON.stringify(facets, null, 2));
     }
 
     const totalPages = Math.ceil(total / perPage);
@@ -261,7 +259,6 @@ router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
     
-    console.log('🔄 PUT /api/vehicles/:id - Datos recibidos:', JSON.stringify(updateData, null, 2));
     
     // Verificar que el vehículo existe
     const existingVehicle = await prisma.vehicle.findUnique({

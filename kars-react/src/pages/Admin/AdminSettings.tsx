@@ -228,7 +228,6 @@ export default function AdminSettings() {
         const result = await response.json();
         if (result.success && result.config) {
           setTranslationConfig(result.config);
-          console.log('Translation config loaded:', result.config);
         }
       }
     } catch (error) {
@@ -579,7 +578,6 @@ export default function AdminSettings() {
 
       if (response.ok && result.success) {
         toast.success('Webhook de traducció funcionant correctament');
-        console.log('Translation test result:', result);
       } else {
         console.error('Test webhook error response:', result);
         toast.error(result.error || `Error ${response.status}: ${response.statusText}`);

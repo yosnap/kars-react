@@ -176,7 +176,6 @@ const KarsVehicles = () => {
 
   const loadVehicles = async (page = 1) => {
     try {
-      console.log('🔄 Loading vehicles, page:', page);
       setLoading(true);
       const params: any = {
         page,
@@ -212,12 +211,6 @@ const KarsVehicles = () => {
       }
 
       const response = await axiosAdmin.get('/vehicles', { params });
-      console.log('📥 Received vehicles data:', {
-        totalItems: response.data.items?.length || 0,
-        totalPages: response.data.pages || 1,
-        totalVehicles: response.data.total || 0,
-        syncedVehicles: response.data.items?.filter((v: any) => v.motorIdSync).length || 0 // Usar nuevo campo
-      });
       
       
       setVehicles(response.data.items || []);
@@ -351,7 +344,6 @@ const KarsVehicles = () => {
       addSyncLog('info', 'Resposta de la API de Motoraldia', vehicleTitle, response.data);
       
       if (response.data.success) {
-        console.log('🔄 Sync successful, reloading vehicles...', response.data);
         await loadVehicles(currentPage);
         
         if (isRemove) {
@@ -377,7 +369,6 @@ const KarsVehicles = () => {
       // Show logs modal for errors after a short delay
       setTimeout(() => setSyncLogModalOpen(true), 1000);
     } finally {
-      console.log('🔄 Clearing sync state for vehicle:', vehicleId);
       setSyncingVehicles(prev => {
         const newState = { ...prev };
         delete newState[vehicleId];

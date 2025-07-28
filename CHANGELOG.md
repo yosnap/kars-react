@@ -5,6 +5,89 @@ Todos los cambios notables de este proyecto se documentarán en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-es/1.0.0/),
 y este proyecto adhiere al [Versionado Semántico](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2025-07-28
+
+### 🚀 Sistema de Eliminación de Vehículos y Limpieza de Producción
+
+### ✅ Añadido
+
+#### Sistema Completo de Eliminación de Vehículos
+- **DELETE endpoint**: `/vehicles/:id/sync-to-motoraldia/remove` para eliminar vehículos de Motoraldia API
+- **Eliminación desde admin**: Botón directo en tabla de listado de vehículos admin
+- **Limpieza automática**: Campos de sincronización se limpian en base de datos después de eliminación
+- **Manejo de credenciales**: API usa credenciales almacenadas en configuración
+
+#### Configuración de Sincronización Mejorada
+- **Persistencia de credenciales**: Credenciales se guardan automáticamente en localStorage
+- **Campo userId eliminado**: WordPress auto-detecta usuario a través de credenciales
+- **Variable PUBLIC_BASE_URL**: Configuración para conversión de URLs de imágenes
+- **Sistema robusto de errores**: Logs detallados para debugging de sincronización
+
+#### Limpieza de Logs para Producción
+- **Eliminación masiva**: Todos los console.log de debug removidos de la aplicación
+- **Logs críticos conservados**: console.error mantenidos para monitoreo en producción
+- **Logs con emojis eliminados**: Limpieza de mensajes de desarrollo
+- **Aplicación production-ready**: Sin logs innecesarios para despliegue
+
+### 🔧 Técnico
+
+#### Implementación Backend
+- **DELETE endpoint completo**: `vehicles.ts:1200+` con manejo de credenciales
+- **Función convertToFullUrl()**: Conversión de paths locales a URLs completas
+- **Limpieza de campos sync**: motorIdSync, syncError se limpian después de eliminación
+- **Validación mejorada**: Verificación de credenciales antes de llamada API
+
+#### Implementación Frontend
+- **AdminSettings mejorado**: Sistema de persistencia de credenciales
+- **KarsVehicles actualizado**: Botón eliminar conectado con endpoint DELETE
+- **Manejo de errores**: Toast notifications para operaciones exitosas/fallidas
+- **Estado de sincronización**: Indicadores visuales de estado de sync
+
+### 🎯 Estado del Sistema
+- ✅ **Eliminación de vehículos**: Funcionalidad completa desde panel admin
+- ✅ **Persistencia de credenciales**: Guardado automático en configuración
+- ✅ **Production ready**: Logs limpiados para despliegue
+- ✅ **Sync de imágenes**: URLs convertidas correctamente para API externa
+- ✅ **Manejo de errores**: Sistema robusto implementado
+
+## [0.3.1] - 2025-07-27
+
+### 🔗 URLs Separadas para Vehículos y Mejoras SEO Críticas
+
+### ✅ Añadido
+
+#### Diferenciación de Estructuras URL
+- **URLs específicas por estado**:
+  - **Vehículos disponibles**: `/vehicles/brand`, `/vehicle/slug`
+  - **Vehículos vendidos**: `/ultimes-vendes/marca/brand`, `/ultimes-vendes/vehicle/slug`
+  - **Soporte multiidioma**: Todas las rutas en 4 idiomas
+  - **Separación semántica**: Clara distinción para SEO y experiencia de usuario
+
+#### Sistema de Estado Activo en Menú
+- **Detección inteligente**: Reconoce rutas padre para ítems de menú
+- **Rutas anidadas**: Páginas de detalle activan menú padre correctamente
+- **Variaciones de idioma**: Funciona con todas las estructuras URL
+- **Menús responsive**: Highlighting correcto en desktop y móvil
+
+#### Mejoras SEO Críticas
+- **Atributo lang dinámico**: `<html lang="xx">` basado en idioma actual
+- **Detección por buscadores**: Identificación correcta de idioma por motores de búsqueda
+- **Indexación corregida**: Eliminado problema de todas las páginas indexadas como catalán
+- **Compliance multiidioma**: SEO completamente compatible con 4 idiomas
+
+#### Mejoras en Navegación Breadcrumbs
+- **Breadcrumbs contextuales**: Diferenciación entre vehículos vendidos/disponibles
+- **Efectos hover arreglados**: Solo afectan enlaces individuales
+- **Enlaces de marca**: Mantienen contexto de estado del vehículo
+- **Texto localizado**: Breadcrumbs en todos los idiomas
+
+### 🔧 Técnico
+- **Configuración Router**: Mapeo completo de rutas vendidos/disponibles
+- **Navigation Hooks**: `useLocalizedNavigation` mejorado para routing complejo
+- **Detección de Estado**: Función `isActiveRoute()` inteligente para estados de menú
+- **Optimización SEO**: Gestión dinámica del atributo lang HTML
+- **Componentes actualizados**: VehicleCard, VehicleDetail, Header, PageBreadcrumbs
+
 ## [0.3.0] - 2025-07-27
 
 ### 🌐 Sistema de URLs Localizadas y Mejoras de Internacionalización

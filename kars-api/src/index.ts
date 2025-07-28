@@ -25,11 +25,6 @@ import { initializeCronSync } from './services/syncService';
 dotenv.config();
 
 // Debug: Log critical environment variables at startup
-console.log('🚀 Server starting with environment variables:');
-console.log('   PORT:', process.env.PORT || '3001 (default)');
-console.log('   NODE_ENV:', process.env.NODE_ENV || 'not set');
-console.log('   MOTORALDIA_EXPORT_USER:', process.env.MOTORALDIA_EXPORT_USER ? '✅ Set' : '❌ Not set');
-console.log('   MOTORALDIA_EXPORT_PASS:', process.env.MOTORALDIA_EXPORT_PASS ? '✅ Set' : '❌ Not set');
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -96,8 +91,6 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 // Initialize cron sync after server starts
 async function startServer() {
   const server = app.listen(port, async () => {
-    console.log(`🚀 Motoraldia API running on http://localhost:${port}`);
-    console.log(`📊 Health check: http://localhost:${port}/health`);
     
     // Initialize automatic sync
     // await initializeCronSync(); // Temporalmente comentado para debugging
@@ -111,14 +104,12 @@ async function startServer() {
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
-  console.log('Shutting down gracefully...');
   // TODO: Add stopCronSync() when implemented
   await prisma.$disconnect();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
-  console.log('Shutting down gracefully...');
   // TODO: Add stopCronSync() when implemented
   await prisma.$disconnect();
   process.exit(0);
