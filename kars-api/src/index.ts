@@ -24,6 +24,13 @@ import { initializeCronSync } from './services/syncService';
 // Load environment variables
 dotenv.config();
 
+// Debug: Log critical environment variables at startup
+console.log('🚀 Server starting with environment variables:');
+console.log('   PORT:', process.env.PORT || '3001 (default)');
+console.log('   NODE_ENV:', process.env.NODE_ENV || 'not set');
+console.log('   MOTORALDIA_EXPORT_USER:', process.env.MOTORALDIA_EXPORT_USER ? '✅ Set' : '❌ Not set');
+console.log('   MOTORALDIA_EXPORT_PASS:', process.env.MOTORALDIA_EXPORT_PASS ? '✅ Set' : '❌ Not set');
+
 const app = express();
 const port = process.env.PORT || 3001;
 

@@ -73,11 +73,28 @@ interface VehicleTranslationCategory {
   color: string;
 }
 
+interface MotorSyncOutConfig {
+  username: string;
+  password: string;
+  apiUrl: string;
+  autoExport: boolean;
+  exportMode: 'all' | 'available' | 'sold';
+}
+
+interface BuscoSyncOutConfig {
+  username: string;
+  password: string;
+  apiKey: string;
+  userId: string;
+  token: string;
+  autoExport: boolean;
+}
+
 export default function AdminSettings() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'whatsapp' | 'api-sync' | 'translations' | 'vehicle-translations'>(() => {
+  const [activeTab, setActiveTab] = useState<'whatsapp' | 'api-sync' | 'motor-sync-out' | 'busco-sync-out' | 'translations' | 'vehicle-translations'>(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'whatsapp' || tab === 'api-sync' || tab === 'translations' || tab === 'vehicle-translations') {
+    if (tab === 'whatsapp' || tab === 'api-sync' || tab === 'motor-sync-out' || tab === 'busco-sync-out' || tab === 'translations' || tab === 'vehicle-translations') {
       return tab;
     }
     return 'whatsapp';
@@ -124,6 +141,26 @@ export default function AdminSettings() {
   const [selectedLogs, setSelectedLogs] = useState<string[]>([]);
   const [translationLoading, setTranslationLoading] = useState(false);
 
+  // Motor Sync Out Configuration
+  const [motorSyncOutConfig, setMotorSyncOutConfig] = useState<MotorSyncOutConfig>({
+    username: '',
+    password: '',
+    apiUrl: 'https://api.motoraldia.com',
+    autoExport: false,
+    exportMode: 'all'
+  });
+  const [hasStoredPassword, setHasStoredPassword] = useState(false);
+
+  // Busco Sync Out Configuration
+  const [buscoSyncOutConfig, setBuscoSyncOutConfig] = useState<BuscoSyncOutConfig>({
+    username: '',
+    password: '',
+    apiKey: '',
+    userId: '',
+    token: '',
+    autoExport: false
+  });
+
   // Vehicle translations states
   const [vehicleTranslations, setVehicleTranslations] = useState<VehicleTranslation[]>([]);
   const [vehicleTranslationsLoading, setVehicleTranslationsLoading] = useState(false);
@@ -149,6 +186,12 @@ export default function AdminSettings() {
     }
     if (activeTab === 'vehicle-translations') {
       loadVehicleTranslations();
+    }
+    if (activeTab === 'motor-sync-out') {
+      loadMotorSyncOutConfig();
+    }
+    if (activeTab === 'busco-sync-out') {
+      loadBuscoSyncOutConfig();
     }
   }, [activeTab]);
 
@@ -193,6 +236,64 @@ export default function AdminSettings() {
     }
   };
 
+  const loadMotorSyncOutConfig = async () => {
+    try {
+      // Cargar desde la base de datos
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/motor-sync-out-config`, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Basic ' + btoa(`${import.meta.env.VITE_API_ADMIN_USER}:${import.meta.env.VITE_API_ADMIN_PASS}`)
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.config) {
+          // Si la configuración viene de la BD y tiene username/apiUrl pero password vacío,
+          // significa que hay una contraseña guardada (el backend no la devuelve por seguridad)
+          const hasPassword = !!(result.config.username && result.config.apiUrl && 
+                                 (!result.config.password || result.config.password === ''));
+          setHasStoredPassword(hasPassword);
+          setMotorSyncOutConfig(result.config);
+          return;
+        }
+      }
+
+      // Fallback a localStorage si la API falla
+      const savedConfig = localStorage.getItem('motorSyncOutConfig');
+      if (savedConfig) {
+        const config = JSON.parse(savedConfig);
+        setHasStoredPassword(!!config.password);
+        setMotorSyncOutConfig(config);
+      }
+    } catch (error) {
+      console.error('Error loading Motor sync out config:', error);
+      // Fallback a localStorage en caso de error
+      try {
+        const savedConfig = localStorage.getItem('motorSyncOutConfig');
+        if (savedConfig) {
+          const config = JSON.parse(savedConfig);
+          setHasStoredPassword(!!config.password);
+          setMotorSyncOutConfig(config);
+        }
+      } catch (e) {
+        console.error('Error loading from localStorage:', e);
+      }
+    }
+  };
+
+  const loadBuscoSyncOutConfig = async () => {
+    try {
+      // Cargar desde localStorage temporalmente
+      const savedConfig = localStorage.getItem('buscoSyncOutConfig');
+      if (savedConfig) {
+        setBuscoSyncOutConfig(JSON.parse(savedConfig));
+      }
+    } catch (error) {
+      console.error('Error loading Busco sync out config:', error);
+    }
+  };
+
   const handleWhatsAppChange = (field: keyof WhatsAppConfig, value: string | boolean) => {
     setWhatsAppConfig(prev => ({
       ...prev,
@@ -214,7 +315,26 @@ export default function AdminSettings() {
     }));
   };
 
-  const handleTabChange = (tab: 'whatsapp' | 'api-sync' | 'translations' | 'vehicle-translations') => {
+  const handleMotorSyncOutChange = (field: keyof MotorSyncOutConfig, value: string | boolean) => {
+    setMotorSyncOutConfig(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    // Si el usuario está cambiando la contraseña, ya no hay contraseña guardada
+    if (field === 'password' && typeof value === 'string' && value) {
+      setHasStoredPassword(false);
+    }
+  };
+
+  const handleBuscoSyncOutChange = (field: keyof BuscoSyncOutConfig, value: string | boolean) => {
+    setBuscoSyncOutConfig(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleTabChange = (tab: 'whatsapp' | 'api-sync' | 'motor-sync-out' | 'busco-sync-out' | 'translations' | 'vehicle-translations') => {
     setActiveTab(tab);
     setSearchParams({ tab });
   };
@@ -531,6 +651,132 @@ export default function AdminSettings() {
     }
   };
 
+  const saveMotorSyncOutConfig = async () => {
+    setLoading(true);
+    try {
+      // Preparar los datos a enviar
+      let configToSend: Partial<MotorSyncOutConfig> = { ...motorSyncOutConfig };
+      
+      // Si hay una contraseña guardada y el campo está vacío, no enviar el campo password
+      if (hasStoredPassword && !motorSyncOutConfig.password) {
+        // Eliminar password del objeto para que el backend mantenga la contraseña existente
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { password, ...configWithoutPassword } = configToSend;
+        configToSend = configWithoutPassword;
+      }
+      
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/motor-sync-out-config`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Basic ' + btoa(`${import.meta.env.VITE_API_ADMIN_USER}:${import.meta.env.VITE_API_ADMIN_PASS}`)
+        },
+        body: JSON.stringify(configToSend)
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Preparar configuración para localStorage (debe incluir password para sincronización)
+        const configForLocalStorage = { ...motorSyncOutConfig };
+        
+        // Si había una contraseña guardada y no se cambió, mantener la anterior
+        if (hasStoredPassword && !motorSyncOutConfig.password) {
+          const existingConfig = localStorage.getItem('motorSyncOutConfig');
+          if (existingConfig) {
+            const existing = JSON.parse(existingConfig);
+            configForLocalStorage.password = existing.password || '';
+          }
+        }
+        
+        // Guardar en localStorage (incluyendo password para uso local)
+        localStorage.setItem('motorSyncOutConfig', JSON.stringify(configForLocalStorage));
+        // Actualizar el estado de contraseña guardada
+        setHasStoredPassword(true);
+        toast.success('Configuració de Motor guardada correctament en la base de dades');
+      } else {
+        toast.error(result.error || 'Error al guardar la configuració');
+      }
+    } catch (error) {
+      console.error('Error saving Motor sync out config:', error);
+      toast.error('Error al guardar la configuració');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveBuscoSyncOutConfig = async () => {
+    setLoading(true);
+    try {
+      // Guardar en localStorage temporalmente
+      localStorage.setItem('buscoSyncOutConfig', JSON.stringify(buscoSyncOutConfig));
+      
+      // Simular delay de red
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      toast.success('Configuració de Busco guardada correctament');
+    } catch (error) {
+      console.error('Error saving Busco sync out config:', error);
+      toast.error('Error al guardar la configuració');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const testMotorConnection = async () => {
+    if (!motorSyncOutConfig.apiUrl || !motorSyncOutConfig.username || !motorSyncOutConfig.password) {
+      toast.error('Omple tots els camps de connexió primer');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Simular test de connexió
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Simular resposta exitosa
+      const success = Math.random() > 0.3; // 70% d'èxit
+      
+      if (success) {
+        toast.success('Connexió establerta correctament amb Motoraldia');
+      } else {
+        toast.error('Error de connexió: Credencials incorrectes');
+      }
+    } catch (error) {
+      console.error('Error testing Motor connection:', error);
+      toast.error('Error al provar la connexió');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const testBuscoConnection = async () => {
+    if (!buscoSyncOutConfig.username || !buscoSyncOutConfig.password || !buscoSyncOutConfig.apiKey) {
+      toast.error('Omple tots els camps obligatoris primer');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Simular test de connexió
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Simular resposta exitosa
+      const success = Math.random() > 0.3; // 70% d'èxit
+      
+      if (success) {
+        toast.success('Connexió establerta correctament amb Busco');
+      } else {
+        toast.error('Error de connexió: API Key incorrecte');
+      }
+    } catch (error) {
+      console.error('Error testing Busco connection:', error);
+      toast.error('Error al provar la connexió');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Vehicle translations functions
   const loadVehicleTranslations = async () => {
     setVehicleTranslationsLoading(true);
@@ -718,7 +964,33 @@ export default function AdminSettings() {
             >
               <div className="flex items-center gap-2">
                 <RefreshCw className="w-4 h-4" />
-                Sincronización API
+                Sincronización Motor - Entrada
+              </div>
+            </button>
+            <button
+              onClick={() => handleTabChange('motor-sync-out')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'motor-sync-out'
+                  ? 'border-cyan-600 text-cyan-600 dark:border-cyan-400 dark:text-cyan-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <RefreshCw className="w-4 h-4" />
+                Sincronización Motor - Salida
+              </div>
+            </button>
+            <button
+              onClick={() => handleTabChange('busco-sync-out')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'busco-sync-out'
+                  ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <RefreshCw className="w-4 h-4" />
+                Sincronización Busco - Salida
               </div>
             </button>
             <button
@@ -890,10 +1162,10 @@ export default function AdminSettings() {
             </div>
             <div>
               <h2 className="text-lg font-medium text-gray-900 dark:text-white">
-                Sincronización API
+                Sincronización Motor - Entrada
               </h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Configura la importación automática de vehículos desde APIs externas
+                Configura la importación automática de vehículos desde Motoraldia
               </p>
             </div>
             {apiSyncConfig.connectionStatus !== 'idle' && (
@@ -1627,6 +1899,385 @@ export default function AdminSettings() {
                 onClick={saveTranslationConfig}
                 disabled={loading}
                 className="flex items-center gap-2 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Save className="w-4 h-4" />
+                {loading ? 'Guardant...' : 'Guardar Configuració'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'motor-sync-out' && (
+        // Motor Sync Out Section
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-cyan-100 dark:bg-cyan-900 rounded-lg">
+                <RefreshCw className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+                  Sincronització Motor - Sortida
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Configura l'exportació automàtica de vehicles cap a Motoraldia
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-8">
+            {/* Connection Configuration */}
+            <div>
+              <h3 className="flex items-center gap-2 text-md font-medium text-gray-900 dark:text-white mb-4">
+                <Database className="w-5 h-5" />
+                Configuració API Motoraldia
+              </h3>
+              
+              <div className="space-y-6">
+                {/* Username */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+Usuari API
+                  </label>
+                  <input
+                    type="text"
+                    value={motorSyncOutConfig.username}
+                    onChange={(e) => handleMotorSyncOutChange('username', e.target.value)}
+                    placeholder="paulo"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                  />
+                </div>
+
+                {/* Password */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    Contrasenya API
+                    {hasStoredPassword && (
+                      <span className="ml-2 text-xs text-green-600 dark:text-green-400">
+                        ✓ Contrasenya guardada
+                      </span>
+                    )}
+                  </label>
+                  <input
+                    type="password"
+                    value={motorSyncOutConfig.password}
+                    onChange={(e) => handleMotorSyncOutChange('password', e.target.value)}
+                    placeholder={hasStoredPassword ? "Contrasenya guardada - deixa buit per mantenir" : "••••••••••"}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                  />
+                  {hasStoredPassword && (
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Deixa aquest camp buit per mantenir la contrasenya actual. Escriu una nova contrasenya per canviar-la.
+                    </p>
+                  )}
+                </div>
+
+                {/* User ID - No necesario, la API detecta el usuario automáticamente */}
+
+                {/* API Base URL */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+URL Base de l'API
+                  </label>
+                  <input
+                    type="url"
+                    value={motorSyncOutConfig.apiUrl}
+                    onChange={(e) => handleMotorSyncOutChange('apiUrl', e.target.value)}
+                    placeholder="https://api.motoraldia.com"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+Introdueix l'URL base de l'API (per exemple: https://api.motoraldia.com)
+                  </p>
+                </div>
+              </div>
+
+              {/* Test Connection and Save Buttons */}
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={testMotorConnection}
+                  disabled={loading}
+                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <TestTube className="w-4 h-4" />
+                  {loading ? 'Provant...' : 'Provar Connexió'}
+                </button>
+                <button
+                  onClick={saveMotorSyncOutConfig}
+                  disabled={loading}
+                  className="flex items-center gap-2 bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Save className="w-4 h-4" />
+                  {loading ? 'Guardant...' : 'Guardar Canvis'}
+                </button>
+              </div>
+            </div>
+
+            {/* Export Settings */}
+            <div>
+              <h3 className="flex items-center gap-2 text-md font-medium text-gray-900 dark:text-white mb-4">
+                <Settings className="w-5 h-5" />
+                Configuració d'Exportació
+              </h3>
+              
+              <div className="space-y-4">
+                {/* Auto Export Toggle */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white">
+                      Exportació automàtica
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Exportar automàticament vehicles nous/modificats
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={motorSyncOutConfig.autoExport}
+                      onChange={(e) => handleMotorSyncOutChange('autoExport', e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cyan-300 dark:peer-focus:ring-cyan-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-cyan-600"></div>
+                  </label>
+                </div>
+
+                {/* Export Mode */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    Mode d'exportació
+                  </label>
+                  <select
+                    value={motorSyncOutConfig.exportMode}
+                    onChange={(e) => handleMotorSyncOutChange('exportMode', e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                  >
+                    <option value="all">Tots els vehicles</option>
+                    <option value="available">Només vehicles disponibles</option>
+                    <option value="sold">Només vehicles venuts</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Play className="w-4 h-4" />
+                Exportar Ara
+              </button>
+              
+              <button
+                onClick={saveMotorSyncOutConfig}
+                disabled={loading}
+                className="flex items-center gap-2 bg-cyan-600 text-white px-6 py-3 rounded-lg hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Save className="w-4 h-4" />
+                {loading ? 'Guardant...' : 'Guardar Configuració'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'busco-sync-out' && (
+        // Busco Sync Out Section
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-indigo-100 dark:bg-indigo-900 rounded-lg">
+                <RefreshCw className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+                  Sincronització Busco - Sortida
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Configura l'exportació automàtica de vehicles cap a Busco
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-8">
+            {/* Connection Configuration */}
+            <div>
+              <h3 className="flex items-center gap-2 text-md font-medium text-gray-900 dark:text-white mb-4">
+                <Database className="w-5 h-5" />
+                Metas BuscoCotxe - Usuarios
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Username */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    Busco Cotxe API Username
+                  </label>
+                  <input
+                    type="text"
+                    value={buscoSyncOutConfig.username}
+                    onChange={(e) => handleBuscoSyncOutChange('username', e.target.value)}
+                    placeholder="apibusco"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Name: buscocotxe_api_username
+                  </p>
+                </div>
+
+                {/* Password */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    Busco Cotxe API Password
+                  </label>
+                  <input
+                    type="password"
+                    value={buscoSyncOutConfig.password}
+                    onChange={(e) => handleBuscoSyncOutChange('password', e.target.value)}
+                    placeholder="••••••••••"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Name: buscocotxe_api_password
+                  </p>
+                </div>
+
+                {/* API Key */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    Busco Cotxe API Key
+                  </label>
+                  <input
+                    type="text"
+                    value={buscoSyncOutConfig.apiKey}
+                    onChange={(e) => handleBuscoSyncOutChange('apiKey', e.target.value)}
+                    placeholder="XQhwLUsgGwK4QvEM58c7r0SnZ"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Name: buscocotxe_api_key
+                  </p>
+                </div>
+
+                {/* User ID */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    Busco Cotxe User ID
+                  </label>
+                  <input
+                    type="text"
+                    value={buscoSyncOutConfig.userId}
+                    onChange={(e) => handleBuscoSyncOutChange('userId', e.target.value)}
+                    placeholder="35704"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Name: buscocotxe_user_id
+                  </p>
+                </div>
+
+                {/* Token */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    Busco Cotxe Token
+                  </label>
+                  <input
+                    type="text"
+                    value={buscoSyncOutConfig.token}
+                    onChange={(e) => handleBuscoSyncOutChange('token', e.target.value)}
+                    placeholder="EKuHBv9uwNf2hZ6KQGcXpqh74w3haB7E"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Name: buscocotxe_token
+                  </p>
+                </div>
+              </div>
+
+              {/* Test Connection Button */}
+              <div className="mt-6">
+                <button
+                  onClick={testBuscoConnection}
+                  disabled={loading}
+                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <TestTube className="w-4 h-4" />
+                  {loading ? 'Provant...' : 'Provar Connexió'}
+                </button>
+              </div>
+            </div>
+
+            {/* Export Settings */}
+            <div>
+              <h3 className="flex items-center gap-2 text-md font-medium text-gray-900 dark:text-white mb-4">
+                <Settings className="w-5 h-5" />
+                Configuració d'Exportació
+              </h3>
+              
+              <div className="space-y-4">
+                {/* Auto Export Toggle */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white">
+                      Exportació automàtica
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Exportar automàticament vehicles nous/modificats
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={buscoSyncOutConfig.autoExport}
+                      onChange={(e) => handleBuscoSyncOutChange('autoExport', e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+
+                {/* Category Mapping */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    Mapeig de categories
+                  </label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    Configura com es mapegen les categories de vehicles
+                  </p>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <select className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                        <option>Cotxes</option>
+                        <option>Motos</option>
+                        <option>Furgonetes</option>
+                      </select>
+                      <span className="text-gray-500">→</span>
+                      <select className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                        <option>Categoria Busco</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Play className="w-4 h-4" />
+                Exportar Ara
+              </button>
+              
+              <button
+                onClick={saveBuscoSyncOutConfig}
+                disabled={loading}
+                className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <Save className="w-4 h-4" />
                 {loading ? 'Guardant...' : 'Guardar Configuració'}

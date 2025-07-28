@@ -168,12 +168,12 @@ model Vehicle {
   // Legacy professional ID (for migration)
   professionalId    String?  @map("professional-id")
   
-  // Timestamps de sincronización TO Motoraldia (reverse sync)
-  lastSyncAt        DateTime? @map("last_sync_at") // Last sync TO Motoraldia
-  syncedToMotoraldiaAt DateTime? @map("synced_to_motoraldia_at") // When pushed to Motoraldia
-  motoraldiaVehicleId String? @map("motoraldia_vehicle_id") // ID in Motoraldia after sync
-  needsSync         Boolean  @default(true) @map("needs_sync") // Flag for pending sync
-  syncError         String?  @map("sync_error") // Last sync error message
+  // Campos de sincronización simplificados
+  motorIdSync       String? @map("motor_id_sync") // ID en Motor después del sync
+  buscoIdSync       String? @map("busco_id_sync") // ID en Busco después del sync
+  lastSyncAt        DateTime? @map("last_sync_at") // Último sync realizado
+  syncError         String?  @map("sync_error") // Último error de sync
+  needsSync         Boolean  @default(true) @map("needs_sync") // Flag para sync pendiente
   
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
@@ -187,7 +187,8 @@ model Vehicle {
   @@index([dataCreacio])
   @@index([anunciDestacat])
   @@index([needsSync]) // For sync queue management
-  @@index([motoraldiaVehicleId]) // For reverse lookup
+  @@index([motorIdSync]) // For reverse lookup from Motor
+  @@index([buscoIdSync]) // For reverse lookup from Busco
 }
 
 model User {

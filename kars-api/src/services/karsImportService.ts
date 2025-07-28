@@ -12,12 +12,12 @@ dotenv.config();
 
 const prisma = new PrismaClient();
 
-// Configuración del cliente axios para importar desde Motoraldia
+// Configuración del cliente axios para importar desde Motoraldia (API de ENTRADA)
 const motoraldiaApiClient = axios.create({
-  baseURL: process.env.ORIGINAL_API_URL || 'https://motoraldia.net/wp-json/api-motor/v1',
+  baseURL: process.env.MOTORALDIA_IMPORT_API_URL?.replace('/vehicles', '') || 'https://motoraldia.net/wp-json/api-motor/v1',
   auth: {
-    username: process.env.ORIGINAL_API_USER || 'Paulo',
-    password: process.env.ORIGINAL_API_PASS || 'U^q^i2l49rZrX72#Ln!Xe5k0'
+    username: process.env.MOTORALDIA_IMPORT_USER || 'Paulo',
+    password: process.env.MOTORALDIA_IMPORT_PASS || 'U^q^i2l49rZrX72#Ln!Xe5k0'
   },
   timeout: 30000
 });

@@ -13,7 +13,11 @@ import {
   FileText,
   ChevronDown,
   Check,
-  Trash2
+  Trash2,
+  Send,
+  X,
+  Loader,
+  Share2
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -59,6 +63,14 @@ interface Vehicle {
   dataCreacio: string;
   imatgeDestacadaUrl?: string;
   estatVehicle?: string;
+  // Campos de sincronización
+  motorIdSync?: string;
+  buscoIdSync?: string;
+  lastSyncAt?: string;
+  syncError?: string;
+  needsSync?: boolean;
+  buscoVehicleId?: string;
+  syncedToBuscoAt?: string;
 }
 
 // Función para mapear tipos de vehículo a etiquetas legibles
@@ -129,11 +141,42 @@ const KarsVehicles = () => {
     failed: number;
     failedVehicles: Array<{title: string, slug: string, error: string}>;
   } | null>(null);
+  const [syncingVehicles, setSyncingVehicles] = useState<Record<string, 'motoraldia' | 'busco'>>({});
+  const [syncAllModalOpen, setSyncAllModalOpen] = useState(false);
+  const [syncAllPlatform, setSyncAllPlatform] = useState<'motoraldia' | 'busco' | null>(null);
+  const [syncAllInProgress, setSyncAllInProgress] = useState(false);
+  const [syncLogModalOpen, setSyncLogModalOpen] = useState(false);
+  const [syncLogs, setSyncLogs] = useState<Array<{
+    timestamp: string;
+    level: 'info' | 'success' | 'error' | 'warning';
+    message: string;
+    vehicleTitle?: string;
+    apiResponse?: any;
+    error?: any;
+  }>>([]);
   const isInitialMount = useRef(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Helper function to add logs
+  const addSyncLog = (level: 'info' | 'success' | 'error' | 'warning', message: string, vehicleTitle?: string, apiResponse?: any, error?: any) => {
+    setSyncLogs(prev => [...prev, {
+      timestamp: new Date().toISOString(),
+      level,
+      message,
+      vehicleTitle,
+      apiResponse,
+      error
+    }]);
+  };
+
+  // Clear logs
+  const clearSyncLogs = () => {
+    setSyncLogs([]);
+  };
+
   const loadVehicles = async (page = 1) => {
     try {
+      console.log('🔄 Loading vehicles, page:', page);
       setLoading(true);
       const params: any = {
         page,
@@ -169,6 +212,14 @@ const KarsVehicles = () => {
       }
 
       const response = await axiosAdmin.get('/vehicles', { params });
+      console.log('📥 Received vehicles data:', {
+        totalItems: response.data.items?.length || 0,
+        totalPages: response.data.pages || 1,
+        totalVehicles: response.data.total || 0,
+        syncedVehicles: response.data.items?.filter((v: any) => v.motorIdSync).length || 0 // Usar nuevo campo
+      });
+      
+      
       setVehicles(response.data.items || []);
       setTotalPages(response.data.pages || 1);
       setTotalVehicles(response.data.total || 0);
@@ -246,6 +297,219 @@ const KarsVehicles = () => {
     } catch (err) {
       console.error('Error updating vehicle destacado status:', err);
       toast.error('Error actualitzant l\'estat destacat del vehicle');
+    }
+  };
+
+  const syncToMotoraldi = async (vehicleId: string, vehicleTitle: string, isRemove: boolean = false) => {
+    setSyncingVehicles(prev => ({ ...prev, [vehicleId]: 'motoraldia' }));
+    
+    // Log inicio de sincronización
+    addSyncLog('info', `Iniciant sincronització${isRemove ? ' (eliminació)' : ''} amb Motoraldia`, vehicleTitle);
+    
+    try {
+      // Obtener credenciales de localStorage
+      const motorCredentials = localStorage.getItem('motorSyncOutConfig');
+      let credentials = null;
+      
+      if (motorCredentials) {
+        try {
+          credentials = JSON.parse(motorCredentials);
+        } catch (error) {
+          console.error('Error parsing Motor credentials from localStorage:', error);
+          addSyncLog('error', 'Error llegint credencials de Motor des de localStorage', vehicleTitle, null, error);
+          toast.error('Error llegint la configuració de Motor. Configura les credencials a la configuració.');
+          setSyncingVehicles(prev => {
+            const newState = { ...prev };
+            delete newState[vehicleId];
+            return newState;
+          });
+          return;
+        }
+      }
+      
+      if (!credentials || !credentials.username || !credentials.password || !credentials.apiUrl) {
+        addSyncLog('error', 'Credencials de Motor no configurades', vehicleTitle);
+        toast.error('Configura les credencials de Motor a la pestanya de configuració primer');
+        setSyncingVehicles(prev => {
+          const newState = { ...prev };
+          delete newState[vehicleId];
+          return newState;
+        });
+        return;
+      }
+      
+      const endpoint = isRemove ? `/vehicles/${vehicleId}/sync-to-motoraldia/remove` : `/vehicles/${vehicleId}/sync-to-motoraldia`;
+      const response = isRemove 
+        ? await axiosAdmin.delete(endpoint, {
+            data: { motorCredentials: credentials }
+          })
+        : await axiosAdmin.post(endpoint, {
+            motorCredentials: credentials
+          });
+      
+      // Log respuesta completa de la API
+      addSyncLog('info', 'Resposta de la API de Motoraldia', vehicleTitle, response.data);
+      
+      if (response.data.success) {
+        console.log('🔄 Sync successful, reloading vehicles...', response.data);
+        await loadVehicles(currentPage);
+        
+        if (isRemove) {
+          addSyncLog('success', 'Vehicle eliminat de Motoraldia correctament', vehicleTitle, response.data);
+          toast.success(`Vehicle "${vehicleTitle}" eliminat de Motoraldia correctament`);
+        } else {
+          addSyncLog('success', `Vehicle sincronitzat amb Motoraldia: ID ${response.data.data?.motorIdSync}`, vehicleTitle, response.data);
+          toast.success(`Vehicle "${vehicleTitle}" sincronitzat amb Motoraldia: ID ${response.data.data?.motorIdSync}`);
+          // Show logs modal for individual sync after a short delay
+          setTimeout(() => setSyncLogModalOpen(true), 1000);
+        }
+      } else {
+        throw new Error(response.data.error || 'Error desconegut');
+      }
+    } catch (err: any) {
+      console.error('Error syncing to Motoraldia:', err);
+      const action = isRemove ? 'eliminant de' : 'sincronitzant amb';
+      const errorMessage = `Error ${action} Motoraldia: ${err.response?.data?.error || err.message}`;
+      
+      // Log error detallado
+      addSyncLog('error', errorMessage, vehicleTitle, err.response?.data, err);
+      toast.error(errorMessage);
+      // Show logs modal for errors after a short delay
+      setTimeout(() => setSyncLogModalOpen(true), 1000);
+    } finally {
+      console.log('🔄 Clearing sync state for vehicle:', vehicleId);
+      setSyncingVehicles(prev => {
+        const newState = { ...prev };
+        delete newState[vehicleId];
+        return newState;
+      });
+    }
+  };
+
+  const syncToBusco = async (vehicleId: string, vehicleTitle: string, isRemove: boolean = false) => {
+    setSyncingVehicles(prev => ({ ...prev, [vehicleId]: 'busco' }));
+    
+    try {
+      const endpoint = isRemove ? `/vehicles/${vehicleId}/sync-to-busco/remove` : `/vehicles/${vehicleId}/sync-to-busco`;
+      const response = await axiosAdmin.post(endpoint);
+      
+      if (response.data.success) {
+        await loadVehicles(currentPage);
+        if (isRemove) {
+          toast.success(`Vehicle "${vehicleTitle}" eliminat de Busco correctament`);
+        } else {
+          toast.success(`Vehicle "${vehicleTitle}" sincronitzat amb Busco: ID ${response.data.data?.buscoVehicleId}`);
+        }
+      } else {
+        throw new Error(response.data.error || 'Error desconegut');
+      }
+    } catch (err: any) {
+      console.error('Error syncing to Busco:', err);
+      const action = isRemove ? 'eliminant de' : 'sincronitzant amb';
+      toast.error(`Error ${action} Busco: ${err.response?.data?.error || err.message}`);
+    } finally {
+      setSyncingVehicles(prev => {
+        const newState = { ...prev };
+        delete newState[vehicleId];
+        return newState;
+      });
+    }
+  };
+
+  const openSyncAllModal = (platform: 'motoraldia' | 'busco') => {
+    setSyncAllPlatform(platform);
+    setSyncAllModalOpen(true);
+  };
+
+  const confirmSyncAll = async () => {
+    if (!syncAllPlatform) return;
+    
+    setSyncAllInProgress(true);
+    setSyncAllModalOpen(false);
+    
+    // Clear previous logs and start new sync session
+    clearSyncLogs();
+    addSyncLog('info', `=== NOVA SESSIÓ DE SINCRONITZACIÓ MASSIVA ===`);
+    
+    try {
+      // Obtener todos los vehículos disponibles para sync
+      const filteredVehicles = vehicles.filter(vehicle => {
+        // Only Motoraldia sync is implemented for now
+        return !vehicle.motorIdSync && vehicle.anunciActiu;
+      });
+
+      addSyncLog('info', `Vehicles trobats per sincronitzar: ${filteredVehicles.length}`);
+
+      if (filteredVehicles.length === 0) {
+        addSyncLog('warning', 'No hi ha vehicles pendents de sincronització');
+        toast.error(`No hi ha vehicles pendents de sincronització amb ${syncAllPlatform}`);
+        return;
+      }
+
+      addSyncLog('info', `Iniciant sincronització de ${filteredVehicles.length} vehicles amb Motoraldia...`);
+      toast.success(`Iniciant sincronització de ${filteredVehicles.length} vehicles amb Motoraldia...`);
+
+      let successful = 0;
+      let failed = 0;
+
+      // Sincronizar de 3 en 3 para evitar sobrecargar el servidor
+      for (let i = 0; i < filteredVehicles.length; i += 3) {
+        const batch = filteredVehicles.slice(i, i + 3);
+        const batchNumber = Math.floor(i / 3) + 1;
+        const totalBatches = Math.ceil(filteredVehicles.length / 3);
+        
+        addSyncLog('info', `Processant lot ${batchNumber}/${totalBatches} (${batch.length} vehicles)`);
+        
+        const promises = batch.map(async (vehicle) => {
+          try {
+            addSyncLog('info', `Sincronitzant vehicle: ${vehicle.titolAnunci}`, vehicle.titolAnunci);
+            // Only Motoraldia sync is implemented for now
+            await syncToMotoraldi(vehicle.id, vehicle.titolAnunci);
+            successful++;
+            addSyncLog('success', `Vehicle sincronitzat correctament`, vehicle.titolAnunci);
+          } catch (error) {
+            failed++;
+            addSyncLog('error', `Error sincronitzant vehicle: ${error}`, vehicle.titolAnunci, null, error);
+            console.error(`Error syncing vehicle ${vehicle.titolAnunci}:`, error);
+          }
+        });
+
+        await Promise.allSettled(promises);
+        
+        addSyncLog('info', `Lot ${batchNumber}/${totalBatches} completat. Exitosos: ${successful}, Fallits: ${failed}`);
+        
+        // Pequeña pausa entre lotes
+        if (i + 3 < filteredVehicles.length) {
+          addSyncLog('info', 'Pausa d\'1 segon entre lots...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+
+      // Recargar la lista de vehículos
+      await loadVehicles(currentPage);
+
+      // Mostrar resultado final
+      if (failed === 0) {
+        addSyncLog('success', `=== SINCRONITZACIÓ COMPLETADA EXITOSAMENT ===`);
+        addSyncLog('success', `Total vehicles sincronitzats: ${successful}`);
+        toast.success(`✅ Sincronització completada: ${successful} vehicles sincronitzats amb Motoraldia`);
+      } else {
+        addSyncLog('warning', `=== SINCRONITZACIÓ COMPLETADA AMB ERRORS ===`);
+        addSyncLog('warning', `Vehicles exitosos: ${successful}, Vehicles fallits: ${failed}`);
+        toast.error(`⚠️ Sincronització completada amb errors: ${successful} exitosos, ${failed} fallits`);
+      }
+
+      // Show logs modal
+      setSyncLogModalOpen(true);
+
+    } catch (error) {
+      console.error('Error in bulk sync:', error);
+      addSyncLog('error', 'Error crític durant la sincronització massiva', undefined, null, error);
+      toast.error('Error durant la sincronització massiva');
+      setSyncLogModalOpen(true);
+    } finally {
+      setSyncAllInProgress(false);
+      setSyncAllPlatform(null);
     }
   };
 
@@ -594,6 +858,58 @@ const KarsVehicles = () => {
                 )}
                 {importStatus === 'running' ? 'Important...' : 'Importar JSON'}
               </button>
+              
+              {/* Sync All Buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => openSyncAllModal('motoraldia')}
+                  disabled={syncAllInProgress}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                    syncAllInProgress
+                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                      : 'bg-blue-500 text-white hover:bg-blue-600'
+                  }`}
+                  title="Sincronitzar tots els vehicles actius amb Motoraldia"
+                >
+                  {syncAllInProgress ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Share2 className="w-4 h-4" />
+                  )}
+                  Sync Motoraldia
+                </button>
+                {/* Busco sync disabled until integration is implemented
+                <button
+                  onClick={() => openSyncAllModal('busco')}
+                  disabled={syncAllInProgress}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                    syncAllInProgress
+                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                      : 'bg-green-500 text-white hover:bg-green-600'
+                  }`}
+                  title="Sincronitzar tots els vehicles actius amb Busco"
+                >
+                  {syncAllInProgress ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Share2 className="w-4 h-4" />
+                  )}
+                  Sync Busco
+                </button>
+                */}
+              </div>
+              
+              {/* Sync Logs Button */}
+              {syncLogs.length > 0 && (
+                <button
+                  onClick={() => setSyncLogModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  <FileText className="w-4 h-4" />
+                  Logs Sync ({syncLogs.length})
+                </button>
+              )}
+              
               <button 
                 onClick={handleCreateVehicle}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -802,12 +1118,12 @@ const KarsVehicles = () => {
           ) : (
             <>
               {/* Table Header */}
-              <div className="grid grid-cols-12 gap-4 p-4 border-b border-gray-200 dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-300 text-sm">
+              <div className="grid grid-cols-11 gap-4 p-4 border-b border-gray-200 dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-300 text-sm">
                 <div className="col-span-3">Vehicle</div>
                 <div className="col-span-1">Preu</div>
-                <div className="col-span-1">Data Alta</div>
                 <div className="col-span-2">Marca i Model</div>
-                <div className="col-span-1">Estat</div>
+                <div className="col-span-1">Sync Motoraldia</div>
+                {/* <div className="col-span-1">Sync Busco</div> - Disabled until integration */}
                 <div className="col-span-1">Destacat</div>
                 <div className="col-span-1">Actiu</div>
                 <div className="col-span-1">Venut</div>
@@ -816,7 +1132,7 @@ const KarsVehicles = () => {
 
               {/* Vehicle Rows */}
               {vehicles.map((vehicle) => (
-                <div key={vehicle.id} className="grid grid-cols-12 gap-4 p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <div key={vehicle.id} className="grid grid-cols-11 gap-4 p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                   {/* Vehicle Info */}
                   <div className="col-span-3 flex gap-3">
                     <div className="w-16 h-12 bg-gray-200 rounded overflow-hidden flex-shrink-0">
@@ -852,13 +1168,6 @@ const KarsVehicles = () => {
                     </span>
                   </div>
 
-                  {/* Date */}
-                  <div className="col-span-1 flex items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {formatDate(vehicle.dataCreacio)}
-                    </span>
-                  </div>
-
                   {/* Marca i Model */}
                   <div className="col-span-2 flex items-center">
                     <div>
@@ -871,12 +1180,70 @@ const KarsVehicles = () => {
                     </div>
                   </div>
 
-                  {/* Estat Vehicle */}
-                  <div className="col-span-1 flex items-center">
-                    <span className="text-sm text-gray-900 dark:text-white capitalize">
-                      {vehicle.estatVehicle || 'N/A'}
-                    </span>
+                  {/* Sync Motoraldia */}
+                  <div className="col-span-1 flex flex-col items-center justify-center gap-1">
+                    {syncingVehicles[vehicle.id] === 'motoraldia' ? (
+                      <button disabled className="p-1.5 bg-gray-300 rounded flex items-center justify-center">
+                        <Loader className="w-3 h-3 animate-spin" />
+                      </button>
+                    ) : vehicle.motorIdSync ? (
+                      <div className="flex flex-col items-center">
+                        <button
+                          onClick={() => syncToMotoraldi(vehicle.id, vehicle.titolAnunci, true)}
+                          className="p-1.5 bg-red-100 text-red-600 hover:bg-red-200 rounded flex items-center justify-center"
+                          title="Eliminar de Motoraldia"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                        {vehicle.motorIdSync && (
+                          <span className="text-xs text-gray-500 mt-1">Motor ID: {vehicle.motorIdSync}</span>
+                        )}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          // Clear logs before individual sync
+                          clearSyncLogs();
+                          syncToMotoraldi(vehicle.id, vehicle.titolAnunci);
+                        }}
+                        className="p-1.5 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded flex items-center justify-center"
+                        title="Sincronitzar amb Motoraldia"
+                      >
+                        <Send className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
+
+                  {/* Sync Busco - Disabled until integration is implemented
+                  <div className="col-span-1 flex flex-col items-center justify-center gap-1">
+                    {syncingVehicles[vehicle.id] === 'busco' ? (
+                      <button disabled className="p-1.5 bg-gray-300 rounded flex items-center justify-center">
+                        <Loader className="w-3 h-3 animate-spin" />
+                      </button>
+                    ) : vehicle.syncedToBuscoAt ? (
+                      <div className="flex flex-col items-center">
+                        <button
+                          onClick={() => syncToBusco(vehicle.id, vehicle.titolAnunci, true)}
+                          className="p-1.5 bg-red-100 text-red-600 hover:bg-red-200 rounded flex items-center justify-center"
+                          title="Eliminar de Busco"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                        {vehicle.buscoVehicleId && (
+                          <span className="text-xs text-gray-500 mt-1">{vehicle.buscoVehicleId}</span>
+                        )}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => syncToBusco(vehicle.id, vehicle.titolAnunci)}
+                        className="p-1.5 bg-green-100 text-green-600 hover:bg-green-200 rounded flex items-center justify-center"
+                        title="Sincronitzar amb Busco"
+                      >
+                        <Send className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                  */}
 
                   {/* Destacat */}
                   <div className="col-span-1 flex items-center justify-center">
@@ -1076,6 +1443,150 @@ const KarsVehicles = () => {
           <div className="flex justify-end pt-4 border-t">
             <button
               onClick={() => setImportReportOpen(false)}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+            >
+              Tancar
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sync All Confirmation Modal */}
+      <AlertDialog open={syncAllModalOpen} onOpenChange={setSyncAllModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Share2 className="w-5 h-5" />
+              Confirmar sincronització massiva
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {syncAllPlatform && (
+                <div className="space-y-3">
+                  <p>
+                    Estàs a punt de sincronitzar tots els vehicles actius i no sincronitzats amb{' '}
+                    <span className="font-semibold">Motoraldia</span>.
+                  </p>
+                  
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    <div className="flex items-start gap-2">
+                      <div className="text-yellow-600 mt-0.5">⚠️</div>
+                      <div className="text-sm text-yellow-800">
+                        <p className="font-medium mb-1">Informació important:</p>
+                        <ul className="list-disc list-inside space-y-1">
+                          <li>Només es sincronitzaran vehicles actius i no sincronitzats prèviament</li>
+                          <li>El procés pot trigar diversos minuts segons el nombre de vehicles</li>
+                          <li>Es processaran en lots de 3 vehicles per evitar sobrecarregar el servidor</li>
+                          <li>Rebràs notificacions del progrés durant el procés</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-gray-600">
+                    Vehicles candidats: <span className="font-semibold">
+                      {vehicles.filter(v => !v.motorIdSync && v.anunciActiu).length}
+                    </span>
+                  </p>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSyncAllModalOpen(false)}>
+              Cancel·lar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmSyncAll}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Sincronitzar tots
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Sync Logs Modal */}
+      <Dialog open={syncLogModalOpen} onOpenChange={setSyncLogModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Logs de Sincronització Motoraldia
+              <span className="text-sm text-gray-500">({syncLogs.length} entrades)</span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto space-y-2">
+            {syncLogs.map((log, index) => (
+              <div 
+                key={index} 
+                className={`p-3 rounded-lg border-l-4 ${
+                  log.level === 'error' ? 'bg-red-50 border-red-500' :
+                  log.level === 'success' ? 'bg-green-50 border-green-500' :
+                  log.level === 'warning' ? 'bg-yellow-50 border-yellow-500' :
+                  'bg-blue-50 border-blue-500'
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs px-2 py-1 rounded ${
+                        log.level === 'error' ? 'bg-red-200 text-red-800' :
+                        log.level === 'success' ? 'bg-green-200 text-green-800' :
+                        log.level === 'warning' ? 'bg-yellow-200 text-yellow-800' :
+                        'bg-blue-200 text-blue-800'
+                      }`}>
+                        {log.level.toUpperCase()}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {new Date(log.timestamp).toLocaleString('ca-ES')}
+                      </span>
+                      {log.vehicleTitle && (
+                        <span className="text-xs text-gray-700 bg-gray-200 px-2 py-1 rounded">
+                          {log.vehicleTitle}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-800 mb-2">{log.message}</p>
+                    
+                    {/* API Response */}
+                    {log.apiResponse && (
+                      <details className="mt-2">
+                        <summary className="text-xs text-blue-600 cursor-pointer hover:text-blue-800">
+                          📤 Resposta de la API
+                        </summary>
+                        <pre className="text-xs bg-gray-100 p-2 rounded mt-1 overflow-x-auto">
+                          {JSON.stringify(log.apiResponse, null, 2)}
+                        </pre>
+                      </details>
+                    )}
+                    
+                    {/* Error Details */}
+                    {log.error && (
+                      <details className="mt-2">
+                        <summary className="text-xs text-red-600 cursor-pointer hover:text-red-800">
+                          ❌ Detalls de l'error
+                        </summary>
+                        <pre className="text-xs bg-red-100 p-2 rounded mt-1 overflow-x-auto">
+                          {JSON.stringify(log.error, null, 2)}
+                        </pre>
+                      </details>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <div className="flex justify-between pt-4 border-t">
+            <button
+              onClick={clearSyncLogs}
+              className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
+            >
+              Netejar Logs
+            </button>
+            <button
+              onClick={() => setSyncLogModalOpen(false)}
               className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
             >
               Tancar

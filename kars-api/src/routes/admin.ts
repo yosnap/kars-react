@@ -3854,6 +3854,191 @@ router.post('/vehicle-translations/initialize', async (req, res) => {
   }
 });
 
+// ==================== MOTORALDIA SYNC OUT CONFIGURATION ====================
+
+// GET /api/admin/motor-sync-out-config - Obtener configuración de sincronización saliente Motor
+router.get('/motor-sync-out-config', async (req, res) => {
+  try {
+    const config = await prisma.config.findFirst({
+      where: { key: 'motor_sync_out_config' }
+    });
+
+    if (!config) {
+      // Devolver configuración por defecto
+      return res.json({
+        success: true,
+        config: {
+          apiUrl: '',
+          username: '',
+          password: '', // No devolver la contraseña
+          autoExport: false,
+          exportMode: 'available'
+        }
+      });
+    }
+
+    const configData = JSON.parse(config.value);
+    // No devolver la contraseña por seguridad
+    configData.password = '';
+
+    return res.json({
+      success: true,
+      config: configData
+    });
+
+  } catch (error) {
+    console.error('Error getting motor sync out config:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to get motor sync out configuration'
+    });
+  }
+});
+
+// POST /api/admin/motor-sync-out-config - Guardar configuración de sincronización saliente Motor
+router.post('/motor-sync-out-config', async (req, res) => {
+  try {
+    const {
+      apiUrl,
+      username,
+      password,
+      autoExport,
+      exportMode
+    } = req.body;
+
+    // Validar campos requeridos
+    if (!apiUrl || !username) {
+      return res.status(400).json({
+        success: false,
+        error: 'API URL and username are required'
+      });
+    }
+
+    const configData = {
+      apiUrl,
+      username,
+      password: password || '', // Si no se proporciona contraseña, mantener vacía
+      autoExport: Boolean(autoExport),
+      exportMode: exportMode || 'available'
+    };
+
+    // Buscar configuración existente
+    const existingConfig = await prisma.config.findFirst({
+      where: { key: 'motor_sync_out_config' }
+    });
+
+    if (existingConfig) {
+      // Si existe y no se proporciona contraseña, mantener la anterior
+      if (!password || password === '') {
+        const existingData = JSON.parse(existingConfig.value);
+        configData.password = existingData.password || '';
+      }
+
+      await prisma.config.update({
+        where: { id: existingConfig.id },
+        data: {
+          value: JSON.stringify(configData),
+          updatedAt: new Date()
+        }
+      });
+    } else {
+      await prisma.config.create({
+        data: {
+          key: 'motor_sync_out_config',
+          value: JSON.stringify(configData),
+          description: 'Configuración de sincronización saliente con Motoraldia'
+        }
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Motor sync out configuration saved successfully',
+      config: {
+        ...configData,
+        password: '' // No devolver la contraseña
+      }
+    });
+
+  } catch (error) {
+    console.error('Error saving motor sync out config:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to save motor sync out configuration'
+    });
+  }
+});
+
+// POST /api/admin/motor-sync-out-config/test - Probar conexión con API de Motoraldia
+router.post('/motor-sync-out-config/test', async (req, res) => {
+  try {
+    const { apiUrl, username, password } = req.body;
+
+    if (!apiUrl || !username || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'API URL, username, and password are required'
+      });
+    }
+
+    console.log(`🔍 Testing connection to Motoraldia: ${apiUrl}`);
+
+    // Probar conexión con un request simple
+    const axios = require('axios');
+    const response = await axios.get(`${apiUrl}`, {
+      auth: { username, password },
+      params: { per_page: 1 },
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'Kars.ad-Sync/1.0'
+      }
+    });
+
+    // Verificar respuesta
+    if (response.status === 200) {
+      return res.json({
+        success: true,
+        message: 'Connection successful',
+        apiStatus: response.status,
+        responsePreview: typeof response.data === 'object' ? Object.keys(response.data) : response.data
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Connection failed - Invalid response',
+        apiStatus: response.status
+      });
+    }
+
+  } catch (error: any) {
+    console.error('Motoraldia connection test failed:', error);
+    
+    if (error.response) {
+      const statusCode = error.response.status;
+      const message = statusCode === 401 
+        ? 'Authentication failed - Invalid credentials'
+        : statusCode === 404
+        ? 'API endpoint not found'
+        : statusCode === 403
+        ? 'Access denied - Insufficient permissions'
+        : 'Connection failed';
+
+      return res.status(statusCode).json({
+        success: false,
+        message,
+        error: error.message,
+        statusCode
+      });
+    } else {
+      return res.status(500).json({
+        success: false,
+        message: 'Connection test failed',
+        error: error.message
+      });
+    }
+  }
+});
+
 // Función auxiliar para formatear tamaño de archivo
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 Bytes';

@@ -327,9 +327,28 @@ kars-api/src/data/initialization/
 - ✅ Vehicle listing: Fixed performance and data loading
 - ✅ Database consistency: All type mismatches resolved
 
+## Environment Variables
+
+### Backend (kars-api/.env)
+```bash
+# Public Base URL for image URLs in external API sync
+# CRITICAL: Converts local image paths (/media/...) to full URLs for external APIs like Motoraldia
+# In development: http://localhost:5173 (images won't be accessible from external APIs)  
+# In production: https://your-actual-domain.com (MUST be publicly accessible)
+PUBLIC_BASE_URL="http://localhost:5173"
+```
+
+### Frontend (kars-react/.env)
+```bash
+VITE_API_BASE_URL=http://localhost:3001/api
+VITE_API_ADMIN_USER=admin
+VITE_API_ADMIN_PASS=Motoraldia.2025!
+```
+
 ## Development Guidelines
 - Revisa siempre que la funcionalidad sea tanto en desarrollo como en producción
 - Use the field filtering system when adding new vehicle form fields
 - Validate brand existence before making model API calls
 - Always use Float type for price fields in new code
 - Test image uploads in both development and production environments
+- **IMPORTANT**: Update `PUBLIC_BASE_URL` when deploying to production for external API sync to work with images

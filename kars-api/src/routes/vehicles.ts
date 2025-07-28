@@ -1,5 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
+import axios from 'axios';
+import { mapVehicleToMotoraldiaPayload, cleanMotoraldiaPayload } from '../services/motoraldiaMapper';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -182,7 +184,13 @@ router.get('/', async (req, res) => {
           numeroMotors: true,
           nombrePropietaris: true,
           venut: true,
-          preuAntic: true
+          preuAntic: true,
+          // Campos de sincronización simplificados
+          motorIdSync: true,
+          buscoIdSync: true,
+          lastSyncAt: true,
+          syncError: true,
+          needsSync: true
         }
       }),
       prisma.vehicle.count({ where })
@@ -289,7 +297,7 @@ router.put('/:id', async (req, res) => {
       'categoriaEcologica', 'origen', 'iva', 'finacament', 'garantia', 'vehicleAccidentat',
       'llibreManteniment', 'revisionsOficials', 'impostosDeduibles', 'vehicleACanvi', 'nombrePropietaris',
       'preu', 'imatgeDestacadaUrl', 'galeriaVehicleUrls', 'notesInternes', 'dataCreacio', 'userId', 'professionalId',
-      'lastSyncAt', 'syncedToMotoraldiaAt', 'motoraldiaVehicleId', 'needsSync', 'syncError',
+      'lastSyncAt', 'motorIdSync', 'buscoIdSync', 'needsSync', 'syncError',
       'createdAt', 'updatedAt'
     ];
     
@@ -556,7 +564,13 @@ router.get('/:slug', async (req, res) => {
         revisionsOficials: true,
         impostosDeduibles: true,
         vehicleACanvi: true,
-        nombrePropietaris: true
+        nombrePropietaris: true,
+        // Campos de sincronización simplificados
+        motorIdSync: true,
+        buscoIdSync: true,
+        lastSyncAt: true,
+        syncError: true,
+        needsSync: true
       }
     });
 
@@ -780,6 +794,13 @@ function transformVehicleForFrontend(vehicle: any) {
     }
   });
   
+  // Incluir campos de sincronización simplificados para el frontend
+  transformed.motorIdSync = vehicle.motorIdSync || null;
+  transformed.buscoIdSync = vehicle.buscoIdSync || null;
+  transformed.lastSyncAt = vehicle.lastSyncAt || null;
+  transformed.syncError = vehicle.syncError || null;
+  transformed.needsSync = vehicle.needsSync || false;
+  
   return transformed;
 }
 
@@ -840,7 +861,7 @@ router.post('/', async (req, res) => {
       'categoriaEcologica', 'origen', 'iva', 'finacament', 'garantia', 'vehicleAccidentat',
       'llibreManteniment', 'revisionsOficials', 'impostosDeduibles', 'vehicleACanvi', 'nombrePropietaris',
       'preu', 'imatgeDestacadaUrl', 'galeriaVehicleUrls', 'notesInternes', 'dataCreacio', 'userId', 'professionalId',
-      'lastSyncAt', 'syncedToMotoraldiaAt', 'motoraldiaVehicleId', 'needsSync', 'syncError',
+      'lastSyncAt', 'motorIdSync', 'buscoIdSync', 'needsSync', 'syncError',
       'createdAt', 'updatedAt'
     ];
 
@@ -1066,7 +1087,7 @@ router.get('/kars/stats', async (req, res) => {
       prisma.vehicle.count({ 
         where: { 
           userId: '113', 
-          motoraldiaVehicleId: { not: null }
+          motorIdSync: { not: null }
         } 
       }),
       prisma.vehicle.count({ 
@@ -1078,10 +1099,10 @@ router.get('/kars/stats', async (req, res) => {
       prisma.vehicle.findFirst({
         where: { 
           userId: '113',
-          syncedToMotoraldiaAt: { not: null }
+          lastSyncAt: { not: null }
         },
-        orderBy: { syncedToMotoraldiaAt: 'desc' },
-        select: { syncedToMotoraldiaAt: true }
+        orderBy: { lastSyncAt: 'desc' },
+        select: { lastSyncAt: true }
       })
     ]);
 
@@ -1094,7 +1115,7 @@ router.get('/kars/stats', async (req, res) => {
         pendingSync,
         syncedVehicles,
         syncErrors,
-        lastSyncedVehicle: lastSyncedVehicle?.syncedToMotoraldiaAt
+        lastSyncedVehicle: lastSyncedVehicle?.lastSyncAt
       }
     });
   } catch (error) {
@@ -1130,30 +1151,84 @@ router.post('/:id/sync-to-motoraldia', async (req, res) => {
       });
     }
 
-    // Check if it's a Kars.ad vehicle
-    if (vehicle.userId !== '113') {
-      return res.status(400).json({
-        success: false,
-        error: 'Only Kars.ad vehicles can be synced to Motoraldia'
-      });
+    // La API de WordPress detectará automáticamente el usuario a través de las credenciales
+
+    // REAL SYNC TO MOTORALDIA API
+
+    // Validate required fields for Motoraldia
+    const requiredFields = ['titolAnunci', 'tipusVehicle', 'preu'];
+    const validationErrors: string[] = [];
+    
+    for (const field of requiredFields) {
+      if (!vehicle[field as keyof typeof vehicle]) {
+        validationErrors.push(field);
+      }
+    }
+    
+    if (validationErrors.length > 0) {
+      throw new Error(`Faltan campos obligatorios: ${validationErrors.join(', ')}`);
     }
 
-    // TODO: Implement actual sync to Motoraldia API
-    // For now, we'll simulate the sync
+    // Prepare vehicle data for Motoraldia API using mapper
+    const rawPayload = mapVehicleToMotoraldiaPayload(vehicle);
+    const motoraldiaPayload = cleanMotoraldiaPayload(rawPayload);
+
+    // Get credentials from request body (sent from frontend localStorage)
+    const { motorCredentials } = req.body || {};
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Motoraldia EXPORT API configuration (from frontend localStorage)
+    const config = {
+      apiUrl: motorCredentials?.apiUrl || 'https://www.motoraldia.com/wp-json/api-motor/v1/vehicles',
+      username: motorCredentials?.username || '',
+      password: motorCredentials?.password || '',
+      timeout: 60000 // 60 seconds timeout
+    };
+
+    // Validate API credentials
+    if (!config.username || !config.password) {
+      throw new Error('Credenciales de Motoraldia no configuradas. Por favor configura las credenciales en el panel de administración.');
+    }
+
+    // Make API call to Motoraldia
+    const motoraldiaResponse = await axios.post(config.apiUrl, motoraldiaPayload, {
+      auth: { username: config.username, password: config.password },
+      timeout: config.timeout,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'Kars.ad-Sync/1.0'
+      }
+    });
+
+    // Extract vehicle ID from Motoraldia response
+    let motoraldiaVehicleId = null;
     
-    // Simulate successful sync
-    const motoraldiaVehicleId = `motoraldia_${Date.now()}`;
+    // Try multiple possible paths for the vehicle ID
+    const possiblePaths = [
+      { path: 'data.id', value: motoraldiaResponse.data?.id },
+      { path: 'data.vehicle_id', value: motoraldiaResponse.data?.vehicle_id },
+      { path: 'data.data.id', value: motoraldiaResponse.data?.data?.id },
+      { path: 'data.post_id', value: motoraldiaResponse.data?.post_id },
+      { path: 'data.wp_post_id', value: motoraldiaResponse.data?.wp_post_id }
+    ];
     
+    for (const { value } of possiblePaths) {
+      if (value !== null && value !== undefined) {
+        motoraldiaVehicleId = value.toString();
+        break;
+      }
+    }
+    
+    if (!motoraldiaVehicleId) {
+      throw new Error('No vehicle ID found in Motoraldia response');
+    }
+
     // Update vehicle with sync info
-    await prisma.vehicle.update({
+    const updatedVehicle = await prisma.vehicle.update({
       where: { id },
       data: {
         needsSync: false,
-        motoraldiaVehicleId,
-        syncedToMotoraldiaAt: new Date(),
+        motorIdSync: motoraldiaVehicleId,
         syncError: null,
         lastSyncAt: new Date()
       }
@@ -1163,8 +1238,9 @@ router.post('/:id/sync-to-motoraldia', async (req, res) => {
       success: true,
       message: 'Vehicle synced successfully to Motoraldia',
       data: {
-        motoraldiaVehicleId,
-        syncedAt: new Date()
+        motorIdSync: motoraldiaVehicleId,
+        syncedAt: new Date(),
+        motoraldiaResponse: motoraldiaResponse.data
       }
     });
 
@@ -1190,6 +1266,138 @@ router.post('/:id/sync-to-motoraldia', async (req, res) => {
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
+});
+
+// DELETE /api/vehicles/:id/sync-to-motoraldia/remove - Eliminar vehículo de Motoraldia
+router.delete('/:id/sync-to-motoraldia/remove', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Get vehicle
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id }
+    });
+
+    if (!vehicle) {
+      return res.status(404).json({
+        success: false,
+        error: 'Vehicle not found'
+      });
+    }
+
+    // Check if vehicle has motorIdSync
+    if (!vehicle.motorIdSync) {
+      return res.status(400).json({
+        success: false,
+        error: 'Vehicle is not synced to Motoraldia'
+      });
+    }
+
+    // Get credentials from request body (sent from frontend localStorage)
+    const { motorCredentials } = req.body || {};
+    
+    // Motoraldia EXPORT API configuration (from frontend localStorage)
+    const config = {
+      apiUrl: motorCredentials?.apiUrl || 'https://www.motoraldia.com/wp-json/api-motor/v1/vehicles',
+      username: motorCredentials?.username || '',
+      password: motorCredentials?.password || '',
+      timeout: 60000 // 60 seconds timeout
+    };
+
+    // Validate API credentials
+    if (!config.username || !config.password) {
+      throw new Error('Credenciales de Motoraldia no configuradas. Por favor configura las credenciales en el panel de administración.');
+    }
+
+    // Make DELETE API call to Motoraldia
+    const deleteUrl = `${config.apiUrl}/${vehicle.motorIdSync}`;
+    
+    try {
+      const motoraldiaResponse = await axios.delete(deleteUrl, {
+        auth: { username: config.username, password: config.password },
+        timeout: config.timeout,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'User-Agent': 'Kars.ad-Sync/1.0'
+        }
+      });
+
+      console.log('✅ Vehicle successfully deleted from Motoraldia:', motoraldiaResponse.data);
+      
+    } catch (axiosError: any) {
+      // Handle Motoraldia API errors specifically
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        const message = axiosError.response.data?.message || axiosError.response.data?.error || axiosError.message;
+        
+        console.error(`❌ Motoraldia API error ${status}:`, message);
+        
+        // If vehicle doesn't exist in Motoraldia (404), we still want to clean our database
+        if (status !== 404) {
+          throw new Error(`Motoraldia API error (${status}): ${message}`);
+        }
+      } else {
+        // Network or other errors
+        console.error('❌ Network/connection error:', axiosError.message);
+        throw new Error(`Connection error: ${axiosError.message}`);
+      }
+    }
+
+    // Update vehicle in our database - clear sync data
+    const updatedVehicle = await prisma.vehicle.update({
+      where: { id },
+      data: {
+        motorIdSync: null,
+        syncError: null,
+        lastSyncAt: new Date()
+      }
+    });
+
+    console.log(`✅ Cleared Motoraldia sync data for vehicle: ${vehicle.slug}`);
+
+    return res.json({
+      success: true,
+      message: 'Vehicle successfully removed from Motoraldia',
+      data: {
+        vehicleId: id,
+        motoraldiaId: vehicle.motorIdSync,
+        removedAt: new Date()
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error removing vehicle from Motoraldia:', error);
+    
+    // Update vehicle with error
+    try {
+      await prisma.vehicle.update({
+        where: { id: req.params.id },
+        data: {
+          syncError: error instanceof Error ? error.message : 'Unknown removal error',
+          lastSyncAt: new Date()
+        }
+      });
+    } catch (updateError) {
+      console.error('❌ Error updating removal error:', updateError);
+    }
+
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to remove vehicle from Motoraldia',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// POST /api/vehicles/:id/sync-to-busco - TEMPORALMENTE DESACTIVADO
+// Actualmente nos enfocamos solo en Motor. Busco se implementará más adelante.
+router.post('/:id/sync-to-busco', async (req, res) => {
+  return res.status(503).json({
+    success: false,
+    error: 'Busco sync temporarily disabled',
+    message: 'Actualmente nos estamos enfocando solo en la sincronización con Motor. La funcionalidad de Busco estará disponible próximamente.'
+  });
 });
 
 export default router;

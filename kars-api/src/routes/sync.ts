@@ -2,6 +2,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import axios from 'axios';
 import { startFullSync, startIncrementalSync, getSyncStatus, syncBrandsAndModels, syncVehicleStates, syncFuelTypes, syncTransmissionTypes, syncBodyTypes, syncMotorcycleBodyTypes, syncCaravanBodyTypes, syncCommercialVehicleBodyTypes, syncCarExtras, syncExteriorColors, syncUpholsteryTypes, syncUpholsteryColors, syncMotorcycleExtras, syncCaravanExtras, syncHabitacleExtras, syncUsers, syncBlogPosts, syncVehicle } from '../services/syncService';
+import { mapVehicleToMotoraldiaPayload, cleanMotoraldiaPayload } from '../services/motoraldiaMapper';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -1311,5 +1312,267 @@ async function executeCustomImport(config: any, syncLogId: string) {
     throw error;
   }
 }
+
+// ==================== NUEVAS RUTAS PARA ENVÍO A MOTORALDIA ====================
+
+// POST /api/sync/send-vehicle/:id - Enviar vehículo específico a Motoraldia
+router.post('/send-vehicle/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    console.log(`🚀 Sending vehicle ${id} to Motoraldia...`);
+    
+    // Obtener el vehículo de la base de datos
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id }
+    });
+    
+    if (!vehicle) {
+      return res.status(404).json({ error: 'Vehicle not found' });
+    }
+    
+    // Mapear el vehículo al formato de Motoraldia
+    const motoraldiaPayload = mapVehicleToMotoraldiaPayload(vehicle);
+    const cleanPayload = cleanMotoraldiaPayload(motoraldiaPayload);
+    
+    // Obtener credenciales de la API
+    const apiUrl = process.env.ORIGINAL_API_URL;
+    const apiUser = process.env.ORIGINAL_API_USER;
+    const apiPass = process.env.ORIGINAL_API_PASS;
+    
+    if (!apiUrl || !apiUser || !apiPass) {
+      return res.status(500).json({ error: 'API credentials not configured' });
+    }
+    
+    console.log('📤 Payload to send:', JSON.stringify(cleanPayload, null, 2));
+    
+    // Probar conectividad antes de enviar
+    try {
+      console.log('🔍 Testing connectivity to Motoraldia API...');
+      await axios.get(`${apiUrl.replace('/vehicles', '')}`, {
+        auth: { username: apiUser, password: apiPass },
+        timeout: 10000 // 10 segundos para el test
+      });
+      console.log('✅ Connectivity test successful');
+    } catch (connectivityError) {
+      console.log('⚠️ Connectivity test failed, but continuing with send...');
+    }
+    
+    // Enviar a Motoraldia
+    const response = await axios.post(`${apiUrl}/vehicles`, cleanPayload, {
+      auth: { username: apiUser, password: apiPass },
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Kars.ad-Sync/1.0'
+      },
+      timeout: 120000, // 2 minutos
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity
+    });
+    
+    console.log('✅ Vehicle sent successfully to Motoraldia');
+    console.log('Response:', response.data);
+    
+    // Actualizar el vehículo para marcar que se envió a Motoraldia
+    await prisma.vehicle.update({
+      where: { id },
+      data: {
+        lastSyncAt: new Date(),
+        // Podríamos agregar un campo syncedToMotoraldi: true
+      }
+    });
+    
+    return res.json({
+      message: 'Vehicle sent to Motoraldia successfully',
+      vehicleId: id,
+      vehicleSlug: vehicle.slug,
+      motoraldiaResponse: response.data,
+      sentFields: Object.keys(cleanPayload),
+      sentAt: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error(`❌ Error sending vehicle ${req.params.id} to Motoraldia:`, error);
+    
+    if (axios.isAxiosError(error)) {
+      const statusCode = error.response?.status || 500;
+      const errorMessage = error.response?.data?.message || error.message;
+      
+      return res.status(statusCode).json({
+        error: 'Failed to send vehicle to Motoraldia',
+        details: errorMessage,
+        statusCode,
+        apiResponse: error.response?.data
+      });
+    }
+    
+    return res.status(500).json({ 
+      error: 'Failed to send vehicle to Motoraldia',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// POST /api/sync/send-vehicles - Enviar múltiples vehículos a Motoraldia
+router.post('/send-vehicles', authenticateAdmin, async (req, res) => {
+  try {
+    const { vehicleIds } = req.body;
+    
+    if (!vehicleIds || !Array.isArray(vehicleIds) || vehicleIds.length === 0) {
+      return res.status(400).json({ error: 'Vehicle IDs array is required' });
+    }
+    
+    console.log(`🚀 Sending ${vehicleIds.length} vehicles to Motoraldia...`);
+    
+    const results: {
+      successful: Array<{
+        vehicleId: string;
+        vehicleSlug: string;
+        motoraldiaResponse: any;
+      }>;
+      failed: Array<{
+        vehicleId: string;
+        error: string;
+        details?: any;
+      }>;
+      total: number;
+    } = {
+      successful: [],
+      failed: [],
+      total: vehicleIds.length
+    };
+    
+    // Obtener credenciales de la API
+    const apiUrl = process.env.ORIGINAL_API_URL;
+    const apiUser = process.env.ORIGINAL_API_USER;
+    const apiPass = process.env.ORIGINAL_API_PASS;
+    
+    if (!apiUrl || !apiUser || !apiPass) {
+      return res.status(500).json({ error: 'API credentials not configured' });
+    }
+    
+    // Procesar cada vehículo
+    for (const vehicleId of vehicleIds) {
+      try {
+        // Obtener el vehículo
+        const vehicle = await prisma.vehicle.findUnique({
+          where: { id: vehicleId }
+        });
+        
+        if (!vehicle) {
+          results.failed.push({
+            vehicleId,
+            error: 'Vehicle not found'
+          });
+          continue;
+        }
+        
+        // Mapear al formato de Motoraldia
+        const motoraldiaPayload = mapVehicleToMotoraldiaPayload(vehicle);
+        const cleanPayload = cleanMotoraldiaPayload(motoraldiaPayload);
+        
+        // Enviar a Motoraldia
+        const response = await axios.post(`${apiUrl}/vehicles`, cleanPayload, {
+          auth: { username: apiUser, password: apiPass },
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'Kars.ad-Sync/1.0'
+          },
+          timeout: 120000, // 2 minutos
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity
+        });
+        
+        // Actualizar el vehículo
+        await prisma.vehicle.update({
+          where: { id: vehicleId },
+          data: {
+            lastSyncAt: new Date()
+          }
+        });
+        
+        results.successful.push({
+          vehicleId,
+          vehicleSlug: vehicle.slug,
+          motoraldiaResponse: response.data
+        });
+        
+        console.log(`✅ Vehicle ${vehicle.slug} sent successfully`);
+        
+      } catch (error) {
+        console.error(`❌ Error sending vehicle ${vehicleId}:`, error);
+        
+        results.failed.push({
+          vehicleId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          details: axios.isAxiosError(error) ? error.response?.data : null
+        });
+      }
+    }
+    
+    console.log(`🎉 Batch send completed: ${results.successful.length} successful, ${results.failed.length} failed`);
+    
+    return res.json({
+      message: 'Batch send to Motoraldia completed',
+      results,
+      summary: {
+        total: results.total,
+        successful: results.successful.length,
+        failed: results.failed.length,
+        successRate: ((results.successful.length / results.total) * 100).toFixed(1) + '%'
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error in batch send to Motoraldia:', error);
+    return res.status(500).json({ 
+      error: 'Failed to send vehicles to Motoraldia',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// GET /api/sync/vehicle-preview/:id - Previsualizar cómo se vería el vehículo en Motoraldia
+router.get('/vehicle-preview/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Obtener el vehículo de la base de datos
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id }
+    });
+    
+    if (!vehicle) {
+      return res.status(404).json({ error: 'Vehicle not found' });
+    }
+    
+    // Mapear el vehículo al formato de Motoraldia
+    const motoraldiaPayload = mapVehicleToMotoraldiaPayload(vehicle);
+    const cleanPayload = cleanMotoraldiaPayload(motoraldiaPayload);
+    
+    return res.json({
+      message: 'Vehicle preview for Motoraldia',
+      vehicleId: id,
+      vehicleSlug: vehicle.slug,
+      originalVehicle: {
+        id: vehicle.id,
+        slug: vehicle.slug,
+        titolAnunci: vehicle.titolAnunci,
+        preu: vehicle.preu,
+        tipusVehicle: vehicle.tipusVehicle
+      },
+      motoraldiaPayload: cleanPayload,
+      fieldCount: Object.keys(cleanPayload).length,
+      mappedFields: Object.keys(cleanPayload)
+    });
+    
+  } catch (error) {
+    console.error(`❌ Error previewing vehicle ${req.params.id}:`, error);
+    return res.status(500).json({ 
+      error: 'Failed to preview vehicle',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
 
 export default router;
