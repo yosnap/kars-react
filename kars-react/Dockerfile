@@ -13,10 +13,15 @@ RUN npm install && npm cache clean --force
 # Copy source code
 COPY . .
 
-# Set production environment variables for build
-ENV VITE_API_BASE_URL=/api
-ENV VITE_API_ADMIN_USER=admin
-ENV VITE_API_ADMIN_PASS=Motoraldia.2025!
+# Accept build arguments from environment
+ARG VITE_API_BASE_URL
+ARG VITE_API_ADMIN_USER
+ARG VITE_API_ADMIN_PASS
+
+# Set production environment variables for build using the ARGs
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+ENV VITE_API_ADMIN_USER=${VITE_API_ADMIN_USER}
+ENV VITE_API_ADMIN_PASS=${VITE_API_ADMIN_PASS}
 
 # Build the application
 RUN npm run build
