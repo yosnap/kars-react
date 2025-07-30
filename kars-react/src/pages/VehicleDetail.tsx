@@ -953,6 +953,369 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
               </div>
             </div>
 
+            {/* Especificacions de Vehicle Elèctric */}
+            {((vehicle as any).tipusPropulsor === 'electric' || 
+              (vehicle as any).tipusPropulsor === 'hibrid' || 
+              (vehicle as any).tipusPropulsor === 'hibrid-endollable' ||
+              Boolean((vehicle as any).autonomiaWltp) ||
+              Boolean((vehicle as any).bateria) ||
+              Boolean((vehicle as any).frenadaRegenerativa) ||
+              Boolean((vehicle as any).onePedal)) && (
+              <div className="bg-gray-900 rounded-lg p-6">
+                <h2 className="text-xl font-semibold text-gray-300 mb-6">{
+                  currentLanguage === 'es' ? 'Especificaciones Eléctricas' :
+                  currentLanguage === 'en' ? 'Electric Specifications' :
+                  currentLanguage === 'fr' ? 'Spécifications Électriques' :
+                  'Especificacions Elèctriques'
+                }</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+
+                  {/* Autonomía WLTP */}
+                  {Boolean((vehicle as any).autonomiaWltp) && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'Autonomía WLTP' :
+                        currentLanguage === 'en' ? 'WLTP Range' :
+                        currentLanguage === 'fr' ? 'Autonomie WLTP' :
+                        'Autonomia WLTP'
+                      }</span>
+                      <span className="font-medium text-white">{String((vehicle as any).autonomiaWltp)} km</span>
+                    </div>
+                  )}
+
+                  {/* Autonomía urbana WLTP */}
+                  {Boolean((vehicle as any).autonomiaUrbanaWltp) && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'Autonomía urbana WLTP' :
+                        currentLanguage === 'en' ? 'Urban WLTP Range' :
+                        currentLanguage === 'fr' ? 'Autonomie urbaine WLTP' :
+                        'Autonomia urbana WLTP'
+                      }</span>
+                      <span className="font-medium text-white">{String((vehicle as any).autonomiaUrbanaWltp)} km</span>
+                    </div>
+                  )}
+
+                  {/* Autonomía extraurbana WLTP */}
+                  {Boolean((vehicle as any).autonomiaExtraurbanaWltp) && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'Autonomía extraurbana WLTP' :
+                        currentLanguage === 'en' ? 'Extra-urban WLTP Range' :
+                        currentLanguage === 'fr' ? 'Autonomie extra-urbaine WLTP' :
+                        'Autonomia extraurbana WLTP'
+                      }</span>
+                      <span className="font-medium text-white">{String((vehicle as any).autonomiaExtraurbanaWltp)} km</span>
+                    </div>
+                  )}
+
+                  {/* Autonomía 100% eléctrica */}
+                  {Boolean((vehicle as any).autonomiaElectrica) && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'Autonomía 100% eléctrica' :
+                        currentLanguage === 'en' ? '100% Electric Range' :
+                        currentLanguage === 'fr' ? 'Autonomie 100% électrique' :
+                        'Autonomia 100% elèctrica'
+                      }</span>
+                      <span className="font-medium text-white">{String((vehicle as any).autonomiaElectrica)} km</span>
+                    </div>
+                  )}
+
+                  {/* Batería */}
+                  {Boolean((vehicle as any).bateria) && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'Batería' :
+                        currentLanguage === 'en' ? 'Battery' :
+                        currentLanguage === 'fr' ? 'Batterie' :
+                        'Bateria'
+                      }</span>
+                      <span className="font-medium text-white">{
+                        (() => {
+                          const bateriaValue = String((vehicle as any).bateria);
+                          const bateriaMap: Record<string, Record<string, string>> = {
+                            'ions-liti': {
+                              es: 'Iones de Litio (Li-ion)',
+                              en: 'Lithium Ion (Li-ion)',
+                              fr: 'Ions Lithium (Li-ion)',
+                              ca: 'Ions de Liti (Li-on)'
+                            },
+                            'niquel-cadmi': {
+                              es: 'Níquel / Cadmio (NiCd)',
+                              en: 'Nickel / Cadmium (NiCd)',
+                              fr: 'Nickel / Cadmium (NiCd)',
+                              ca: 'Níquel / Cadmi (NiCd)'
+                            },
+                            'fosfat-ferro': {
+                              es: 'Fosfato de hierro y litio (LifePO4)',
+                              en: 'Lithium Iron Phosphate (LifePO4)',
+                              fr: 'Phosphate de fer et lithium (LifePO4)',
+                              ca: 'Fosfat de ferro i liti (LifePO4)'
+                            },
+                            'polimer-ions-liti': {
+                              es: 'Polímero iones de litio (Li-Po)',
+                              en: 'Lithium Polymer (Li-Po)',
+                              fr: 'Polymère ions lithium (Li-Po)',
+                              ca: 'Polímer ions de liti (Li-Po)'
+                            },
+                            'sodi-ion': {
+                              es: 'Sodio-ion (Na-ion)',
+                              en: 'Sodium-ion (Na-ion)',
+                              fr: 'Sodium-ion (Na-ion)',
+                              ca: 'Sodi-ion (Na-ion)'
+                            }
+                          };
+                          return bateriaMap[bateriaValue]?.[currentLanguage] || bateriaValue;
+                        })()
+                      }</span>
+                    </div>
+                  )}
+
+                  {/* Cables de recarga */}
+                  {Boolean((vehicle as any).cablesRecarrega) && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'Cables de recarga' :
+                        currentLanguage === 'en' ? 'Charging cables' :
+                        currentLanguage === 'fr' ? 'Câbles de recharge' :
+                        'Cables de recàrrega'
+                      }</span>
+                      <span className="font-medium text-white">{
+                        (() => {
+                          const cablesValue = String((vehicle as any).cablesRecarrega);
+                          const cablesMap: Record<string, Record<string, string>> = {
+                            'mennekes': {
+                              es: 'Mennekes',
+                              en: 'Mennekes',
+                              fr: 'Mennekes',
+                              ca: 'Mennekes'
+                            },
+                            'css-combo': {
+                              es: 'CSS Combo',
+                              en: 'CSS Combo',
+                              fr: 'CSS Combo',
+                              ca: 'CSS Combo'
+                            },
+                            'cables-schuko': {
+                              es: 'Schuko',
+                              en: 'Schuko',
+                              fr: 'Schuko',
+                              ca: 'Schuko'
+                            },
+                            'cables-supercharger': {
+                              es: 'Supercharger',
+                              en: 'Supercharger',
+                              fr: 'Supercharger',
+                              ca: 'Súpercharger'
+                            },
+                            'cables-chademo': {
+                              es: 'CHAdeMo',
+                              en: 'CHAdeMo',
+                              fr: 'CHAdeMo',
+                              ca: 'CHAdeMo'
+                            },
+                            'cables-sae-j1772-tipo1': {
+                              es: 'SAE J1772 Tipo1',
+                              en: 'SAE J1772 Type1',
+                              fr: 'SAE J1772 Type1',
+                              ca: 'SAE J1772 Tipo1'
+                            }
+                          };
+                          return cablesMap[cablesValue]?.[currentLanguage] || cablesValue;
+                        })()
+                      }</span>
+                    </div>
+                  )}
+
+                  {/* Conectores */}
+                  {Boolean((vehicle as any).connectors) && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'Conectores' :
+                        currentLanguage === 'en' ? 'Connectors' :
+                        currentLanguage === 'fr' ? 'Connecteurs' :
+                        'Connectors'
+                      }</span>
+                      <span className="font-medium text-white">{
+                        (() => {
+                          const connectorsValue = String((vehicle as any).connectors);
+                          const connectorsMap: Record<string, Record<string, string>> = {
+                            'connector-shuko': {
+                              es: 'Conector Schuko',
+                              en: 'Schuko Connector',
+                              fr: 'Connecteur Schuko',
+                              ca: 'Connector Shuko'
+                            },
+                            'connector-mennekes': {
+                              es: 'Conector Mennekes (Tipo 2)',
+                              en: 'Mennekes Connector (Type 2)',
+                              fr: 'Connecteur Mennekes (Type 2)',
+                              ca: 'Connector Mennekes (Tipo 2)'
+                            },
+                            'connector-combinado-css': {
+                              es: 'Conector combinado CCS (Combo 2)',
+                              en: 'CCS Combined Connector (Combo 2)',
+                              fr: 'Connecteur combiné CCS (Combo 2)',
+                              ca: 'Connector combinado CSS (Combo 2)'
+                            },
+                            'connector-supercharger': {
+                              es: 'Conector Supercharger',
+                              en: 'Supercharger Connector',
+                              fr: 'Connecteur Supercharger',
+                              ca: 'Connector Supercharger'
+                            },
+                            'connector-chademo': {
+                              es: 'Conector CHAdeMo',
+                              en: 'CHAdeMo Connector',
+                              fr: 'Connecteur CHAdeMo',
+                              ca: 'Connector CHAdeMo'
+                            },
+                            'conector-sae-j1772': {
+                              es: 'Conector SAE J1772 (Tipo 1)',
+                              en: 'SAE J1772 Connector (Type 1)',
+                              fr: 'Connecteur SAE J1772 (Type 1)',
+                              ca: 'Connector SAE J1772 (Tipo 1)'
+                            }
+                          };
+                          return connectorsMap[connectorsValue]?.[currentLanguage] || connectorsValue;
+                        })()
+                      }</span>
+                    </div>
+                  )}
+
+                  {/* Velocidad de recarga */}
+                  {Boolean((vehicle as any).velocitatRecarrega) && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'Velocidad de recarga' :
+                        currentLanguage === 'en' ? 'Charging speed' :
+                        currentLanguage === 'fr' ? 'Vitesse de recharge' :
+                        'Velocitat de recàrrega'
+                      }</span>
+                      <span className="font-medium text-white">{
+                        (() => {
+                          const velocitatValue = String((vehicle as any).velocitatRecarrega);
+                          const velocitatMap: Record<string, Record<string, string>> = {
+                            'v_lenta': {
+                              es: 'Lenta',
+                              en: 'Slow',
+                              fr: 'Lente',
+                              ca: 'Lenta'
+                            },
+                            'v_mitjana': {
+                              es: 'Media',
+                              en: 'Medium',
+                              fr: 'Moyenne',
+                              ca: 'Mitjana'
+                            },
+                            'v_rapida': {
+                              es: 'Rápida',
+                              en: 'Fast',
+                              fr: 'Rapide',
+                              ca: 'Ràpida'
+                            },
+                            'v_super_rapida': {
+                              es: 'Super rápida',
+                              en: 'Super fast',
+                              fr: 'Super rapide',
+                              ca: 'Super ràpida'
+                            }
+                          };
+                          return velocitatMap[velocitatValue]?.[currentLanguage] || velocitatValue;
+                        })()
+                      }</span>
+                    </div>
+                  )}
+
+                  {/* Tiempo de recarga total */}
+                  {Boolean((vehicle as any).tempsRecarregaTotal) && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'Tiempo recarga total' :
+                        currentLanguage === 'en' ? 'Full charge time' :
+                        currentLanguage === 'fr' ? 'Temps de recharge totale' :
+                        'Temps recàrrega total'
+                      }</span>
+                      <span className="font-medium text-white">{String((vehicle as any).tempsRecarregaTotal)} h</span>
+                    </div>
+                  )}
+
+                  {/* Tiempo de recarga hasta 80% */}
+                  {Boolean((vehicle as any).tempsRecarregaFins80) && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'Tiempo recarga hasta 80%' :
+                        currentLanguage === 'en' ? 'Charge time to 80%' :
+                        currentLanguage === 'fr' ? 'Temps de recharge jusqu\'à 80%' :
+                        'Temps recàrrega fins 80%'
+                      }</span>
+                      <span className="font-medium text-white">{String((vehicle as any).tempsRecarregaFins80)} min</span>
+                    </div>
+                  )}
+
+                  {/* Frenada regenerativa */}
+                  {Boolean((vehicle as any).frenadaRegenerativa) && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'Frenada regenerativa' :
+                        currentLanguage === 'en' ? 'Regenerative braking' :
+                        currentLanguage === 'fr' ? 'Freinage régénératif' :
+                        'Frenada regenerativa'
+                      }</span>
+                      <span className="font-medium text-white">{
+                        (() => {
+                          const frenadaValue = String((vehicle as any).frenadaRegenerativa);
+                          if (frenadaValue === 'true') {
+                            return currentLanguage === 'es' ? 'Sí' :
+                                   currentLanguage === 'en' ? 'Yes' :
+                                   currentLanguage === 'fr' ? 'Oui' :
+                                   'Sí';
+                          } else if (frenadaValue === 'false') {
+                            return currentLanguage === 'es' ? 'No' :
+                                   currentLanguage === 'en' ? 'No' :
+                                   currentLanguage === 'fr' ? 'Non' :
+                                   'No';
+                          }
+                          return frenadaValue;
+                        })()
+                      }</span>
+                    </div>
+                  )}
+
+                  {/* One Pedal */}
+                  {Boolean((vehicle as any).onePedal) && (
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'One Pedal' :
+                        currentLanguage === 'en' ? 'One Pedal' :
+                        currentLanguage === 'fr' ? 'One Pedal' :
+                        'One Pedal'
+                      }</span>
+                      <span className="font-medium text-white">{
+                        (() => {
+                          const onePedalValue = String((vehicle as any).onePedal);
+                          if (onePedalValue === 'true') {
+                            return currentLanguage === 'es' ? 'Sí' :
+                                   currentLanguage === 'en' ? 'Yes' :
+                                   currentLanguage === 'fr' ? 'Oui' :
+                                   'Sí';
+                          } else if (onePedalValue === 'false') {
+                            return currentLanguage === 'es' ? 'No' :
+                                   currentLanguage === 'en' ? 'No' :
+                                   currentLanguage === 'fr' ? 'Non' :
+                                   'No';
+                          }
+                          return onePedalValue;
+                        })()
+                      }</span>
+                    </div>
+                  )}
+
+                </div>
+              </div>
+            )}
+
             {/* Informació comercial */}
             <div className="bg-gray-900 rounded-lg p-6">
               <h2 className="text-xl font-semibold text-gray-300 mb-6">{vehicleLabels.commercialInfo}</h2>
@@ -1497,6 +1860,369 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 )}
               </div>
             </div>
+
+            {/* Especificacions de Vehicle Elèctric - Desktop */}
+            {((vehicle as any).tipusPropulsor === 'electric' || 
+              (vehicle as any).tipusPropulsor === 'hibrid' || 
+              (vehicle as any).tipusPropulsor === 'hibrid-endollable' ||
+              Boolean((vehicle as any).autonomiaWltp) ||
+              Boolean((vehicle as any).bateria) ||
+              Boolean((vehicle as any).frenadaRegenerativa) ||
+              Boolean((vehicle as any).onePedal)) && (
+              <div className="bg-gray-900 rounded-lg p-6">
+                <h2 className="text-xl font-semibold text-gray-300 mb-6">{
+                  currentLanguage === 'es' ? 'Especificaciones Eléctricas' :
+                  currentLanguage === 'en' ? 'Electric Specifications' :
+                  currentLanguage === 'fr' ? 'Spécifications Électriques' :
+                  'Especificacions Elèctriques'
+                }</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+
+                  {/* Autonomía WLTP */}
+                  {Boolean((vehicle as any).autonomiaWltp) && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'Autonomía WLTP' :
+                        currentLanguage === 'en' ? 'WLTP Range' :
+                        currentLanguage === 'fr' ? 'Autonomie WLTP' :
+                        'Autonomia WLTP'
+                      }</span>
+                      <span className="font-medium text-white">{String((vehicle as any).autonomiaWltp)} km</span>
+                    </div>
+                  )}
+
+                  {/* Autonomía urbana WLTP */}
+                  {Boolean((vehicle as any).autonomiaUrbanaWltp) && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'Autonomía urbana WLTP' :
+                        currentLanguage === 'en' ? 'Urban WLTP Range' :
+                        currentLanguage === 'fr' ? 'Autonomie urbaine WLTP' :
+                        'Autonomia urbana WLTP'
+                      }</span>
+                      <span className="font-medium text-white">{String((vehicle as any).autonomiaUrbanaWltp)} km</span>
+                    </div>
+                  )}
+
+                  {/* Autonomía extraurbana WLTP */}
+                  {Boolean((vehicle as any).autonomiaExtraurbanaWltp) && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'Autonomía extraurbana WLTP' :
+                        currentLanguage === 'en' ? 'Extra-urban WLTP Range' :
+                        currentLanguage === 'fr' ? 'Autonomie extra-urbaine WLTP' :
+                        'Autonomia extraurbana WLTP'
+                      }</span>
+                      <span className="font-medium text-white">{String((vehicle as any).autonomiaExtraurbanaWltp)} km</span>
+                    </div>
+                  )}
+
+                  {/* Autonomía 100% eléctrica */}
+                  {Boolean((vehicle as any).autonomiaElectrica) && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'Autonomía 100% eléctrica' :
+                        currentLanguage === 'en' ? '100% Electric Range' :
+                        currentLanguage === 'fr' ? 'Autonomie 100% électrique' :
+                        'Autonomia 100% elèctrica'
+                      }</span>
+                      <span className="font-medium text-white">{String((vehicle as any).autonomiaElectrica)} km</span>
+                    </div>
+                  )}
+
+                  {/* Batería */}
+                  {Boolean((vehicle as any).bateria) && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'Batería' :
+                        currentLanguage === 'en' ? 'Battery' :
+                        currentLanguage === 'fr' ? 'Batterie' :
+                        'Bateria'
+                      }</span>
+                      <span className="font-medium text-white">{
+                        (() => {
+                          const bateriaValue = String((vehicle as any).bateria);
+                          const bateriaMap: Record<string, Record<string, string>> = {
+                            'ions-liti': {
+                              es: 'Iones de Litio (Li-ion)',
+                              en: 'Lithium Ion (Li-ion)',
+                              fr: 'Ions Lithium (Li-ion)',
+                              ca: 'Ions de Liti (Li-on)'
+                            },
+                            'niquel-cadmi': {
+                              es: 'Níquel / Cadmio (NiCd)',
+                              en: 'Nickel / Cadmium (NiCd)',
+                              fr: 'Nickel / Cadmium (NiCd)',
+                              ca: 'Níquel / Cadmi (NiCd)'
+                            },
+                            'fosfat-ferro': {
+                              es: 'Fosfato de hierro y litio (LifePO4)',
+                              en: 'Lithium Iron Phosphate (LifePO4)',
+                              fr: 'Phosphate de fer et lithium (LifePO4)',
+                              ca: 'Fosfat de ferro i liti (LifePO4)'
+                            },
+                            'polimer-ions-liti': {
+                              es: 'Polímero iones de litio (Li-Po)',
+                              en: 'Lithium Polymer (Li-Po)',
+                              fr: 'Polymère ions lithium (Li-Po)',
+                              ca: 'Polímer ions de liti (Li-Po)'
+                            },
+                            'sodi-ion': {
+                              es: 'Sodio-ion (Na-ion)',
+                              en: 'Sodium-ion (Na-ion)',
+                              fr: 'Sodium-ion (Na-ion)',
+                              ca: 'Sodi-ion (Na-ion)'
+                            }
+                          };
+                          return bateriaMap[bateriaValue]?.[currentLanguage] || bateriaValue;
+                        })()
+                      }</span>
+                    </div>
+                  )}
+
+                  {/* Cables de recarga */}
+                  {Boolean((vehicle as any).cablesRecarrega) && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'Cables de recarga' :
+                        currentLanguage === 'en' ? 'Charging cables' :
+                        currentLanguage === 'fr' ? 'Câbles de recharge' :
+                        'Cables de recàrrega'
+                      }</span>
+                      <span className="font-medium text-white">{
+                        (() => {
+                          const cablesValue = String((vehicle as any).cablesRecarrega);
+                          const cablesMap: Record<string, Record<string, string>> = {
+                            'mennekes': {
+                              es: 'Mennekes',
+                              en: 'Mennekes',
+                              fr: 'Mennekes',
+                              ca: 'Mennekes'
+                            },
+                            'css-combo': {
+                              es: 'CSS Combo',
+                              en: 'CSS Combo',
+                              fr: 'CSS Combo',
+                              ca: 'CSS Combo'
+                            },
+                            'cables-schuko': {
+                              es: 'Schuko',
+                              en: 'Schuko',
+                              fr: 'Schuko',
+                              ca: 'Schuko'
+                            },
+                            'cables-supercharger': {
+                              es: 'Supercharger',
+                              en: 'Supercharger',
+                              fr: 'Supercharger',
+                              ca: 'Súpercharger'
+                            },
+                            'cables-chademo': {
+                              es: 'CHAdeMo',
+                              en: 'CHAdeMo',
+                              fr: 'CHAdeMo',
+                              ca: 'CHAdeMo'
+                            },
+                            'cables-sae-j1772-tipo1': {
+                              es: 'SAE J1772 Tipo1',
+                              en: 'SAE J1772 Type1',
+                              fr: 'SAE J1772 Type1',
+                              ca: 'SAE J1772 Tipo1'
+                            }
+                          };
+                          return cablesMap[cablesValue]?.[currentLanguage] || cablesValue;
+                        })()
+                      }</span>
+                    </div>
+                  )}
+
+                  {/* Conectores */}
+                  {Boolean((vehicle as any).connectors) && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'Conectores' :
+                        currentLanguage === 'en' ? 'Connectors' :
+                        currentLanguage === 'fr' ? 'Connecteurs' :
+                        'Connectors'
+                      }</span>
+                      <span className="font-medium text-white">{
+                        (() => {
+                          const connectorsValue = String((vehicle as any).connectors);
+                          const connectorsMap: Record<string, Record<string, string>> = {
+                            'connector-shuko': {
+                              es: 'Conector Schuko',
+                              en: 'Schuko Connector',
+                              fr: 'Connecteur Schuko',
+                              ca: 'Connector Shuko'
+                            },
+                            'connector-mennekes': {
+                              es: 'Conector Mennekes (Tipo 2)',
+                              en: 'Mennekes Connector (Type 2)',
+                              fr: 'Connecteur Mennekes (Type 2)',
+                              ca: 'Connector Mennekes (Tipo 2)'
+                            },
+                            'connector-combinado-css': {
+                              es: 'Conector combinado CCS (Combo 2)',
+                              en: 'CCS Combined Connector (Combo 2)',
+                              fr: 'Connecteur combiné CCS (Combo 2)',
+                              ca: 'Connector combinado CSS (Combo 2)'
+                            },
+                            'connector-supercharger': {
+                              es: 'Conector Supercharger',
+                              en: 'Supercharger Connector',
+                              fr: 'Connecteur Supercharger',
+                              ca: 'Connector Supercharger'
+                            },
+                            'connector-chademo': {
+                              es: 'Conector CHAdeMo',
+                              en: 'CHAdeMo Connector',
+                              fr: 'Connecteur CHAdeMo',
+                              ca: 'Connector CHAdeMo'
+                            },
+                            'conector-sae-j1772': {
+                              es: 'Conector SAE J1772 (Tipo 1)',
+                              en: 'SAE J1772 Connector (Type 1)',
+                              fr: 'Connecteur SAE J1772 (Type 1)',
+                              ca: 'Connector SAE J1772 (Tipo 1)'
+                            }
+                          };
+                          return connectorsMap[connectorsValue]?.[currentLanguage] || connectorsValue;
+                        })()
+                      }</span>
+                    </div>
+                  )}
+
+                  {/* Velocidad de recarga */}
+                  {Boolean((vehicle as any).velocitatRecarrega) && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'Velocidad de recarga' :
+                        currentLanguage === 'en' ? 'Charging speed' :
+                        currentLanguage === 'fr' ? 'Vitesse de recharge' :
+                        'Velocitat de recàrrega'
+                      }</span>
+                      <span className="font-medium text-white">{
+                        (() => {
+                          const velocitatValue = String((vehicle as any).velocitatRecarrega);
+                          const velocitatMap: Record<string, Record<string, string>> = {
+                            'v_lenta': {
+                              es: 'Lenta',
+                              en: 'Slow',
+                              fr: 'Lente',
+                              ca: 'Lenta'
+                            },
+                            'v_mitjana': {
+                              es: 'Media',
+                              en: 'Medium',
+                              fr: 'Moyenne',
+                              ca: 'Mitjana'
+                            },
+                            'v_rapida': {
+                              es: 'Rápida',
+                              en: 'Fast',
+                              fr: 'Rapide',
+                              ca: 'Ràpida'
+                            },
+                            'v_super_rapida': {
+                              es: 'Super rápida',
+                              en: 'Super fast',
+                              fr: 'Super rapide',
+                              ca: 'Super ràpida'
+                            }
+                          };
+                          return velocitatMap[velocitatValue]?.[currentLanguage] || velocitatValue;
+                        })()
+                      }</span>
+                    </div>
+                  )}
+
+                  {/* Tiempo de recarga total */}
+                  {Boolean((vehicle as any).tempsRecarregaTotal) && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'Tiempo recarga total' :
+                        currentLanguage === 'en' ? 'Full charge time' :
+                        currentLanguage === 'fr' ? 'Temps de recharge totale' :
+                        'Temps recàrrega total'
+                      }</span>
+                      <span className="font-medium text-white">{String((vehicle as any).tempsRecarregaTotal)} h</span>
+                    </div>
+                  )}
+
+                  {/* Tiempo de recarga hasta 80% */}
+                  {Boolean((vehicle as any).tempsRecarregaFins80) && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'Tiempo recarga hasta 80%' :
+                        currentLanguage === 'en' ? 'Charge time to 80%' :
+                        currentLanguage === 'fr' ? 'Temps de recharge jusqu\'à 80%' :
+                        'Temps recàrrega fins 80%'
+                      }</span>
+                      <span className="font-medium text-white">{String((vehicle as any).tempsRecarregaFins80)} min</span>
+                    </div>
+                  )}
+
+                  {/* Frenada regenerativa */}
+                  {Boolean((vehicle as any).frenadaRegenerativa) && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'Frenada regenerativa' :
+                        currentLanguage === 'en' ? 'Regenerative braking' :
+                        currentLanguage === 'fr' ? 'Freinage régénératif' :
+                        'Frenada regenerativa'
+                      }</span>
+                      <span className="font-medium text-white">{
+                        (() => {
+                          const frenadaValue = String((vehicle as any).frenadaRegenerativa);
+                          if (frenadaValue === 'true') {
+                            return currentLanguage === 'es' ? 'Sí' :
+                                   currentLanguage === 'en' ? 'Yes' :
+                                   currentLanguage === 'fr' ? 'Oui' :
+                                   'Sí';
+                          } else if (frenadaValue === 'false') {
+                            return currentLanguage === 'es' ? 'No' :
+                                   currentLanguage === 'en' ? 'No' :
+                                   currentLanguage === 'fr' ? 'Non' :
+                                   'No';
+                          }
+                          return frenadaValue;
+                        })()
+                      }</span>
+                    </div>
+                  )}
+
+                  {/* One Pedal */}
+                  {Boolean((vehicle as any).onePedal) && (
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-gray-400">{
+                        currentLanguage === 'es' ? 'One Pedal' :
+                        currentLanguage === 'en' ? 'One Pedal' :
+                        currentLanguage === 'fr' ? 'One Pedal' :
+                        'One Pedal'
+                      }</span>
+                      <span className="font-medium text-white">{
+                        (() => {
+                          const onePedalValue = String((vehicle as any).onePedal);
+                          if (onePedalValue === 'true') {
+                            return currentLanguage === 'es' ? 'Sí' :
+                                   currentLanguage === 'en' ? 'Yes' :
+                                   currentLanguage === 'fr' ? 'Oui' :
+                                   'Sí';
+                          } else if (onePedalValue === 'false') {
+                            return currentLanguage === 'es' ? 'No' :
+                                   currentLanguage === 'en' ? 'No' :
+                                   currentLanguage === 'fr' ? 'Non' :
+                                   'No';
+                          }
+                          return onePedalValue;
+                        })()
+                      }</span>
+                    </div>
+                  )}
+
+                </div>
+              </div>
+            )}
 
             {/* Informació comercial - Desktop */}
             <div className="bg-gray-900 rounded-lg p-6">
