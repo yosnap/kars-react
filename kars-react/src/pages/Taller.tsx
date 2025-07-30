@@ -9,9 +9,10 @@ export default function Taller() {
   const { currentLanguage } = useLanguage();
   const t = staticPageTranslations.workshop[currentLanguage];
   
-  // Actualizar el título de la página
+  // Actualizar el título de la página y scroll al top
   useEffect(() => {
     document.title = `${t.title} - KARS Automòbils`;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [t.title]);
   const breadcrumbs = [
     { 

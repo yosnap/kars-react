@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MessageCircle } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { useVehicleContext, generateVehicleName } from '../context/VehicleContext';
 
 interface WhatsAppConfig {
@@ -12,6 +13,8 @@ interface WhatsAppConfig {
 export default function WhatsAppFloatingButton() {
   const { currentVehicle, isVehicleDetailPage } = useVehicleContext();
   const [isVisible, setIsVisible] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location = useLocation();
   const [config, setConfig] = useState<WhatsAppConfig>({
     number: '34612345678',
     contactName: 'Kars',
@@ -19,6 +22,9 @@ export default function WhatsAppFloatingButton() {
 Podríeu donar-me més informació per fer la compra?`,
     enabled: true
   });
+
+  // Detectar si estamos en rutas de admin
+  const isAdminRoute = location.pathname.startsWith('/admin');
 
   const generateWhatsAppMessage = (): string => {
     const currentUrl = window.location.href;
@@ -47,14 +53,44 @@ Podríeu donar-me més informació per fer la compra?`,
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
   };
 
+  // Detectar si el menú móvil está abierto observando el DOM
+  useEffect(() => {
+    const checkMobileMenu = () => {
+      // El menú móvil añade overflow:hidden al body cuando está abierto
+      const isOpen = document.body.style.overflow === 'hidden' && window.innerWidth < 1024;
+      setIsMobileMenuOpen(isOpen);
+    };
+
+    // Observar cambios en el style del body
+    const observer = new MutationObserver(checkMobileMenu);
+    observer.observe(document.body, { 
+      attributes: true, 
+      attributeFilter: ['style'] 
+    });
+
+    // También escuchar cambios de tamaño de ventana
+    window.addEventListener('resize', checkMobileMenu);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', checkMobileMenu);
+    };
+  }, []);
+
   // Mostrar el botón después de un pequeño delay para mejor UX
   useEffect(() => {
+    // No mostrar en admin
+    if (isAdminRoute) {
+      setIsVisible(false);
+      return;
+    }
+
     const timer = setTimeout(() => {
       setIsVisible(config.enabled);
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [config.enabled]);
+  }, [config.enabled, isAdminRoute]);
 
   // Cargar configuración (en el futuro desde API)
   useEffect(() => {
@@ -71,8 +107,8 @@ Podríeu donar-me més informació per fer la compra?`,
     // loadConfig();
   }, []);
 
-  // No mostrar si está deshabilitado
-  if (!config.enabled || !isVisible) {
+  // No mostrar si está deshabilitado, no es visible, estamos en admin, o el menú móvil está abierto
+  if (!config.enabled || !isVisible || isAdminRoute || isMobileMenuOpen) {
     return null;
   }
 

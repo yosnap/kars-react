@@ -710,6 +710,8 @@ const routeMappings: Record<string, Record<Language, string>> = {
   '/taller': { ca: '/taller', es: '/taller', en: '/workshop', fr: '/atelier' },
   '/serveis': { ca: '/serveis', es: '/servicios', en: '/services', fr: '/services' },
   '/contacta': { ca: '/contacta', es: '/contacto', en: '/contact', fr: '/contact' },
+  '/avis-legal': { ca: '/avis-legal', es: '/aviso-legal', en: '/legal-notice', fr: '/mentions-legales' },
+  '/politica-galetes': { ca: '/politica-galetes', es: '/politica-cookies', en: '/cookies-policy', fr: '/politique-cookies' },
   '/favorits': { ca: '/favorits', es: '/favoritos', en: '/favorites', fr: '/favoris' }
 };
 

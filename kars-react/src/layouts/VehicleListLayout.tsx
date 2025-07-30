@@ -98,6 +98,11 @@ const VehicleListLayout: React.FC<VehicleListLayoutProps> = ({
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
 
+  // Scroll al top cuando se carga el componente
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
   // Fetch de vehículos (adaptar según tu API)
   useEffect(() => {
     setLoading(true);

@@ -2,7 +2,45 @@
 
 Todas las modificaciones importantes del proyecto se documentarán en este archivo.
 
-## [0.1.4] - 2025-07-24
+## [0.3.5] - 2025-07-30
+
+### 🍪 Sistema de Cookies GDPR
+- **Banner de cookies completo**: Sistema completo de gestión de cookies compatible con GDPR
+  - Detección automática de cookies reales en el sitio web
+  - Categorización: Necesarias, Funcionales, Analíticas, Marketing
+  - Solo muestra categorías que realmente tienen cookies detectadas
+  - Cookies necesarias siempre activas por defecto (GDPR compliant)
+  - Vista detallada de cookies con descripciones
+  - Configuración granular por categorías con toggles
+  - Estado minimizado persistente tras configuración
+
+### 📄 Páginas Legales  
+- **Página de Aviso Legal**: Contenido legal completo en 4 idiomas (CA, ES, EN, FR)
+- **Página de Política de Cookies**: Información detallada sobre uso de cookies
+- **Diseño consistente**: Siguiendo el tema oscuro de la aplicación
+- **Navegación breadcrumb**: Integrada con el sistema de localización
+
+### 🎨 Mejoras UX/UI
+- **Banner movido a la izquierda**: Mejor posicionamiento (`bottom-4 left-4`)
+- **Ocultación inteligente**: Banner y botón WhatsApp se ocultan automáticamente:
+  - En rutas de administración (`/admin/*`)
+  - Cuando el menú móvil está abierto
+  - Detección mediante `MutationObserver` del DOM
+- **Navegación scroll mejorada**: Footer lleva al inicio de página correctamente
+
+### 🔧 Mejoras Técnicas
+- **Hook personalizado**: `useCookieManager` para gestión completa de cookies
+- **Detección de menú móvil**: Sistema inteligente basado en observación del DOM
+- **Mapeo de cookies**: Sistema de categorización de cookies conocidas
+- **Estados persistentes**: Configuración guardada en localStorage
+- **Performance optimizada**: Cache de detección y intervalos controlados
+
+### 🌐 Soporte Multiidioma
+- **4 idiomas completos**: Catalán (principal), Español, Inglés, Francés
+- **Rutas localizadas**: Páginas legales disponibles en todas las URLs localizadas
+- **Textos contextuales**: Contenido legal específico por idioma
+
+## [0.3.4] - 2025-07-29
 
 ### Añadido
 - **WhatsApp Integration System**: Sistema completo de integración de WhatsApp

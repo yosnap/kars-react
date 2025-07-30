@@ -1,4 +1,5 @@
 import { CheckCircle } from "lucide-react";
+import { useEffect } from "react";
 import Footer from "../components/Footer";
 import PageBreadcrumbs from "../components/PageBreadcrumbs";
 import { useLanguage } from "../context/LanguageContext";
@@ -6,6 +7,10 @@ import { staticPageTranslations } from "../translations/static-pages";
 
 export default function QuiSom() {
   const { currentLanguage } = useLanguage();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
   const t = staticPageTranslations.about[currentLanguage];
   const breadcrumbs = [
     { 

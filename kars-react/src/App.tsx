@@ -38,9 +38,12 @@ import QuiSom from "./pages/QuiSom";
 import Taller from "./pages/Taller";
 import Serveis from "./pages/Serveis";
 import Contacta from "./pages/Contacta";
+import AvisLegal from "./pages/AvisLegal";
+import PoliticaGaletes from "./pages/PoliticaGaletes";
 import ProfessionalProfile from "./pages/ProfessionalProfile";
 import VehicleListLayout from "./layouts/VehicleListLayout";
 import SearchModal from "./components/SearchModal";
+import CookieBanner from "./components/CookieBanner";
 import { axiosAdmin } from "./api/axiosClient";
 import AdvancedSearchModal from "./components/AdvancedSearchModal";
 import { useState, useEffect } from "react";
@@ -152,6 +155,8 @@ function App() {
           <Route path="/taller" element={<Taller />} />
           <Route path="/serveis" element={<Serveis />} />
           <Route path="/contacta" element={<Contacta />} />
+          <Route path="/avis-legal" element={<AvisLegal />} />
+          <Route path="/politica-galetes" element={<PoliticaGaletes />} />
           {/* Subpages for vehicle states */}
           <Route path="/cotxes-nous-a-andorra" element={<CotxesNousPage />} />
           <Route path="/cotxes-seminous-a-andorra" element={<CotxesSeminousPage />} />
@@ -187,6 +192,8 @@ function App() {
           <Route path="/es/taller" element={<Taller />} />
           <Route path="/es/servicios" element={<Serveis />} />
           <Route path="/es/contacto" element={<Contacta />} />
+          <Route path="/es/aviso-legal" element={<AvisLegal />} />
+          <Route path="/es/politica-cookies" element={<PoliticaGaletes />} />
           <Route path="/es/favoritos" element={<FavoritosPage />} />
           
           {/* Rutas localizadas - Inglés */}
@@ -201,6 +208,8 @@ function App() {
           <Route path="/en/workshop" element={<Taller />} />
           <Route path="/en/services" element={<Serveis />} />
           <Route path="/en/contact" element={<Contacta />} />
+          <Route path="/en/legal-notice" element={<AvisLegal />} />
+          <Route path="/en/cookies-policy" element={<PoliticaGaletes />} />
           <Route path="/en/favorites" element={<FavoritosPage />} />
           
           {/* Rutas localizadas - Francés */}
@@ -215,6 +224,8 @@ function App() {
           <Route path="/fr/atelier" element={<Taller />} />
           <Route path="/fr/services" element={<Serveis />} />
           <Route path="/fr/contact" element={<Contacta />} />
+          <Route path="/fr/mentions-legales" element={<AvisLegal />} />
+          <Route path="/fr/politique-cookies" element={<PoliticaGaletes />} />
           <Route path="/fr/favoris" element={<FavoritosPage />} />
           
           {/* Rutas localizadas - Catalán */}
@@ -229,6 +240,8 @@ function App() {
           <Route path="/ca/taller" element={<Taller />} />
           <Route path="/ca/serveis" element={<Serveis />} />
           <Route path="/ca/contacta" element={<Contacta />} />
+          <Route path="/ca/avis-legal" element={<AvisLegal />} />
+          <Route path="/ca/politica-galetes" element={<PoliticaGaletes />} />
           <Route path="/ca/favorits" element={<FavoritosPage />} />
         </Routes>
       </MainLayout>
@@ -266,6 +279,7 @@ function App() {
           },
         }}
       />
+      <CookieBanner />
       </Router>
     </VehicleProvider>
     </LanguageProvider>
