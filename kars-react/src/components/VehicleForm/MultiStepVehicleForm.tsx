@@ -89,6 +89,39 @@ interface VehicleFormData {
   impostosDeduibles?: boolean;
   vehicleACanvi?: boolean;
   
+  // Equipment and capacity fields
+  numeroMaletersCotxe?: string;
+  capacitatTotalL?: string;
+  rodaRecanvi?: string;
+  velocitatMaxima?: string;
+  acceleracio0100Cotxe?: string;
+  
+  // Motor fields
+  numeroMotors?: string;
+  cvMotorDavant?: string;
+  kwMotorDavant?: string;
+  cvMotorDarrere?: string;
+  kwMotorDarrere?: string;
+  cvMotor3?: string;
+  kwMotor3?: string;
+  cvMotor4?: string;
+  kwMotor4?: string;
+  potenciaCombinada?: string;
+  
+  // Electric vehicle fields
+  autonomiaWltp?: string;
+  autonomiaUrbanaWltp?: string;
+  autonomiaExtraurbanaWltp?: string;
+  autonomiaElectrica?: string;
+  bateria?: string;
+  cablesRecarrega?: string;
+  connectors?: string;
+  velocitatRecarrega?: string;
+  frenadaRegenerativa?: string;
+  onePedal?: string;
+  tempsRecarregaTotal?: string;
+  tempsRecarregaFins80?: string;
+  
   // Step 6: Multilingual Descriptions
   descripcioAnunciCA?: string; // Catalan (primary)
   descripcioAnunciEN?: string; // English

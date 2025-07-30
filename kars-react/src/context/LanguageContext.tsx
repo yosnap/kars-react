@@ -617,8 +617,8 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
     const newPath = getLocalizedPath(currentPathWithoutLang, language);
     const newUrl = `${newPath}${currentSearch}`;
     
-    // Actualizar URL sin recargar la página
-    window.history.replaceState({}, '', newUrl);
+    // Navegar a la nueva URL en lugar de solo actualizar el historial
+    window.location.href = newUrl;
   };
 
   // Función de traducción
@@ -698,7 +698,7 @@ export const getVehicleDescription = (vehicle: any, language: Language): string 
   return '';
 };
 
-// Mapeo de rutas localizadas
+// Mapeo de rutas localizadas - bidireccional
 const routeMappings: Record<string, Record<Language, string>> = {
   '/': { ca: '/', es: '/', en: '/', fr: '/' },
   '/vehicles': { ca: '/vehicles', es: '/vehiculos', en: '/vehicles', fr: '/vehicules' },
@@ -711,6 +711,21 @@ const routeMappings: Record<string, Record<Language, string>> = {
   '/serveis': { ca: '/serveis', es: '/servicios', en: '/services', fr: '/services' },
   '/contacta': { ca: '/contacta', es: '/contacto', en: '/contact', fr: '/contact' }
 };
+
+// Crear mapeo inverso para facilitar la traducción
+const createReverseMapping = () => {
+  const reverseMap: Record<string, string> = {};
+  
+  Object.entries(routeMappings).forEach(([basePath, translations]) => {
+    Object.entries(translations).forEach(([lang, translatedPath]) => {
+      reverseMap[translatedPath] = basePath;
+    });
+  });
+  
+  return reverseMap;
+};
+
+const reverseRouteMappings = createReverseMapping();
 
 // Función helper para generar URLs localizadas
 export const getLocalizedPath = (path: string, language: Language = 'ca'): string => {
@@ -766,17 +781,29 @@ export const getLocalizedPath = (path: string, language: Language = 'ca'): strin
   return queryString ? `${localizedPathWithPrefix}?${queryString}` : localizedPathWithPrefix;
 };
 
-// Función helper para extraer el path sin prefijo de idioma
+// Función helper para extraer el path sin prefijo de idioma y traducirlo a la ruta base
 export const getPathWithoutLanguage = (fullPath: string): string => {
   const pathSegments = fullPath.split('/').filter(Boolean);
   const firstSegment = pathSegments[0];
   
   // Si el primer segmento es un idioma, removerlo
+  let pathWithoutLang = fullPath;
   if (firstSegment && ['ca', 'es', 'en', 'fr'].includes(firstSegment)) {
-    return '/' + pathSegments.slice(1).join('/');
+    pathWithoutLang = '/' + pathSegments.slice(1).join('/');
   }
   
-  return fullPath;
+  // Separar query parameters
+  const [basePath, queryString] = pathWithoutLang.split('?');
+  
+  // Buscar si esta ruta está en el mapeo inverso (es una ruta traducida)
+  const baseRoute = reverseRouteMappings[basePath];
+  if (baseRoute) {
+    // Si encontramos la ruta base, devolverla
+    return queryString ? `${baseRoute}?${queryString}` : baseRoute;
+  }
+  
+  // Si no está en el mapeo, devolver tal cual
+  return pathWithoutLang;
 };
 
 // Función helper para obtener el idioma actual desde una URL

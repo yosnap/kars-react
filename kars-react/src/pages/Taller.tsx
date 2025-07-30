@@ -1,4 +1,5 @@
 import { CheckCircle } from "lucide-react";
+import { useEffect } from "react";
 import Footer from "../components/Footer";
 import PageBreadcrumbs from "../components/PageBreadcrumbs";
 import { useLanguage } from "../context/LanguageContext";
@@ -7,6 +8,11 @@ import { staticPageTranslations } from "../translations/static-pages";
 export default function Taller() {
   const { currentLanguage } = useLanguage();
   const t = staticPageTranslations.workshop[currentLanguage];
+  
+  // Actualizar el título de la página
+  useEffect(() => {
+    document.title = `${t.title} - KARS Automòbils`;
+  }, [t.title]);
   const breadcrumbs = [
     { 
       label: { 
@@ -20,7 +26,7 @@ export default function Taller() {
   ];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gray-900">
       <div className="container mx-auto py-8">
         {/* Breadcrumbs */}
         <div className="mb-8">

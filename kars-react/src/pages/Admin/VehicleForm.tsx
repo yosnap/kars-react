@@ -122,12 +122,38 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
       tipusTapisseria: apiData.tipusTapisseria || '',
       colorTapisseria: apiData.colorTapisseria || '',
       
-      // Equipment and capacity fields
-      numeroMaleters: String(apiData.numeroMaleters || ''),
-      capacitatTotal: String(apiData.capacitatTotal || ''),
+      // Equipment and capacity fields - CORRIGIENDO NOMBRES DE CAMPOS
+      numeroMaletersCotxe: String(apiData.numeroMaletersCotxe || ''),
+      capacitatTotalL: String(apiData.capacitatTotalL || ''),
       rodaRecanvi: apiData.rodaRecanvi || '',
       velocitatMaxima: String(apiData.velocitatMaxima || ''),
-      acceleracio0100: String(apiData.acceleracio0100 || ''),
+      acceleracio0100Cotxe: String(apiData.acceleracio0100Cotxe || ''),
+      
+      // Motor fields - using correct field names from Prisma schema
+      numeroMotors: String(apiData.numeroMotors || apiData['numero-motors'] || ''),
+      cvMotorDavant: String(apiData.cvMotorDavant || apiData['cv-motor-davant'] || ''),
+      kwMotorDavant: String(apiData.kwMotorDavant || apiData['kw-motor-davant'] || ''),
+      cvMotorDarrere: String(apiData.cvMotorDarrere || apiData['cv-motor-darrere'] || ''),
+      kwMotorDarrere: String(apiData.kwMotorDarrere || apiData['kw-motor-darrere'] || ''),
+      cvMotor3: String(apiData.cvMotor3 || apiData['cv-motor-3'] || ''),
+      kwMotor3: String(apiData.kwMotor3 || apiData['kw-motor-3'] || ''),
+      cvMotor4: String(apiData.cvMotor4 || apiData['cv-motor-4'] || ''),
+      kwMotor4: String(apiData.kwMotor4 || apiData['kw-motor-4'] || ''),
+      potenciaCombinada: String(apiData.potenciaCombinada || apiData['potencia-combinada'] || ''),
+      
+      // Electric vehicle fields
+      autonomiaWltp: String(apiData.autonomiaWltp || ''),
+      autonomiaUrbanaWltp: String(apiData.autonomiaUrbanaWltp || ''),
+      autonomiaExtraurbanaWltp: String(apiData.autonomiaExtraurbanaWltp || ''),
+      autonomiaElectrica: String(apiData.autonomiaElectrica || ''),
+      bateria: apiData.bateria || '',
+      cablesRecarrega: apiData.cablesRecarrega || '',
+      connectors: apiData.connectors || '',
+      velocitatRecarrega: apiData.velocitatRecarrega || '',
+      frenadaRegenerativa: apiData.frenadaRegenerativa || '',
+      onePedal: apiData.onePedal || '',
+      tempsRecarregaTotal: String(apiData.tempsRecarregaTotal || ''),
+      tempsRecarregaFins80: String(apiData.tempsRecarregaFins80 || ''),
       
       // Step 4: Equipment and Extras - Mapear todos los tipos según el vehículo
       extresCotxe: Array.isArray(apiData.extresCotxe) ? apiData.extresCotxe : [],
@@ -255,6 +281,24 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
     if (transformedData.preu) {
       transformedData.preu = parseFloat(transformedData.preu) || 0;
     }
+    
+    // IMPORTANT: Todos los campos de motor en Prisma son String?, no numéricos
+    // Mantener todos los campos de motor como strings para compatibilidad con Prisma
+    const motorStringFields = [
+      'numeroMotors', 'cvMotorDavant', 'kwMotorDavant', 'cvMotorDarrere', 
+      'kwMotorDarrere', 'cvMotor3', 'kwMotor3', 'cvMotor4', 'kwMotor4', 
+      'potenciaCombinada', 'potenciaCv', 'potenciaKw', 'cilindrada',
+      'velocitatMaxima', 'acceleracio0100Cotxe'
+    ];
+    
+    motorStringFields.forEach(field => {
+      if (transformedData[field] && transformedData[field] !== '') {
+        // Mantener como string, no convertir a número
+        transformedData[field] = String(transformedData[field]);
+      } else {
+        transformedData[field] = null;
+      }
+    });
     
     // Filtrar campos que no existen en el esquema de Prisma
     const fieldsToRemove = ['seguretat', 'confort', 'multimedia', 'marquesComercial', 'modelsComercial'];

@@ -163,6 +163,22 @@ const TechnicalSpecsStep: React.FC<TechnicalSpecsStepProps> = ({ formData, updat
             />
           </div>
 
+          {/* Power (kW) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Potència (kW)
+            </label>
+            <input
+              type="number"
+              min="0"
+              value={formData.potenciaKw || ''}
+              onChange={(e) => updateFormData({ potenciaKw: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              placeholder="110"
+            />
+          </div>
+
+
           {/* Power (KW) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -364,8 +380,8 @@ const TechnicalSpecsStep: React.FC<TechnicalSpecsStepProps> = ({ formData, updat
                     type="number"
                     min="0"
                     max="10"
-                    value={formData.numeroMaleters || ''}
-                    onChange={(e) => updateFormData({ numeroMaleters: e.target.value })}
+                    value={formData.numeroMaletersCotxe || ''}
+                    onChange={(e) => updateFormData({ numeroMaletersCotxe: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     placeholder="2"
                   />
@@ -398,8 +414,8 @@ const TechnicalSpecsStep: React.FC<TechnicalSpecsStepProps> = ({ formData, updat
                   <input
                     type="number"
                     min="0"
-                    value={formData.capacitatTotal || ''}
-                    onChange={(e) => updateFormData({ capacitatTotal: e.target.value })}
+                    value={formData.capacitatTotalL || ''}
+                    onChange={(e) => updateFormData({ capacitatTotalL: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     placeholder="450"
                   />
@@ -432,12 +448,182 @@ const TechnicalSpecsStep: React.FC<TechnicalSpecsStepProps> = ({ formData, updat
                     type="number"
                     step="0.1"
                     min="0"
-                    value={formData.acceleracio0100 || ''}
-                    onChange={(e) => updateFormData({ acceleracio0100: e.target.value })}
+                    value={formData.acceleracio0100Cotxe || ''}
+                    onChange={(e) => updateFormData({ acceleracio0100Cotxe: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     placeholder="8.5"
                   />
                 </div>
+              </div>
+
+              {/* Campos de múltiples motores */}
+              <div className="space-y-6 mt-8">
+                <h5 className="text-md font-medium text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 pb-2">
+                  ⚡ Especificacions Motors
+                </h5>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Número de Motors - Siempre visible */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Nombre de Motors
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="4"
+                      value={formData.numeroMotors || ''}
+                      onChange={(e) => updateFormData({ numeroMotors: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="1"
+                    />
+                  </div>
+
+                  {/* Potencia Combinada - Siempre visible */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Potència Combinada (CV)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.potenciaCombinada || ''}
+                      onChange={(e) => updateFormData({ potenciaCombinada: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="350"
+                    />
+                  </div>
+                </div>
+
+                {/* Campos de motores específicos - Solo si hay múltiples motores */}
+                {(formData.numeroMotors && parseInt(formData.numeroMotors) > 1) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Motor Davant */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        CV Motor Davant
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formData.cvMotorDavant || ''}
+                        onChange={(e) => updateFormData({ cvMotorDavant: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="150"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        kW Motor Davant
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formData.kwMotorDavant || ''}
+                        onChange={(e) => updateFormData({ kwMotorDavant: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="110"
+                      />
+                    </div>
+
+                    {/* Motor Darrere */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        CV Motor Darrere
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formData.cvMotorDarrere || ''}
+                        onChange={(e) => updateFormData({ cvMotorDarrere: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="200"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        kW Motor Darrere
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formData.kwMotorDarrere || ''}
+                        onChange={(e) => updateFormData({ kwMotorDarrere: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="147"
+                      />
+                    </div>
+
+                    {/* Motor 3 - Solo si hay 3 o más motores */}
+                    {parseInt(formData.numeroMotors) >= 3 && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            CV Motor 3
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={formData.cvMotor3 || ''}
+                            onChange={(e) => updateFormData({ cvMotor3: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            placeholder="100"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            kW Motor 3
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={formData.kwMotor3 || ''}
+                            onChange={(e) => updateFormData({ kwMotor3: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            placeholder="74"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {/* Motor 4 - Solo si hay 4 motores */}
+                    {parseInt(formData.numeroMotors) >= 4 && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            CV Motor 4
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={formData.cvMotor4 || ''}
+                            onChange={(e) => updateFormData({ cvMotor4: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            placeholder="100"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            kW Motor 4
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={formData.kwMotor4 || ''}
+                            onChange={(e) => updateFormData({ kwMotor4: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            placeholder="74"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                  </div>
+                )}
               </div>
 
               {/* Campos específicos para vehículos eléctricos/híbridos */}
@@ -596,23 +782,8 @@ const TechnicalSpecsStep: React.FC<TechnicalSpecsStepProps> = ({ formData, updat
                     </div>
                   </div>
 
-                  {/* Tiempos de recarga y capacidad bateria */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Capacitat Bateria (kWh)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        value={formData.capacitatBateria || ''}
-                        onChange={(e) => updateFormData({ capacitatBateria: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        placeholder="75"
-                      />
-                    </div>
-
+                  {/* Tiempos de recarga */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Temps Recarrega Total (h)
@@ -639,6 +810,45 @@ const TechnicalSpecsStep: React.FC<TechnicalSpecsStepProps> = ({ formData, updat
                         onChange={(e) => updateFormData({ tempsRecarregaFins80: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         placeholder="30"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Características adicionales eléctricas */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Frenada Regenerativa
+                      </label>
+                      <SearchableSelect
+                        options={[
+                          { value: 'true', label: 'Sí, té frenada regenerativa' },
+                          { value: 'false', label: 'No, no té frenada regenerativa' }
+                        ]}
+                        value={formData.frenadaRegenerativa || ''}
+                        onValueChange={(value) => updateFormData({ frenadaRegenerativa: value })}
+                        placeholder="Selecciona opció..."
+                        allowClear={true}
+                        showSearch={false}
+                        emptyMessage="No s'han trobat opcions"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        One Pedal
+                      </label>
+                      <SearchableSelect
+                        options={[
+                          { value: 'true', label: 'Sí, té funcionalitat One Pedal' },
+                          { value: 'false', label: 'No, no té funcionalitat One Pedal' }
+                        ]}
+                        value={formData.onePedal || ''}
+                        onValueChange={(value) => updateFormData({ onePedal: value })}
+                        placeholder="Selecciona opció..."
+                        allowClear={true}
+                        showSearch={false}
+                        emptyMessage="No s'han trobat opcions"
                       />
                     </div>
                   </div>
