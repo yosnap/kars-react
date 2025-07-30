@@ -609,7 +609,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
     // Actualizar atributo lang del HTML para que el navegador detecte el idioma
     document.documentElement.lang = language;
     
-    // Obtener el path actual sin prefijo de idioma
+    // Obtener el path actual sin prefijo de idioma y convertirlo a la ruta base
     const currentPathWithoutLang = getPathWithoutLanguage(window.location.pathname);
     const currentSearch = window.location.search;
     
@@ -709,7 +709,8 @@ const routeMappings: Record<string, Record<Language, string>> = {
   '/qui-som': { ca: '/qui-som', es: '/quienes-somos', en: '/about-us', fr: '/qui-sommes-nous' },
   '/taller': { ca: '/taller', es: '/taller', en: '/workshop', fr: '/atelier' },
   '/serveis': { ca: '/serveis', es: '/servicios', en: '/services', fr: '/services' },
-  '/contacta': { ca: '/contacta', es: '/contacto', en: '/contact', fr: '/contact' }
+  '/contacta': { ca: '/contacta', es: '/contacto', en: '/contact', fr: '/contact' },
+  '/favorits': { ca: '/favorits', es: '/favoritos', en: '/favorites', fr: '/favoris' }
 };
 
 // Crear mapeo inverso para facilitar la traducción
@@ -717,7 +718,7 @@ const createReverseMapping = () => {
   const reverseMap: Record<string, string> = {};
   
   Object.entries(routeMappings).forEach(([basePath, translations]) => {
-    Object.entries(translations).forEach(([lang, translatedPath]) => {
+    Object.entries(translations).forEach(([, translatedPath]) => {
       reverseMap[translatedPath] = basePath;
     });
   });
@@ -795,11 +796,27 @@ export const getPathWithoutLanguage = (fullPath: string): string => {
   // Separar query parameters
   const [basePath, queryString] = pathWithoutLang.split('?');
   
-  // Buscar si esta ruta está en el mapeo inverso (es una ruta traducida)
-  const baseRoute = reverseRouteMappings[basePath];
-  if (baseRoute) {
-    // Si encontramos la ruta base, devolverla
-    return queryString ? `${baseRoute}?${queryString}` : baseRoute;
+  // Buscar mapeo exacto primero
+  const exactBaseRoute = reverseRouteMappings[basePath];
+  if (exactBaseRoute) {
+    return queryString ? `${exactBaseRoute}?${queryString}` : exactBaseRoute;
+  }
+  
+  // Si no hay mapeo exacto, buscar mapeos parciales (para rutas dinámicas)
+  const pathParts = basePath.split('/').filter(Boolean);
+  
+  // Intentar buscar mapeos con diferentes niveles de profundidad
+  for (let i = pathParts.length; i >= 1; i--) {
+    const partialPath = '/' + pathParts.slice(0, i).join('/');
+    const baseRoute = reverseRouteMappings[partialPath];
+    if (baseRoute) {
+      // Reconstruir la ruta con los segmentos dinámicos
+      const dynamicParts = pathParts.slice(i);
+      const fullBaseRoute = dynamicParts.length > 0 
+        ? `${baseRoute}/${dynamicParts.join('/')}`
+        : baseRoute;
+      return queryString ? `${fullBaseRoute}?${queryString}` : fullBaseRoute;
+    }
   }
   
   // Si no está en el mapeo, devolver tal cual

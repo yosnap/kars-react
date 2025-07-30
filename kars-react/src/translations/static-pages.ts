@@ -88,7 +88,7 @@ export const staticPageTranslations = {
 
   workshop: {
     ca: {
-      title: 'Bosch Car Services',
+      title: 'Taller Bosch Car Service',
       intro1: "L'any 2013, després de més de 25 anys dedicats a la venda, a KARS Automòbils vam incorporar en les mateixes instal·lacions un taller BOSCH CAR SERVICE, complementant així l'activitat de control, avaluació, manteniment i reparació tant dels vehicles de KARS, com els dels nostres clients.",
       intro2: "L'equip, la tecnologia, la formació continuada i les ganes de donar un servei integral, fan del departament de taller de Kars una clara resposta a la continuïtat lògica en la relació de confiança establerta amb els nostres clients al llarg dels anys.",
       intro3: "A KARS Taller - BOSCH CAR SERVICE, oferim un servei integral que inclou:",
@@ -103,7 +103,7 @@ export const staticPageTranslations = {
       distributor: "A més, dins de l'àmbit del luxe i de la personalització, destacar que som distribuidors oficials a Andorra d'Akrapovic, Capristo, IPE, DTE System."
     },
     es: {
-      title: 'Bosch Car Services',
+      title: 'Taller Bosch Car Service',
       intro1: "En el año 2013, después de más de 25 años dedicados a la venta, en KARS Automóviles incorporamos en las mismas instalaciones un taller BOSCH CAR SERVICE, complementando así la actividad de control, evaluación, mantenimiento y reparación tanto de los vehículos de KARS, como los de nuestros clientes.",
       intro2: "El equipo, la tecnología, la formación continuada y las ganas de dar un servicio integral, hacen del departamento de taller de Kars una clara respuesta a la continuidad lógica en la relación de confianza establecida con nuestros clientes a lo largo de los años.",
       intro3: "En KARS Taller - BOSCH CAR SERVICE, ofrecemos un servicio integral que incluye:",
@@ -118,7 +118,7 @@ export const staticPageTranslations = {
       distributor: "Además, dentro del ámbito del lujo y de la personalización, destacar que somos distribuidores oficiales en Andorra de Akrapovic, Capristo, IPE, DTE System."
     },
     en: {
-      title: 'Bosch Car Services',
+      title: 'Bosch Car Service Workshop',
       intro1: "In 2013, after more than 25 years dedicated to sales, at KARS Automòbils we incorporated a BOSCH CAR SERVICE workshop in the same facilities, thus complementing the control, evaluation, maintenance and repair activity of both KARS vehicles and those of our customers.",
       intro2: "The team, the technology, the continuous training and the desire to provide a comprehensive service, make the Kars workshop department a clear answer to the logical continuity in the trust relationship established with our customers over the years.",
       intro3: "At KARS Workshop - BOSCH CAR SERVICE, we offer a comprehensive service that includes:",
@@ -133,7 +133,7 @@ export const staticPageTranslations = {
       distributor: "Furthermore, within the field of luxury and customization, we highlight that we are official distributors in Andorra of Akrapovic, Capristo, IPE, DTE System."
     },
     fr: {
-      title: 'Bosch Car Services',
+      title: 'Atelier Bosch Car Service',
       intro1: "En 2013, après plus de 25 ans dédiés à la vente, chez KARS Automòbils nous avons incorporé dans les mêmes installations un atelier BOSCH CAR SERVICE, complétant ainsi l'activité de contrôle, évaluation, maintenance et réparation des véhicules KARS comme ceux de nos clients.",
       intro2: "L'équipe, la technologie, la formation continue et l'envie de donner un service intégral, font du département atelier de Kars une réponse claire à la continuité logique dans la relation de confiance établie avec nos clients au fil des années.",
       intro3: "Chez KARS Atelier - BOSCH CAR SERVICE, nous offrons un service intégral qui inclut:",

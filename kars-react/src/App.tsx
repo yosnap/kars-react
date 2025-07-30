@@ -187,6 +187,7 @@ function App() {
           <Route path="/es/taller" element={<Taller />} />
           <Route path="/es/servicios" element={<Serveis />} />
           <Route path="/es/contacto" element={<Contacta />} />
+          <Route path="/es/favoritos" element={<FavoritosPage />} />
           
           {/* Rutas localizadas - Inglés */}
           <Route path="/en" element={<Home onSearch={handleSearch} />} />
@@ -200,6 +201,7 @@ function App() {
           <Route path="/en/workshop" element={<Taller />} />
           <Route path="/en/services" element={<Serveis />} />
           <Route path="/en/contact" element={<Contacta />} />
+          <Route path="/en/favorites" element={<FavoritosPage />} />
           
           {/* Rutas localizadas - Francés */}
           <Route path="/fr" element={<Home onSearch={handleSearch} />} />
@@ -213,6 +215,7 @@ function App() {
           <Route path="/fr/atelier" element={<Taller />} />
           <Route path="/fr/services" element={<Serveis />} />
           <Route path="/fr/contact" element={<Contacta />} />
+          <Route path="/fr/favoris" element={<FavoritosPage />} />
           
           {/* Rutas localizadas - Catalán */}
           <Route path="/ca" element={<Home onSearch={handleSearch} />} />
@@ -226,6 +229,7 @@ function App() {
           <Route path="/ca/taller" element={<Taller />} />
           <Route path="/ca/serveis" element={<Serveis />} />
           <Route path="/ca/contacta" element={<Contacta />} />
+          <Route path="/ca/favorits" element={<FavoritosPage />} />
         </Routes>
       </MainLayout>
       <SearchModal

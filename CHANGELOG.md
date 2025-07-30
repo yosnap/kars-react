@@ -5,6 +5,61 @@ Todos los cambios notables de este proyecto se documentarán en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-es/1.0.0/),
 y este proyecto adhiere al [Versionado Semántico](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.4] - 2025-07-30
+
+### 🌐 Sistema de Idiomas Completo y Especificaciones Eléctricas
+
+### ✅ Añadido
+
+#### Sistema Completo de Especificaciones Eléctricas
+- **Sección eléctrica en VehicleDetail**: Nueva sección después de "Característiques" con todos los campos eléctricos
+- **Soporte multiidioma completo**: Traducciones para CA, ES, EN, FR de todas las etiquetas y valores
+- **Mapeo completo de valores**: Tipos de batería, cables, conectores y velocidades de carga
+- **Renderizado condicional**: Se muestra solo para vehículos eléctricos/híbridos o con datos eléctricos
+- **Layouts responsivos**: Versiones optimizadas para móvil/tablet y desktop
+
+#### Arreglos del Sistema de Idiomas  
+- **Cambio de idiomas corregido**: URLs se traducen correctamente entre todos los idiomas
+- **Mapeo bidireccional**: Rutas localizadas funcionan en ambas direcciones (CA ↔ ES ↔ EN ↔ FR)
+- **Rutas de favoritos**: Agregadas todas las rutas localizadas faltantes (/favoritos, /favorites, /favoris)
+- **Algoritmo mejorado**: `getPathWithoutLanguage()` maneja rutas dinámicas correctamente
+
+#### Traducciones de Contenido
+- **Títulos de taller**: "Bosch Car Services" traducido contextualmente según idioma
+- **Catalan**: "Taller Bosch Car Service"
+- **Español**: "Taller Bosch Car Service" 
+- **Inglés**: "Bosch Car Service Workshop"
+- **Francés**: "Atelier Bosch Car Service"
+
+### 🔧 Técnico
+
+#### Mejoras en LanguageContext
+- **Función `getPathWithoutLanguage()` mejorada**: Busca mapeos parciales para rutas dinámicas
+- **Mapeo de rutas ampliado**: Agregado soporte para `/favorits` en todos los idiomas
+- **Limpieza de código**: Removidos console.log de debug y arreglados warnings TypeScript
+- **Algoritmo robusto**: Maneja correctamente rutas complejas y parámetros dinámicos
+
+#### Implementación de Especificaciones Eléctricas
+- **VehicleDetail.tsx actualizado**: Nueva sección con 10+ campos eléctricos
+- **Mapeo completo de valores**: Diccionarios de traducción para todos los valores específicos
+- **Condicional inteligente**: Se muestra basado en tipo de propulsión o presencia de datos
+- **Design consistente**: Mantiene el estilo visual del resto de la aplicación
+
+#### Sistema de Rutas Localizadas
+- **App.tsx actualizado**: Agregadas rutas faltantes para favoritos en todos los idiomas
+- **Rutas agregadas**:
+  - `/es/favoritos` → FavoritosPage
+  - `/en/favorites` → FavoritosPage  
+  - `/fr/favoris` → FavoritosPage
+  - `/ca/favorits` → FavoritosPage
+
+### 🎯 Estado del Sistema
+- ✅ **Cambio de idiomas**: Funciona correctamente en todas las páginas
+- ✅ **Especificaciones eléctricas**: Sección completa con soporte multiidioma
+- ✅ **Traducciones de contenido**: Títulos contextualizados según idioma
+- ✅ **Rutas localizadas**: Todas las páginas accesibles en 4 idiomas
+- ✅ **Reload intencional**: Mantiene comportamiento de recarga para consistencia
+
 ## [0.3.2] - 2025-07-28
 
 ### 🚀 Sistema de Eliminación de Vehículos y Limpieza de Producción
