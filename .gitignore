@@ -2,9 +2,27 @@ node_modules
 .DS_Store
 *.log
 
+# Build outputs
+dist/
+build/
+*.zip
+
 # Database backups
 backups/
 
 # Test coverage
 coverage/
 *.lcov
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
