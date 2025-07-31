@@ -87,6 +87,11 @@ export const useVehicleDisplay = () => {
     return translateDataValue(color, 'color');
   };
 
+  // Tipo de propulsor
+  const getPropulsionDisplay = (propulsion: string): string => {
+    return translateDataValue(propulsion, 'propulsion');
+  };
+
 
   /**
    * FUNCIÓN HELPER PARA FORMATEAR INFORMACIÓN COMPLETA DEL VEHÍCULO
@@ -138,6 +143,7 @@ export const useVehicleDisplay = () => {
     getTractionDisplay,
     getBodyworkDisplay,
     getColorDisplay,
+    getPropulsionDisplay,
     
     // Helper completo
     getVehicleInfo,

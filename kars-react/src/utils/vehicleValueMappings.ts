@@ -66,13 +66,26 @@ export const vehicleTypeValues: ValueMappings = {
 /**
  * TIPOS DE COMBUSTIBLE
  * Valores de BD: benzina, diesel, electric, hibrid, etc.
+ * DATOS SINCRONIZADOS CON EL INSTALLER
  */
 export const fuelTypeValues: ValueMappings = {
+  'altres': {
+    ca: 'Altres',
+    es: 'Otros',
+    en: 'Others',
+    fr: 'Autres'
+  },
   'benzina': {
     ca: 'Benzina',
     es: 'Gasolina',
     en: 'Gasoline',
     fr: 'Essence'
+  },
+  'biocombustible': {
+    ca: 'Biocombustible',
+    es: 'Biocombustible',
+    en: 'Biofuel',
+    fr: 'Biocarburant'
   },
   'diesel': {
     ca: 'Dièsel',
@@ -86,17 +99,17 @@ export const fuelTypeValues: ValueMappings = {
     en: 'Electric',
     fr: 'Électrique'
   },
-  'hibrid': {
-    ca: 'Híbrid',
-    es: 'Híbrido',
-    en: 'Hybrid',
-    fr: 'Hybride'
+  'electric-combustible': {
+    ca: 'Elèctric + Combustible',
+    es: 'Eléctrico + Combustible',
+    en: 'Electric + Fuel',
+    fr: 'Électrique + Carburant'
   },
-  'hibrid-endollable': {
-    ca: 'Híbrid endollable',
-    es: 'Híbrido enchufable',
-    en: 'Plug-in hybrid',
-    fr: 'Hybride rechargeable'
+  'gas-natural-gnc': {
+    ca: 'Gas Natural',
+    es: 'Gas Natural',
+    en: 'Natural Gas',
+    fr: 'Gaz Naturel'
   },
   'gas-natural': {
     ca: 'Gas natural',
@@ -104,24 +117,61 @@ export const fuelTypeValues: ValueMappings = {
     en: 'Natural gas',
     fr: 'Gaz naturel'
   },
+  'gas-liquat-glp': {
+    ca: 'GLP',
+    es: 'GLP',
+    en: 'LPG',
+    fr: 'GPL'
+  },
   'glp': {
     ca: 'GLP',
     es: 'GLP',
     en: 'LPG',
     fr: 'GPL'
+  },
+  'hibrid': {
+    ca: 'Híbrid',
+    es: 'Híbrido',
+    en: 'Hybrid',
+    fr: 'Hybride'
+  },
+  'hibrid-endollable': {
+    ca: 'Híbrid Endollable',
+    es: 'Híbrido Enchufable',
+    en: 'Plug-in Hybrid',
+    fr: 'Hybride Rechargeable'
+  },
+  'hidrogen': {
+    ca: 'Hidrògen',
+    es: 'Hidrógeno',
+    en: 'Hydrogen',
+    fr: 'Hydrogène'
+  },
+  'solar': {
+    ca: 'Solar',
+    es: 'Solar',
+    en: 'Solar',
+    fr: 'Solaire'
+  },
+  'solar-hibrid': {
+    ca: 'Solar + Combustible',
+    es: 'Solar + Combustible',
+    en: 'Solar + Fuel',
+    fr: 'Solaire + Carburant'
   }
 };
 
 /**
  * TIPOS DE TRANSMISIÓN
  * Valores de BD: manual, automatic, auto-sequencial, etc.
+ * DATOS SINCRONIZADOS CON EL INSTALLER
  */
 export const transmissionTypeValues: ValueMappings = {
-  'manual': {
-    ca: 'Manual',
-    es: 'Manual',
-    en: 'Manual',
-    fr: 'Manuelle'
+  'auto-sequencial': {
+    ca: 'Auto-Seqüencial',
+    es: 'Auto-Secuencial',
+    en: 'Auto-Sequential',
+    fr: 'Auto-Séquentielle'
   },
   'automatic': {
     ca: 'Automàtic',
@@ -135,17 +185,23 @@ export const transmissionTypeValues: ValueMappings = {
     en: 'Automatic',
     fr: 'Automatique'
   },
-  'auto-sequencial': {
-    ca: 'Auto-Seqüencial',
-    es: 'Auto-Secuencial',
-    en: 'Auto-Sequential',
-    fr: 'Auto-Séquentiel'
+  'geartronic': {
+    ca: 'Geartronic',
+    es: 'Geartronic',
+    en: 'Geartronic',
+    fr: 'Geartronic'
   },
-  'cvt': {
-    ca: 'CVT',
-    es: 'CVT',
-    en: 'CVT',
-    fr: 'CVT'
+  'manual': {
+    ca: 'Manual',
+    es: 'Manual',
+    en: 'Manual',
+    fr: 'Manuel'
+  },
+  'semi-automatic': {
+    ca: 'Semi-Automàtic',
+    es: 'Semi-Automático',
+    en: 'Semi-Automatic',
+    fr: 'Semi-Automatique'
   },
   'semiautomatica': {
     ca: 'Semiautomàtica',
@@ -159,11 +215,11 @@ export const transmissionTypeValues: ValueMappings = {
     en: 'Sequential',
     fr: 'Séquentielle'
   },
-  'geartronic': {
-    ca: 'Geartronic',
-    es: 'Geartronic',
-    en: 'Geartronic',
-    fr: 'Geartronic'
+  'cvt': {
+    ca: 'CVT',
+    es: 'CVT',
+    en: 'CVT',
+    fr: 'CVT'
   },
   'tiptronic': {
     ca: 'Tiptronic',
@@ -279,21 +335,51 @@ export const booleanValues: ValueMappings = {
 };
 
 /**
- * TIPOS DE CARROCERÍA Y ESPECÍFICOS
- * Para valores como carrocería, colores, etc.
+ * TIPOS DE CARROCERÍA PARA COCHES
+ * DATOS SINCRONIZADOS CON EL INSTALLER
  */
 export const bodyworkValues: ValueMappings = {
+  'utilitari-petit': {
+    ca: 'Utilitari Petit',
+    es: 'Utilitario Pequeño',
+    en: 'Small City Car',
+    fr: 'Petite Citadine'
+  },
+  'turisme-mig': {
+    ca: 'Turisme Mig',
+    es: 'Turismo Medio',
+    en: 'Mid-size Car',
+    fr: 'Berline Compacte'
+  },
+  'sedan': {
+    ca: 'Sedan-Berlina',
+    es: 'Sedán-Berlina',
+    en: 'Sedan',
+    fr: 'Berline'
+  },
+  'berlina': {
+    ca: 'Sedan-Berlina',
+    es: 'Sedán-Berlina',
+    en: 'Sedan',
+    fr: 'Berline'
+  },
+  'coupe': {
+    ca: 'Coupé',
+    es: 'Coupé',
+    en: 'Coupe',
+    fr: 'Coupé'
+  },
+  'gran-turisme': {
+    ca: 'Gran Turisme',
+    es: 'Gran Turismo',
+    en: 'Grand Tourer',
+    fr: 'Grand Tourisme'
+  },
   'familiar': {
     ca: 'Familiar',
     es: 'Familiar',
-    en: 'Estate',
+    en: 'Station Wagon',
     fr: 'Break'
-  },
-  'sedan': {
-    ca: 'Sedán',
-    es: 'Sedán',
-    en: 'Sedan',
-    fr: 'Berline'
   },
   'suv': {
     ca: 'SUV',
@@ -301,17 +387,35 @@ export const bodyworkValues: ValueMappings = {
     en: 'SUV',
     fr: 'SUV'
   },
-  'coupe': {
-    ca: 'Cupè',
-    es: 'Coupé',
-    en: 'Coupe',
-    fr: 'Coupé'
+  '4x4': {
+    ca: '4x4 Tot Terreny',
+    es: '4x4 Todo Terreno',
+    en: '4x4 Off-Road',
+    fr: '4x4 Tout-Terrain'
   },
-  'berlina': {
-    ca: 'Berlina',
-    es: 'Berlina',
-    en: 'Sedan',
-    fr: 'Berline'
+  'monovolum': {
+    ca: 'Monovolum',
+    es: 'Monovolumen',
+    en: 'MPV',
+    fr: 'Monospace'
+  },
+  'furgo-passatgers': {
+    ca: 'Furgoneta passatgers',
+    es: 'Furgoneta de pasajeros',
+    en: 'Passenger Van',
+    fr: 'Fourgonnette passagers'
+  },
+  'cabrio-descapotable': {
+    ca: 'Cabrio',
+    es: 'Descapotable',
+    en: 'Convertible',
+    fr: 'Cabriolet'
+  },
+  'pickup': {
+    ca: 'Pick up',
+    es: 'Pick up',
+    en: 'Pickup Truck',
+    fr: 'Pick-up'
   }
 };
 
@@ -476,6 +580,37 @@ export const translateValue = (
  * REGISTRO DE TODAS LAS CATEGORÍAS
  * Facilita el acceso programático a todos los mapeos
  */
+/**
+ * TIPOS DE PROPULSOR
+ * NUEVA CATEGORÍA - DATOS DEL INSTALLER
+ */
+export const propulsionTypeValues: ValueMappings = {
+  'combustio': {
+    ca: 'Combustió',
+    es: 'Combustión',
+    en: 'Combustion',
+    fr: 'Combustion'
+  },
+  'electric': {
+    ca: 'Elèctric',
+    es: 'Eléctrico',
+    en: 'Electric',
+    fr: 'Électrique'
+  },
+  'hibrid': {
+    ca: 'Híbrid',
+    es: 'Híbrido',
+    en: 'Hybrid',
+    fr: 'Hybride'
+  },
+  'hibrid-endollable': {
+    ca: 'Hibrid Endollable',
+    es: 'Híbrido Enchufable',
+    en: 'Plug-in Hybrid',
+    fr: 'Hybride Rechargeable'
+  }
+};
+
 export const valueMappingCategories = {
   vehicleType: vehicleTypeValues,
   fuelType: fuelTypeValues,
@@ -485,7 +620,8 @@ export const valueMappingCategories = {
   bodywork: bodyworkValues,
   color: colorValues,
   boolean: booleanValues,
-  specific: specificValues
+  specific: specificValues,
+  propulsion: propulsionTypeValues
 } as const;
 
 /**

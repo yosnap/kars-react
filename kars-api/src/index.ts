@@ -53,9 +53,22 @@ app.get('/health', (req, res) => {
 
 // API status check
 app.get('/api', (req, res) => {
+  // Read version from package.json
+  const fs = require('fs');
+  const path = require('path');
+  let apiVersion = '0.3.7';
+  
+  try {
+    const packagePath = path.join(process.cwd(), 'package.json');
+    const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+    apiVersion = packageJson.version || '0.3.7';
+  } catch (error) {
+    console.error('Error reading API version:', error);
+  }
+  
   res.json({ 
     status: 'API OK', 
-    version: '0.2.0',
+    version: apiVersion,
     timestamp: new Date().toISOString()
   });
 });

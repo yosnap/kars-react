@@ -94,6 +94,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
     getTractionDisplay,
     getBodyworkDisplay,
     getColorDisplay,
+    getPropulsionDisplay,
     translateBooleanValue,
     translateSpecificValue 
   } = useVehicleDisplay();
@@ -718,7 +719,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {Boolean((vehicle as any).tipusPropulsor) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
                     <span className="text-gray-400">{vehicleLabels.propeller}</span>
-                    <span className="font-medium text-white capitalize">{String((vehicle as any).tipusPropulsor)}</span>
+                    <span className="font-medium text-white capitalize">{getPropulsionDisplay((vehicle as any).tipusPropulsor)}</span>
                   </div>
                 )}
 
@@ -1564,7 +1565,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {Boolean((vehicle as any).tipusPropulsor) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
                     <span className="text-gray-400">{vehicleLabels.propeller}</span>
-                    <span className="font-medium text-white capitalize">{String((vehicle as any).tipusPropulsor)}</span>
+                    <span className="font-medium text-white capitalize">{getPropulsionDisplay((vehicle as any).tipusPropulsor)}</span>
                   </div>
                 )}
 
