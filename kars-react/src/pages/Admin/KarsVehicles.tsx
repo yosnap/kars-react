@@ -914,6 +914,7 @@ const KarsVehicles = () => {
     
     const apiFieldName = fieldMap[filterKey] || filterKey;
     
+    
     if (!filterCounts[apiFieldName]) return 0;
     
     let count = filterCounts[apiFieldName][value];

@@ -192,6 +192,7 @@ router.get('/', async (req, res) => {
           numeroMotors: true,
           nombrePropietaris: true,
           venut: true,
+          reservat: true,
           preuAntic: true,
           // Campos de sincronización simplificados
           motorIdSync: true,
@@ -614,6 +615,7 @@ async function calculateFacets(baseWhere: any) {
     const [
       tipusVehicleFacets,
       venutFacets,
+      reservatFacets,
       estatVehicleFacets,
       anunciActiuFacets,
       anunciDestacatFacets,
@@ -631,6 +633,12 @@ async function calculateFacets(baseWhere: any) {
       // Vendido
       prisma.vehicle.groupBy({
         by: ['venut'],
+        where: baseWhere,
+        _count: true
+      }),
+      // Reservado
+      prisma.vehicle.groupBy({
+        by: ['reservat'],
         where: baseWhere,
         _count: true
       }),
@@ -684,6 +692,9 @@ async function calculateFacets(baseWhere: any) {
       ),
       'venut': Object.fromEntries(
         venutFacets.map(f => [f.venut.toString(), f._count])
+      ),
+      'reservat': Object.fromEntries(
+        reservatFacets.map(f => [f.reservat.toString(), f._count])
       ),
       'estat-vehicle': Object.fromEntries(
         estatVehicleFacets.map(f => [f.estatVehicle!, f._count])
