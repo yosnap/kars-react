@@ -82,15 +82,15 @@ const Footer = () => {
               </ul>
             </div>
 
-            {/* Follow us con iconos en 2x2 */}
+            {/* Follow us con iconos en fila */}
             <div className="text-center md:text-left">
               <h4 className="text-lg font-semibold mb-4 text-white">{t('footer.follow_us')}</h4>
-              <div className="grid grid-cols-2 gap-3 max-w-[120px] mx-auto md:mx-0">
+              <div className="flex justify-center md:justify-start gap-3">
                 <a
                   href="http://facebook.com/karsautomobils"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-gray-800 hover:bg-primary p-3 rounded-lg transition-all hover:scale-105 flex justify-center"
+                  className="bg-gray-800 hover:bg-primary p-3 rounded-lg transition-all hover:scale-105"
                   title="Facebook"
                 >
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -101,7 +101,7 @@ const Footer = () => {
                   href="https://www.instagram.com/explore/locations/702238073/kars-automobils/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-gray-800 hover:bg-primary p-3 rounded-lg transition-all hover:scale-105 flex justify-center"
+                  className="bg-gray-800 hover:bg-primary p-3 rounded-lg transition-all hover:scale-105"
                   title="Instagram"
                 >
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -110,14 +110,14 @@ const Footer = () => {
                 </a>
                 <a
                   href="mailto:info@kars.ad"
-                  className="bg-gray-800 hover:bg-primary p-3 rounded-lg transition-all hover:scale-105 flex justify-center"
+                  className="bg-gray-800 hover:bg-primary p-3 rounded-lg transition-all hover:scale-105"
                   title="Email"
                 >
                   <Mail className="w-5 h-5" />
                 </a>
                 <a
                   href="tel:+376800100"
-                  className="bg-gray-800 hover:bg-primary p-3 rounded-lg transition-all hover:scale-105 flex justify-center"
+                  className="bg-gray-800 hover:bg-primary p-3 rounded-lg transition-all hover:scale-105"
                   title={t('footer.phone')}
                 >
                   <Phone className="w-5 h-5" />
