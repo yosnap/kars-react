@@ -297,8 +297,8 @@ const KarsVehicles = () => {
     }
   };
 
-  const toggleVehicleReservat = async (vehicleId: string, currentStatus: boolean) => {
-    const newValue = !currentStatus;
+  const toggleVehicleReservat = async (vehicleId: string, currentStatus: boolean | undefined) => {
+    const newValue = !Boolean(currentStatus);
     
     // Actualizar estado local inmediatamente
     setVehicles(prev => prev.map(vehicle => 
@@ -317,7 +317,7 @@ const KarsVehicles = () => {
       // Revertir el cambio si falla
       setVehicles(prev => prev.map(vehicle => 
         vehicle.id === vehicleId 
-          ? { ...vehicle, reservat: currentStatus }
+          ? { ...vehicle, reservat: Boolean(currentStatus) }
           : vehicle
       ));
       console.error('Error updating vehicle reserved status:', err);
@@ -908,7 +908,8 @@ const KarsVehicles = () => {
       'estatVehicle': 'estat-vehicle', 
       'anunciActiu': 'anunci-actiu',
       'anunciDestacat': 'anunci-destacat',
-      'venut': 'venut' // Este campo ya coincide pero lo incluimos para consistencia
+      'venut': 'venut', // Este campo ya coincide pero lo incluimos para consistencia
+      'reservat': 'reservat' // Este campo ya coincide pero lo incluimos para consistencia
     };
     
     const apiFieldName = fieldMap[filterKey] || filterKey;
@@ -1460,7 +1461,7 @@ const KarsVehicles = () => {
                     <div className="scale-75">
                       <Switch
                         checked={vehicle.reservat === true}
-                        onCheckedChange={() => toggleVehicleReservat(vehicle.id, vehicle.reservat || false)}
+                        onCheckedChange={() => toggleVehicleReservat(vehicle.id, vehicle.reservat)}
                         className="data-[state=checked]:bg-orange-600 data-[state=unchecked]:bg-gray-300"
                       />
                     </div>
