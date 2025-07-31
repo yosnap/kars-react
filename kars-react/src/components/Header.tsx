@@ -337,30 +337,12 @@ export default function Header({ onSearch, onOpenAdvancedSearch }: HeaderProps) 
         />
       )}
 
-      {/* Mobile Sidebar */}
-      <div className={`mobile-sidebar fixed top-0 right-0 h-full w-full bg-black z-[70] transform transition-transform duration-300 ease-in-out lg:hidden ${
-        mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+      {/* Mobile Sidebar - Improved transitions following best practices */}
+      <div className={`mobile-sidebar fixed inset-0 bg-black z-[70] transform transition-all duration-300 ease-in-out lg:hidden ${
+        mobileMenuOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
       }`}>
-        <div className="flex flex-col h-full">
-          {/* Sidebar Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-800">
-            <img
-              src="/media/kars-logo.png"
-              alt="Kars.ad Logo"
-              className="h-[50px] w-auto"
-            />
-            <button
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-white p-3 hover:text-primary hover:bg-gray-800 rounded-lg transition-colors z-[75]"
-              title="Cerrar menú"
-            >
-              <svg className="w-6 h-6 md:w-7 md:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Navigation Links */}
+        <div className="flex flex-col h-full pt-20">
+          {/* Navigation Links - Start below header */}
           <div className="flex-1 overflow-y-auto py-6">
             <nav className="px-6 space-y-4">
               <Link
