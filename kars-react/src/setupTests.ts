@@ -6,11 +6,23 @@ import '@testing-library/jest-dom';
 
 // Mock IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
-  constructor() {}
+  root: Element | Document | null = null;
+  rootMargin: string = '0px';
+  thresholds: ReadonlyArray<number> = [];
+
+  constructor(_callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+    this.root = options?.root || null;
+    this.rootMargin = options?.rootMargin || '0px';
+    this.thresholds = options?.threshold ? 
+      (Array.isArray(options.threshold) ? options.threshold : [options.threshold]) : 
+      [];
+  }
+  
   disconnect() {}
   observe() {}
   unobserve() {}
-};
+  takeRecords(): IntersectionObserverEntry[] { return []; }
+} as any;
 
 // Mock ResizeObserver
 global.ResizeObserver = class ResizeObserver {
