@@ -337,9 +337,9 @@ export default function Header({ onSearch, onOpenAdvancedSearch }: HeaderProps) 
         />
       )}
 
-      {/* Mobile Sidebar - Improved transitions following best practices */}
-      <div className={`mobile-sidebar fixed inset-0 bg-black z-[70] transform transition-all duration-300 ease-in-out lg:hidden ${
-        mobileMenuOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+      {/* Mobile Sidebar - Consistent animations */}
+      <div className={`mobile-sidebar fixed top-0 right-0 h-full w-full bg-black z-[70] transform transition-transform duration-300 ease-in-out lg:hidden ${
+        mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
       }`}>
         <div className="flex flex-col h-full pt-20">
           {/* Navigation Links - Start below header */}
