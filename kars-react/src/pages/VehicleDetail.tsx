@@ -43,28 +43,33 @@ interface Professional {
 
 // Mapeo condicional para valores de BD que no coinciden exactamente con el instalador
 const EXTRA_VALUE_MAPPING: Record<string, string> = {
-  'gps': 'navegador-gps',
-  'llandes-alliatge': 'kit-carrosseria', // Temporal hasta tener llandes en instalador
-  'llums-led': 'fars-xeno', // Temporal hasta tener LED en instalador  
-  'pintura-metallitzada': 'garantia-fabricant' // Temporal hasta tener pintura en instalador
+  'gps': 'navegador_gps',
+  'llandes_alliatge': 'kit_carrosseria', // Temporal hasta tener llandes en instalador
+  'llums_led': 'fars_xeno', // Temporal hasta tener LED en instalador  
+  'pintura_metallitzada': 'garantia_fabricant' // Temporal hasta tener pintura en instalador
 };
 
-// Función para mapear valores de BD y obtener el label correcto
-const getExtraLabelFromDB = (dbValue: string, extrasLabels: Record<string, string>): string => {
+// Función para obtener el label traducido de un extra
+const getExtraTranslatedLabel = (dbValue: string, getTranslation: (key: string) => string): string => {
+  // Convertir guiones a guiones bajos para que coincida con las claves de traducción
+  const normalizedKey = dbValue.replace(/-/g, '_');
+  
   // Primero intentar mapear el valor
-  const mappedValue = EXTRA_VALUE_MAPPING[dbValue] || dbValue;
+  const mappedValue = EXTRA_VALUE_MAPPING[normalizedKey] || normalizedKey;
   
-  // Buscar en los labels cargados
-  if (extrasLabels[mappedValue]) {
-    return extrasLabels[mappedValue];
+  // Intentar obtener la traducción desde la base de datos
+  const translation = getTranslation(mappedValue);
+  if (translation && translation !== mappedValue) {
+    return translation;
   }
   
-  // Si no se encuentra, intentar con el valor original
-  if (extrasLabels[dbValue]) {
-    return extrasLabels[dbValue];
+  // Si no se encuentra, intentar con el valor original normalizado
+  const originalTranslation = getTranslation(normalizedKey);
+  if (originalTranslation && originalTranslation !== normalizedKey) {
+    return originalTranslation;
   }
   
-  // Si no se encuentra, devolver el valor original formateado
+  // Si no se encuentra traducción, devolver el valor original formateado
   return dbValue.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 };
 
@@ -100,7 +105,8 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
   const [loadingProfessional, setLoadingProfessional] = useState(true);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [brands, setBrands] = useState<{ value: string; label: string }[]>([]);
-  const [extrasLabels, setExtrasLabels] = useState<Record<string, string>>({});
+  // Usar el hook de traducciones principal que ya carga las de extras
+  const { getTranslation: getExtrasTranslation } = useVehicleTranslations();
 
   // Favorites logic
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -151,45 +157,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
       .finally(() => setLoading(false));
   }, [slug, user]);
 
-  // Cargar extras labels cuando se carga el vehículo
-  useEffect(() => {
-    if (vehicle && (vehicle as any).tipusVehicle) {
-      const tipus = String((vehicle as any).tipusVehicle).toLowerCase();
-      
-      // Determinar qué endpoints de extras cargar
-      const endpoints: string[] = [];
-      if (tipus === "moto" || tipus === "moto-quad-atv") {
-        endpoints.push("/motorcycle-extras");
-      } else if (tipus === "autocaravana-camper") {
-        endpoints.push("/caravan-extras", "/habitacle-extras");
-      } else {
-        endpoints.push("/car-extras");
-      }
-      
-      // Cargar todos los extras en paralelo
-      Promise.all(
-        endpoints.map(endpoint => 
-          axiosAdmin.get(endpoint)
-            .then(res => res.data.data || [])
-            .catch(() => [])
-        )
-      ).then(results => {
-        const allExtras = results.flat();
-        const labelsMap: Record<string, string> = {};
-        
-        allExtras.forEach((extra: any) => {
-          // El endpoint devuelve { id, name, slug } donde slug es el value
-          const value = extra.slug || extra.value || extra.id;
-          const name = extra.name || extra.label || extra.title;
-          if (value && name) {
-            labelsMap[value] = name;
-          }
-        });
-        
-        setExtrasLabels(labelsMap);
-      });
-    }
-  }, [vehicle]);
+    // Las traducciones de extras se cargan automáticamente con el hook
 
   useEffect(() => {
     if (vehicle && vehicle.author_id) {
@@ -685,7 +653,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Versió */}
                 {Boolean((vehicle as any).versio) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Versió</span>
+                    <span className="text-gray-400">{vehicleLabels.version}</span>
                     <span className="font-medium text-white">{String((vehicle as any).versio)}</span>
                   </div>
                 )}
@@ -749,7 +717,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Tipus propulsor */}
                 {Boolean((vehicle as any).tipusPropulsor) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Propulsor</span>
+                    <span className="text-gray-400">{vehicleLabels.propeller}</span>
                     <span className="font-medium text-white capitalize">{String((vehicle as any).tipusPropulsor)}</span>
                   </div>
                 )}
@@ -767,7 +735,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Emissions vehicle */}
                 {Boolean((vehicle as any).emissionsVehicle) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Emissions</span>
+                    <span className="text-gray-400">{vehicleLabels.emissions}</span>
                     <span className="font-medium text-white">{
                       (() => {
                         const emissionValue = String((vehicle as any).emissionsVehicle);
@@ -782,7 +750,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Consum urbà */}
                 {Boolean((vehicle as any).consumUrba) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Consum urbà</span>
+                    <span className="text-gray-400">{vehicleLabels.urbanConsumption}</span>
                     <span className="font-medium text-white">{String((vehicle as any).consumUrba)} l/100km</span>
                   </div>
                 )}
@@ -790,7 +758,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Consum carretera */}
                 {Boolean((vehicle as any).consumCarretera) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Consum carretera</span>
+                    <span className="text-gray-400">{vehicleLabels.highwayConsumption}</span>
                     <span className="font-medium text-white">{String((vehicle as any).consumCarretera)} l/100km</span>
                   </div>
                 )}
@@ -798,7 +766,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Consum mixt */}
                 {Boolean((vehicle as any).consumMixt) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Consum mixt</span>
+                    <span className="text-gray-400">{vehicleLabels.mixedConsumption}</span>
                     <span className="font-medium text-white">{String((vehicle as any).consumMixt)} l/100km</span>
                   </div>
                 )}
@@ -806,7 +774,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Emissions CO2 */}
                 {Boolean((vehicle as any).emissionsCo2) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Emissions CO2</span>
+                    <span className="text-gray-400">{vehicleLabels.emissionsCo2}</span>
                     <span className="font-medium text-white">{String((vehicle as any).emissionsCo2)} g/km</span>
                   </div>
                 )}
@@ -814,7 +782,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Nombre propietaris */}
                 {Boolean((vehicle as any).nombrePropietaris) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Nombre propietaris</span>
+                    <span className="text-gray-400">{vehicleLabels.ownerName}</span>
                     <span className="font-medium text-white">{String((vehicle as any).nombrePropietaris)}</span>
                   </div>
                 )}
@@ -822,7 +790,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Dies caducitat */}
                 {Boolean((vehicle as any).diesCaducitat) && (
                   <div className="flex justify-between items-center py-2">
-                    <span className="text-gray-400">Dies caducitat</span>
+                    <span className="text-gray-400">{vehicleLabels.expiryDays}</span>
                     <span className="font-medium text-white">{String((vehicle as any).diesCaducitat)}</span>
                   </div>
                 )}
@@ -925,7 +893,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Número maleters */}
                 {Boolean((vehicle as any).numeroMaleters) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Núm. maleters</span>
+                    <span className="text-gray-400">{vehicleLabels.trunkNumber}</span>
                     <span className="font-medium text-white">{String((vehicle as any).numeroMaleters)}</span>
                   </div>
                 )}
@@ -933,7 +901,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Roda recanvi */}
                 {Boolean((vehicle as any).rodaRecanvi) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Roda recanvi</span>
+                    <span className="text-gray-400">{vehicleLabels.spareWheel}</span>
                     <span className="font-medium text-white">{
                       (() => {
                         const rodaRecanviValue = String((vehicle as any).rodaRecanvi);
@@ -951,7 +919,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Velocitat màxima */}
                 {Boolean((vehicle as any).velocitatMaxima) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Velocitat màxima</span>
+                    <span className="text-gray-400">{vehicleLabels.maxSpeed}</span>
                     <span className="font-medium text-white">{String((vehicle as any).velocitatMaxima)} km/h</span>
                   </div>
                 )}
@@ -959,7 +927,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Acceleració 0-100 */}
                 {Boolean((vehicle as any).acceleracio0100) && (
                   <div className="flex justify-between items-center py-2">
-                    <span className="text-gray-400">Acceleració 0-100</span>
+                    <span className="text-gray-400">{vehicleLabels.acceleration0100}</span>
                     <span className="font-medium text-white">{String((vehicle as any).acceleracio0100)} s</span>
                   </div>
                 )}
@@ -975,23 +943,13 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
               Boolean((vehicle as any).frenadaRegenerativa) ||
               Boolean((vehicle as any).onePedal)) && (
               <div className="bg-gray-900 rounded-lg p-6">
-                <h2 className="text-xl font-semibold text-gray-300 mb-6">{
-                  currentLanguage === 'es' ? 'Especificaciones Eléctricas' :
-                  currentLanguage === 'en' ? 'Electric Specifications' :
-                  currentLanguage === 'fr' ? 'Spécifications Électriques' :
-                  'Especificacions Elèctriques'
-                }</h2>
+                <h2 className="text-xl font-semibold text-gray-300 mb-6">{vehicleLabels.electricSpecs}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 
                   {/* Autonomía WLTP */}
                   {Boolean((vehicle as any).autonomiaWltp) && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'Autonomía WLTP' :
-                        currentLanguage === 'en' ? 'WLTP Range' :
-                        currentLanguage === 'fr' ? 'Autonomie WLTP' :
-                        'Autonomia WLTP'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.wltpRange}</span>
                       <span className="font-medium text-white">{String((vehicle as any).autonomiaWltp)} km</span>
                     </div>
                   )}
@@ -999,12 +957,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                   {/* Autonomía urbana WLTP */}
                   {Boolean((vehicle as any).autonomiaUrbanaWltp) && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'Autonomía urbana WLTP' :
-                        currentLanguage === 'en' ? 'Urban WLTP Range' :
-                        currentLanguage === 'fr' ? 'Autonomie urbaine WLTP' :
-                        'Autonomia urbana WLTP'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.wltpUrbanRange}</span>
                       <span className="font-medium text-white">{String((vehicle as any).autonomiaUrbanaWltp)} km</span>
                     </div>
                   )}
@@ -1012,12 +965,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                   {/* Autonomía extraurbana WLTP */}
                   {Boolean((vehicle as any).autonomiaExtraurbanaWltp) && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'Autonomía extraurbana WLTP' :
-                        currentLanguage === 'en' ? 'Extra-urban WLTP Range' :
-                        currentLanguage === 'fr' ? 'Autonomie extra-urbaine WLTP' :
-                        'Autonomia extraurbana WLTP'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.wltpExtraurbanRange}</span>
                       <span className="font-medium text-white">{String((vehicle as any).autonomiaExtraurbanaWltp)} km</span>
                     </div>
                   )}
@@ -1025,12 +973,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                   {/* Autonomía 100% eléctrica */}
                   {Boolean((vehicle as any).autonomiaElectrica) && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'Autonomía 100% eléctrica' :
-                        currentLanguage === 'en' ? '100% Electric Range' :
-                        currentLanguage === 'fr' ? 'Autonomie 100% électrique' :
-                        'Autonomia 100% elèctrica'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.electricRange100}</span>
                       <span className="font-medium text-white">{String((vehicle as any).autonomiaElectrica)} km</span>
                     </div>
                   )}
@@ -1038,12 +981,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                   {/* Batería */}
                   {Boolean((vehicle as any).bateria) && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'Batería' :
-                        currentLanguage === 'en' ? 'Battery' :
-                        currentLanguage === 'fr' ? 'Batterie' :
-                        'Bateria'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.battery}</span>
                       <span className="font-medium text-white">{
                         (() => {
                           const bateriaValue = String((vehicle as any).bateria);
@@ -1088,12 +1026,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                   {/* Cables de recarga */}
                   {Boolean((vehicle as any).cablesRecarrega) && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'Cables de recarga' :
-                        currentLanguage === 'en' ? 'Charging cables' :
-                        currentLanguage === 'fr' ? 'Câbles de recharge' :
-                        'Cables de recàrrega'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.chargingCables}</span>
                       <span className="font-medium text-white">{
                         (() => {
                           const cablesValue = String((vehicle as any).cablesRecarrega);
@@ -1144,12 +1077,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                   {/* Conectores */}
                   {Boolean((vehicle as any).connectors) && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'Conectores' :
-                        currentLanguage === 'en' ? 'Connectors' :
-                        currentLanguage === 'fr' ? 'Connecteurs' :
-                        'Connectors'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.connectors}</span>
                       <span className="font-medium text-white">{
                         (() => {
                           const connectorsValue = String((vehicle as any).connectors);
@@ -1200,12 +1128,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                   {/* Velocidad de recarga */}
                   {Boolean((vehicle as any).velocitatRecarrega) && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'Velocidad de recarga' :
-                        currentLanguage === 'en' ? 'Charging speed' :
-                        currentLanguage === 'fr' ? 'Vitesse de recharge' :
-                        'Velocitat de recàrrega'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.chargingSpeed}</span>
                       <span className="font-medium text-white">{
                         (() => {
                           const velocitatValue = String((vehicle as any).velocitatRecarrega);
@@ -1244,12 +1167,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                   {/* Tiempo de recarga total */}
                   {Boolean((vehicle as any).tempsRecarregaTotal) && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'Tiempo recarga total' :
-                        currentLanguage === 'en' ? 'Full charge time' :
-                        currentLanguage === 'fr' ? 'Temps de recharge totale' :
-                        'Temps recàrrega total'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.fullChargeTime}</span>
                       <span className="font-medium text-white">{String((vehicle as any).tempsRecarregaTotal)} h</span>
                     </div>
                   )}
@@ -1257,12 +1175,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                   {/* Tiempo de recarga hasta 80% */}
                   {Boolean((vehicle as any).tempsRecarregaFins80) && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'Tiempo recarga hasta 80%' :
-                        currentLanguage === 'en' ? 'Charge time to 80%' :
-                        currentLanguage === 'fr' ? 'Temps de recharge jusqu\'à 80%' :
-                        'Temps recàrrega fins 80%'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.chargeTime80}</span>
                       <span className="font-medium text-white">{String((vehicle as any).tempsRecarregaFins80)} min</span>
                     </div>
                   )}
@@ -1270,12 +1183,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                   {/* Frenada regenerativa */}
                   {Boolean((vehicle as any).frenadaRegenerativa) && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'Frenada regenerativa' :
-                        currentLanguage === 'en' ? 'Regenerative braking' :
-                        currentLanguage === 'fr' ? 'Freinage régénératif' :
-                        'Frenada regenerativa'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.regenerativeBraking}</span>
                       <span className="font-medium text-white">{
                         (() => {
                           const frenadaValue = String((vehicle as any).frenadaRegenerativa);
@@ -1299,12 +1207,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                   {/* One Pedal */}
                   {Boolean((vehicle as any).onePedal) && (
                     <div className="flex justify-between items-center py-2">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'One Pedal' :
-                        currentLanguage === 'en' ? 'One Pedal' :
-                        currentLanguage === 'fr' ? 'One Pedal' :
-                        'One Pedal'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.onePedal}</span>
                       <span className="font-medium text-white">{
                         (() => {
                           const onePedalValue = String((vehicle as any).onePedal);
@@ -1336,7 +1239,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Garantia */}
                 {Boolean((vehicle as any).garantia) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Garantia</span>
+                    <span className="text-gray-400">{vehicleLabels.warranty}</span>
                     <span className="font-medium text-white">{
                       (() => {
                         const garantia = String((vehicle as any).garantia);
@@ -1356,7 +1259,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Origen */}
                 {Boolean((vehicle as any).origen) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Origen</span>
+                    <span className="text-gray-400">{vehicleLabels.origin}</span>
                     <span className="font-medium text-white">{
                       (() => {
                         const origen = String((vehicle as any).origen).toLowerCase();
@@ -1371,7 +1274,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* IVA */}
                 {Boolean((vehicle as any).iva) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">IVA</span>
+                    <span className="text-gray-400">{vehicleLabels.vat}</span>
                     <span className="font-medium text-white">{String((vehicle as any).iva)}</span>
                   </div>
                 )}
@@ -1379,7 +1282,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Finançament */}
                 {Boolean((vehicle as any).finacament) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Finançament</span>
+                    <span className="text-gray-400">{vehicleLabels.financing}</span>
                     <span className="font-medium text-white">{String((vehicle as any).finacament)}</span>
                   </div>
                 )}
@@ -1387,7 +1290,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Vehicle accidentat */}
                 {Boolean((vehicle as any).vehicleAccidentat) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Vehicle accidentat</span>
+                    <span className="text-gray-400">{vehicleLabels.accidented}</span>
                     <span className="font-medium text-white">
                       {translateBooleanValue((vehicle as any).vehicleAccidentat)}
                     </span>
@@ -1397,7 +1300,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Llibre manteniment */}
                 {((vehicle as any).llibreManteniment === true || (vehicle as any).llibreManteniment === 'true') && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Llibre manteniment</span>
+                    <span className="text-gray-400">{vehicleLabels.maintenanceBook}</span>
                     <span className="font-medium text-white">{translateBooleanValue(true)}</span>
                   </div>
                 )}
@@ -1405,7 +1308,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Revisions oficials */}
                 {((vehicle as any).revisionsOficials === true || (vehicle as any).revisionsOficials === 'true') && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Revisions oficials</span>
+                    <span className="text-gray-400">{vehicleLabels.officialRevisions}</span>
                     <span className="font-medium text-white">{translateBooleanValue(true)}</span>
                   </div>
                 )}
@@ -1413,7 +1316,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Preu antic */}
                 {Boolean((vehicle as any).preuAntic) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Preu anterior</span>
+                    <span className="text-gray-400">{vehicleLabels.previousPrice}</span>
                     <span className="font-medium text-white">{String((vehicle as any).preuAntic)} €</span>
                   </div>
                 )}
@@ -1421,7 +1324,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Preu mensual */}
                 {Boolean((vehicle as any).preuMensual) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Preu mensual</span>
+                    <span className="text-gray-400">{vehicleLabels.monthlyPrice}</span>
                     <span className="font-medium text-white">{String((vehicle as any).preuMensual)} €/mes</span>
                   </div>
                 )}
@@ -1429,7 +1332,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Preu diari */}
                 {Boolean((vehicle as any).preuDiari) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Preu diari</span>
+                    <span className="text-gray-400">{vehicleLabels.dailyPrice}</span>
                     <span className="font-medium text-white">{String((vehicle as any).preuDiari)} €/dia</span>
                   </div>
                 )}
@@ -1437,7 +1340,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Impostos deduïbles */}
                 {((vehicle as any).impostosDeduibles === true || (vehicle as any).impostosDeduibles === 'true') && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Impostos deduïbles</span>
+                    <span className="text-gray-400">{vehicleLabels.deductibleTaxes}</span>
                     <span className="font-medium text-white">{translateBooleanValue(true)}</span>
                   </div>
                 )}
@@ -1445,7 +1348,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Vehicle a canvi */}
                 {((vehicle as any).vehicleACanvi === true || (vehicle as any).vehicleACanvi === 'true') && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Vehicle a canvi</span>
+                    <span className="text-gray-400">{vehicleLabels.tradeIn}</span>
                     <span className="font-medium text-white">{translateSpecificValue('accepta')}</span>
                   </div>
                 )}
@@ -1453,7 +1356,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Quilometratge */}
                 {Boolean((vehicle as any).quilometratge) && (
                   <div className="flex justify-between items-center py-2">
-                    <span className="text-gray-400">Quilometratge</span>
+                    <span className="text-gray-400">{vehicleLabels.mileageShort}</span>
                     <span className="font-medium text-white">{formatKilometers((vehicle as any).quilometratge)}</span>
                   </div>
                 )}
@@ -1489,7 +1392,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {extrasArray.map((extra, idx) => {
                       // Usar la función de mapeo para obtener el label correcto
-                      const extraLabel = getExtraLabelFromDB(extra, extrasLabels);
+                      const extraLabel = getExtraTranslatedLabel(extra, getExtrasTranslation);
                       return (
                         <div key={idx} className="flex items-center gap-2">
                           <CheckCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
@@ -1596,7 +1499,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Versió */}
                 {Boolean((vehicle as any).versio) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Versió</span>
+                    <span className="text-gray-400">{vehicleLabels.version}</span>
                     <span className="font-medium text-white">{String((vehicle as any).versio)}</span>
                   </div>
                 )}
@@ -1660,7 +1563,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Tipus propulsor */}
                 {Boolean((vehicle as any).tipusPropulsor) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Propulsor</span>
+                    <span className="text-gray-400">{vehicleLabels.propeller}</span>
                     <span className="font-medium text-white capitalize">{String((vehicle as any).tipusPropulsor)}</span>
                   </div>
                 )}
@@ -1678,7 +1581,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Emissions vehicle */}
                 {Boolean((vehicle as any).emissionsVehicle) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Emissions</span>
+                    <span className="text-gray-400">{vehicleLabels.emissions}</span>
                     <span className="font-medium text-white">{
                       (() => {
                         const emissionValue = String((vehicle as any).emissionsVehicle);
@@ -1692,7 +1595,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Consum urbà */}
                 {Boolean((vehicle as any).consumUrba) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Consum urbà</span>
+                    <span className="text-gray-400">{vehicleLabels.urbanConsumption}</span>
                     <span className="font-medium text-white">{String((vehicle as any).consumUrba)} l/100km</span>
                   </div>
                 )}
@@ -1700,7 +1603,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Consum carretera */}
                 {Boolean((vehicle as any).consumCarretera) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Consum carretera</span>
+                    <span className="text-gray-400">{vehicleLabels.highwayConsumption}</span>
                     <span className="font-medium text-white">{String((vehicle as any).consumCarretera)} l/100km</span>
                   </div>
                 )}
@@ -1708,7 +1611,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Consum mixt */}
                 {Boolean((vehicle as any).consumMixt) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Consum mixt</span>
+                    <span className="text-gray-400">{vehicleLabels.mixedConsumption}</span>
                     <span className="font-medium text-white">{String((vehicle as any).consumMixt)} l/100km</span>
                   </div>
                 )}
@@ -1716,7 +1619,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Emissions CO2 */}
                 {Boolean((vehicle as any).emissionsCo2) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Emissions CO2</span>
+                    <span className="text-gray-400">{vehicleLabels.emissionsCo2}</span>
                     <span className="font-medium text-white">{String((vehicle as any).emissionsCo2)} g/km</span>
                   </div>
                 )}
@@ -1724,7 +1627,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Nombre propietaris */}
                 {Boolean((vehicle as any).nombrePropietaris) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Nombre propietaris</span>
+                    <span className="text-gray-400">{vehicleLabels.ownerName}</span>
                     <span className="font-medium text-white">{String((vehicle as any).nombrePropietaris)}</span>
                   </div>
                 )}
@@ -1732,7 +1635,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Dies caducitat */}
                 {Boolean((vehicle as any).diesCaducitat) && (
                   <div className="flex justify-between items-center py-2">
-                    <span className="text-gray-400">Dies caducitat</span>
+                    <span className="text-gray-400">{vehicleLabels.expiryDays}</span>
                     <span className="font-medium text-white">{String((vehicle as any).diesCaducitat)}</span>
                   </div>
                 )}
@@ -1834,7 +1737,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Número maleters */}
                 {Boolean((vehicle as any).numeroMaleters) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Núm. maleters</span>
+                    <span className="text-gray-400">{vehicleLabels.trunkNumber}</span>
                     <span className="font-medium text-white">{String((vehicle as any).numeroMaleters)}</span>
                   </div>
                 )}
@@ -1842,7 +1745,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Roda recanvi */}
                 {Boolean((vehicle as any).rodaRecanvi) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Roda recanvi</span>
+                    <span className="text-gray-400">{vehicleLabels.spareWheel}</span>
                     <span className="font-medium text-white">{
                       (() => {
                         const rodaRecanviValue = String((vehicle as any).rodaRecanvi);
@@ -1859,7 +1762,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Velocitat màxima */}
                 {Boolean((vehicle as any).velocitatMaxima) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Velocitat màxima</span>
+                    <span className="text-gray-400">{vehicleLabels.maxSpeed}</span>
                     <span className="font-medium text-white">{String((vehicle as any).velocitatMaxima)} km/h</span>
                   </div>
                 )}
@@ -1867,7 +1770,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Acceleració 0-100 */}
                 {Boolean((vehicle as any).acceleracio0100) && (
                   <div className="flex justify-between items-center py-2">
-                    <span className="text-gray-400">Acceleració 0-100</span>
+                    <span className="text-gray-400">{vehicleLabels.acceleration0100}</span>
                     <span className="font-medium text-white">{String((vehicle as any).acceleracio0100)} s</span>
                   </div>
                 )}
@@ -1883,23 +1786,13 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
               Boolean((vehicle as any).frenadaRegenerativa) ||
               Boolean((vehicle as any).onePedal)) && (
               <div className="bg-gray-900 rounded-lg p-6">
-                <h2 className="text-xl font-semibold text-gray-300 mb-6">{
-                  currentLanguage === 'es' ? 'Especificaciones Eléctricas' :
-                  currentLanguage === 'en' ? 'Electric Specifications' :
-                  currentLanguage === 'fr' ? 'Spécifications Électriques' :
-                  'Especificacions Elèctriques'
-                }</h2>
+                <h2 className="text-xl font-semibold text-gray-300 mb-6">{vehicleLabels.electricSpecs}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 
                   {/* Autonomía WLTP */}
                   {Boolean((vehicle as any).autonomiaWltp) && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'Autonomía WLTP' :
-                        currentLanguage === 'en' ? 'WLTP Range' :
-                        currentLanguage === 'fr' ? 'Autonomie WLTP' :
-                        'Autonomia WLTP'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.wltpRange}</span>
                       <span className="font-medium text-white">{String((vehicle as any).autonomiaWltp)} km</span>
                     </div>
                   )}
@@ -1907,12 +1800,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                   {/* Autonomía urbana WLTP */}
                   {Boolean((vehicle as any).autonomiaUrbanaWltp) && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'Autonomía urbana WLTP' :
-                        currentLanguage === 'en' ? 'Urban WLTP Range' :
-                        currentLanguage === 'fr' ? 'Autonomie urbaine WLTP' :
-                        'Autonomia urbana WLTP'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.wltpUrbanRange}</span>
                       <span className="font-medium text-white">{String((vehicle as any).autonomiaUrbanaWltp)} km</span>
                     </div>
                   )}
@@ -1920,12 +1808,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                   {/* Autonomía extraurbana WLTP */}
                   {Boolean((vehicle as any).autonomiaExtraurbanaWltp) && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'Autonomía extraurbana WLTP' :
-                        currentLanguage === 'en' ? 'Extra-urban WLTP Range' :
-                        currentLanguage === 'fr' ? 'Autonomie extra-urbaine WLTP' :
-                        'Autonomia extraurbana WLTP'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.wltpExtraurbanRange}</span>
                       <span className="font-medium text-white">{String((vehicle as any).autonomiaExtraurbanaWltp)} km</span>
                     </div>
                   )}
@@ -1933,12 +1816,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                   {/* Autonomía 100% eléctrica */}
                   {Boolean((vehicle as any).autonomiaElectrica) && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'Autonomía 100% eléctrica' :
-                        currentLanguage === 'en' ? '100% Electric Range' :
-                        currentLanguage === 'fr' ? 'Autonomie 100% électrique' :
-                        'Autonomia 100% elèctrica'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.electricRange100}</span>
                       <span className="font-medium text-white">{String((vehicle as any).autonomiaElectrica)} km</span>
                     </div>
                   )}
@@ -1946,12 +1824,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                   {/* Batería */}
                   {Boolean((vehicle as any).bateria) && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'Batería' :
-                        currentLanguage === 'en' ? 'Battery' :
-                        currentLanguage === 'fr' ? 'Batterie' :
-                        'Bateria'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.battery}</span>
                       <span className="font-medium text-white">{
                         (() => {
                           const bateriaValue = String((vehicle as any).bateria);
@@ -1996,12 +1869,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                   {/* Cables de recarga */}
                   {Boolean((vehicle as any).cablesRecarrega) && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'Cables de recarga' :
-                        currentLanguage === 'en' ? 'Charging cables' :
-                        currentLanguage === 'fr' ? 'Câbles de recharge' :
-                        'Cables de recàrrega'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.chargingCables}</span>
                       <span className="font-medium text-white">{
                         (() => {
                           const cablesValue = String((vehicle as any).cablesRecarrega);
@@ -2052,12 +1920,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                   {/* Conectores */}
                   {Boolean((vehicle as any).connectors) && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'Conectores' :
-                        currentLanguage === 'en' ? 'Connectors' :
-                        currentLanguage === 'fr' ? 'Connecteurs' :
-                        'Connectors'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.connectors}</span>
                       <span className="font-medium text-white">{
                         (() => {
                           const connectorsValue = String((vehicle as any).connectors);
@@ -2108,12 +1971,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                   {/* Velocidad de recarga */}
                   {Boolean((vehicle as any).velocitatRecarrega) && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'Velocidad de recarga' :
-                        currentLanguage === 'en' ? 'Charging speed' :
-                        currentLanguage === 'fr' ? 'Vitesse de recharge' :
-                        'Velocitat de recàrrega'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.chargingSpeed}</span>
                       <span className="font-medium text-white">{
                         (() => {
                           const velocitatValue = String((vehicle as any).velocitatRecarrega);
@@ -2152,12 +2010,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                   {/* Tiempo de recarga total */}
                   {Boolean((vehicle as any).tempsRecarregaTotal) && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'Tiempo recarga total' :
-                        currentLanguage === 'en' ? 'Full charge time' :
-                        currentLanguage === 'fr' ? 'Temps de recharge totale' :
-                        'Temps recàrrega total'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.fullChargeTime}</span>
                       <span className="font-medium text-white">{String((vehicle as any).tempsRecarregaTotal)} h</span>
                     </div>
                   )}
@@ -2165,12 +2018,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                   {/* Tiempo de recarga hasta 80% */}
                   {Boolean((vehicle as any).tempsRecarregaFins80) && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'Tiempo recarga hasta 80%' :
-                        currentLanguage === 'en' ? 'Charge time to 80%' :
-                        currentLanguage === 'fr' ? 'Temps de recharge jusqu\'à 80%' :
-                        'Temps recàrrega fins 80%'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.chargeTime80}</span>
                       <span className="font-medium text-white">{String((vehicle as any).tempsRecarregaFins80)} min</span>
                     </div>
                   )}
@@ -2178,12 +2026,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                   {/* Frenada regenerativa */}
                   {Boolean((vehicle as any).frenadaRegenerativa) && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'Frenada regenerativa' :
-                        currentLanguage === 'en' ? 'Regenerative braking' :
-                        currentLanguage === 'fr' ? 'Freinage régénératif' :
-                        'Frenada regenerativa'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.regenerativeBraking}</span>
                       <span className="font-medium text-white">{
                         (() => {
                           const frenadaValue = String((vehicle as any).frenadaRegenerativa);
@@ -2207,12 +2050,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                   {/* One Pedal */}
                   {Boolean((vehicle as any).onePedal) && (
                     <div className="flex justify-between items-center py-2">
-                      <span className="text-gray-400">{
-                        currentLanguage === 'es' ? 'One Pedal' :
-                        currentLanguage === 'en' ? 'One Pedal' :
-                        currentLanguage === 'fr' ? 'One Pedal' :
-                        'One Pedal'
-                      }</span>
+                      <span className="text-gray-400">{vehicleLabels.onePedal}</span>
                       <span className="font-medium text-white">{
                         (() => {
                           const onePedalValue = String((vehicle as any).onePedal);
@@ -2244,7 +2082,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Garantia */}
                 {Boolean((vehicle as any).garantia) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Garantia</span>
+                    <span className="text-gray-400">{vehicleLabels.warranty}</span>
                     <span className="font-medium text-white">{
                       (() => {
                         const garantia = String((vehicle as any).garantia);
@@ -2262,7 +2100,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Origen */}
                 {Boolean((vehicle as any).origen) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Origen</span>
+                    <span className="text-gray-400">{vehicleLabels.origin}</span>
                     <span className="font-medium text-white">{
                       (() => {
                         const origen = String((vehicle as any).origen).toLowerCase();
@@ -2276,7 +2114,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* IVA */}
                 {Boolean((vehicle as any).iva) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">IVA</span>
+                    <span className="text-gray-400">{vehicleLabels.vat}</span>
                     <span className="font-medium text-white">{String((vehicle as any).iva)}</span>
                   </div>
                 )}
@@ -2284,7 +2122,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Finançament */}
                 {Boolean((vehicle as any).finacament) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Finançament</span>
+                    <span className="text-gray-400">{vehicleLabels.financing}</span>
                     <span className="font-medium text-white">{String((vehicle as any).finacament)}</span>
                   </div>
                 )}
@@ -2292,7 +2130,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Vehicle accidentat */}
                 {Boolean((vehicle as any).vehicleAccidentat) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Vehicle accidentat</span>
+                    <span className="text-gray-400">{vehicleLabels.accidented}</span>
                     <span className="font-medium text-white">
                       {translateBooleanValue((vehicle as any).vehicleAccidentat)}
                     </span>
@@ -2302,7 +2140,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Llibre manteniment */}
                 {((vehicle as any).llibreManteniment === true || (vehicle as any).llibreManteniment === 'true') && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Llibre manteniment</span>
+                    <span className="text-gray-400">{vehicleLabels.maintenanceBook}</span>
                     <span className="font-medium text-white">{translateBooleanValue(true)}</span>
                   </div>
                 )}
@@ -2310,7 +2148,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Revisions oficials */}
                 {((vehicle as any).revisionsOficials === true || (vehicle as any).revisionsOficials === 'true') && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Revisions oficials</span>
+                    <span className="text-gray-400">{vehicleLabels.officialRevisions}</span>
                     <span className="font-medium text-white">{translateBooleanValue(true)}</span>
                   </div>
                 )}
@@ -2318,7 +2156,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Preu antic */}
                 {Boolean((vehicle as any).preuAntic) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Preu anterior</span>
+                    <span className="text-gray-400">{vehicleLabels.previousPrice}</span>
                     <span className="font-medium text-white">{String((vehicle as any).preuAntic)} €</span>
                   </div>
                 )}
@@ -2326,7 +2164,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Preu mensual */}
                 {Boolean((vehicle as any).preuMensual) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Preu mensual</span>
+                    <span className="text-gray-400">{vehicleLabels.monthlyPrice}</span>
                     <span className="font-medium text-white">{String((vehicle as any).preuMensual)} €/mes</span>
                   </div>
                 )}
@@ -2334,7 +2172,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Preu diari */}
                 {Boolean((vehicle as any).preuDiari) && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Preu diari</span>
+                    <span className="text-gray-400">{vehicleLabels.dailyPrice}</span>
                     <span className="font-medium text-white">{String((vehicle as any).preuDiari)} €/dia</span>
                   </div>
                 )}
@@ -2342,7 +2180,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Impostos deduïbles */}
                 {((vehicle as any).impostosDeduibles === true || (vehicle as any).impostosDeduibles === 'true') && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Impostos deduïbles</span>
+                    <span className="text-gray-400">{vehicleLabels.deductibleTaxes}</span>
                     <span className="font-medium text-white">{translateBooleanValue(true)}</span>
                   </div>
                 )}
@@ -2350,7 +2188,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Vehicle a canvi */}
                 {((vehicle as any).vehicleACanvi === true || (vehicle as any).vehicleACanvi === 'true') && (
                   <div className="flex justify-between items-center py-2 border-b border-gray-700">
-                    <span className="text-gray-400">Vehicle a canvi</span>
+                    <span className="text-gray-400">{vehicleLabels.tradeIn}</span>
                     <span className="font-medium text-white">{translateSpecificValue('accepta')}</span>
                   </div>
                 )}
@@ -2358,7 +2196,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 {/* Quilometratge */}
                 {Boolean((vehicle as any).quilometratge) && (
                   <div className="flex justify-between items-center py-2">
-                    <span className="text-gray-400">Quilometratge</span>
+                    <span className="text-gray-400">{vehicleLabels.mileageShort}</span>
                     <span className="font-medium text-white">{formatKilometers((vehicle as any).quilometratge)}</span>
                   </div>
                 )}
@@ -2393,7 +2231,7 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
                 <div className="bg-gray-900 rounded-lg p-6">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {extrasArray.map((extra, idx) => {
-                      const extraLabel = getExtraLabelFromDB(extra, extrasLabels);
+                      const extraLabel = getExtraTranslatedLabel(extra, getExtrasTranslation);
                       return (
                         <div key={idx} className="flex items-center gap-2">
                           <CheckCircle className="w-5 h-5 text-red-500 flex-shrink-0" />

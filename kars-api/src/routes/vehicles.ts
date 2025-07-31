@@ -509,6 +509,7 @@ router.get('/:slug', async (req, res) => {
         any: true,
         quilometratge: true,
         tipusCombustible: true,
+        tipusPropulsor: true,
         estatVehicle: true,
         professionalId: true,
         colorVehicle: true,
