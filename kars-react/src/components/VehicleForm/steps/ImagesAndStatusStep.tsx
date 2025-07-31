@@ -447,7 +447,7 @@ const ImagesAndStatusStep: React.FC<ImagesAndStatusStepProps> = ({ formData, upd
             </div>
           </div>
 
-          <div>
+          <div className="space-y-6">
             {/* Anunci Destacat */}
             <div className="flex items-center justify-between">
               <div className="flex-1">
@@ -463,6 +463,25 @@ const ImagesAndStatusStep: React.FC<ImagesAndStatusStepProps> = ({ formData, upd
                   checked={formData.anunciDestacat === 1}
                   onCheckedChange={(checked) => updateFormData({ anunciDestacat: checked ? 1 : 0 })}
                   className="data-[state=checked]:bg-blue-400 data-[state=unchecked]:bg-gray-300"
+                />
+              </div>
+            </div>
+
+            {/* Vehicle Reservat */}
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Vehicle Reservat
+                </label>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Marcar com a reservat
+                </p>
+              </div>
+              <div className="scale-75">
+                <Switch
+                  checked={formData.reservat || false}
+                  onCheckedChange={(checked) => updateFormData({ reservat: checked })}
+                  className="data-[state=checked]:bg-orange-400 data-[state=unchecked]:bg-gray-300"
                 />
               </div>
             </div>

@@ -27,6 +27,7 @@ export type Vehicle = {
   "estat-vehicle"?: string;
   "anunci-destacat"?: boolean;
   venut?: boolean;
+  reservat?: boolean;
   "llibre-manteniment"?: boolean;
   "revisions-oficials"?: boolean;
   "impostos-deduibles"?: boolean;

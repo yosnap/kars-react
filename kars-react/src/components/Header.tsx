@@ -92,13 +92,17 @@ export default function Header({ onSearch, onOpenAdvancedSearch }: HeaderProps) 
   useEffect(() => {
     if (mobileMenuOpen) {
       document.body.style.overflow = 'hidden';
+      // Asegurar que el menú móvil esté por encima de todo
+      document.body.classList.add('mobile-menu-open');
     } else {
       document.body.style.overflow = 'unset';
+      document.body.classList.remove('mobile-menu-open');
     }
 
     // Cleanup al desmontar el componente
     return () => {
       document.body.style.overflow = 'unset';
+      document.body.classList.remove('mobile-menu-open');
     };
   }, [mobileMenuOpen]);
 
@@ -328,13 +332,13 @@ export default function Header({ onSearch, onOpenAdvancedSearch }: HeaderProps) 
       {/* Mobile Sidebar Overlay */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black bg-opacity-50 z-[60] lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
       {/* Mobile Sidebar */}
-      <div className={`fixed top-0 right-0 h-full w-full bg-black z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${
+      <div className={`mobile-sidebar fixed top-0 right-0 h-full w-full bg-black z-[70] transform transition-transform duration-300 ease-in-out lg:hidden ${
         mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
       }`}>
         <div className="flex flex-col h-full">
@@ -347,7 +351,7 @@ export default function Header({ onSearch, onOpenAdvancedSearch }: HeaderProps) 
             />
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="text-white p-3 hover:text-primary hover:bg-gray-800 rounded-lg transition-colors z-50"
+              className="text-white p-3 hover:text-primary hover:bg-gray-800 rounded-lg transition-colors z-[75]"
               title="Cerrar menú"
             >
               <svg className="w-6 h-6 md:w-7 md:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">

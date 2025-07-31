@@ -33,6 +33,7 @@ model Vehicle {
   anunciActiu       Boolean  @map("anunci-actiu")
   anunciDestacat    Int      @default(0) @map("anunci-destacat")
   venut             Boolean  @default(false)
+  reservat          Boolean  @default(false)
   diesCaducitat     String?  @map("dies-caducitat")
   
   // Tipo y marca

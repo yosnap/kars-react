@@ -202,6 +202,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
       anunciActiu: apiData.anunciActiu === true || apiData.anunciActiu === 'true',
       anunciDestacat: parseInt(apiData.anunciDestacat || '0'),
       venut: apiData.venut === true || apiData.venut === 'true',
+      reservat: apiData.reservat === true || apiData.reservat === 'true',
       
       // Internal Notes (not part of the 7 steps, but additional field)
       notesInternes: apiData.notesInternes || apiData['notes-internes'] || '',
@@ -251,7 +252,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
       'llibreManteniment',
       'revisionsOficials',
       'vehicleACanvi',
-      'impostosDeduibles'
+      'impostosDeduibles',
+      'venut',
+      'reservat'
     ];
     
     booleanFields.forEach(field => {
@@ -368,6 +371,11 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ mode }) => {
     try {
       // Transformar datos antes de enviar
       const apiData = transformFormDataToApiData(formData);
+      
+      // Log temporal para debug
+      console.log('🔍 Campo reservat en formData:', formData.reservat);
+      console.log('🔍 Campo reservat en apiData:', apiData.reservat);
+      console.log('🔍 Datos completos enviados al backend:', apiData);
       
       let vehicleId = id;
       

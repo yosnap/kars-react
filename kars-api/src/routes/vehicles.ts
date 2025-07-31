@@ -18,6 +18,7 @@ router.get('/', async (req, res) => {
       'anunci-actiu': anunciActiu,
       'anunci-destacat': anunciDestacat,
       'venut': venut,
+      'reservat': reservat,
       'tipus-vehicle': tipusVehicle,
       'estat-vehicle': estatVehicle,
       'marca-cotxe': marcaCotxe,
@@ -97,6 +98,13 @@ router.get('/', async (req, res) => {
       where.venut = true;
     } else if (venut === 'false') {
       where.venut = false;
+    }
+    
+    // Filtro por vehículos reservados
+    if (reservat === 'true') {
+      where.reservat = true;
+    } else if (reservat === 'false') {
+      where.reservat = false;
     }
     
     // Búsqueda de texto
@@ -276,7 +284,7 @@ router.put('/:id', async (req, res) => {
     const validFields = [
       'id', 'originalId', 'authorId', 'status', 'slug', 'titolAnunci', 'descripcioAnunci',
       'descripcioAnunciCA', 'descripcioAnunciEN', 'descripcioAnunciFR', 'descripcioAnunciES',
-      'anunciActiu', 'anunciDestacat', 'venut', 'diesCaducitat', 'tipusVehicle',
+      'anunciActiu', 'anunciDestacat', 'venut', 'reservat', 'diesCaducitat', 'tipusVehicle',
       'marquesAutocaravana', 'modelsAutocaravana', 'marcaCotxe', 'marcaMoto', 'modelsCotxe', 'modelsMoto',
       'estatVehicle', 'tipusPropulsor', 'tipusCombustible', 'tipusCanvi', 'carrosseriaCotxe',
       'carrosseriaMoto', 'carrosseriaCaravana', 'versio', 'any', 'quilometratge', 'cilindrada',
@@ -335,6 +343,9 @@ router.put('/:id', async (req, res) => {
     }
     if (filteredData.venut !== undefined) {
       filteredData.venut = Boolean(filteredData.venut);
+    }
+    if (filteredData.reservat !== undefined) {
+      filteredData.reservat = Boolean(filteredData.reservat);
     }
     // Convertir garantia a String como en producción
     if (filteredData.garantia !== undefined) {
@@ -479,6 +490,11 @@ router.get('/:slug', async (req, res) => {
         slug: true,
         titolAnunci: true,
         descripcioAnunci: true,
+        // Multilingual descriptions
+        descripcioAnunciCA: true,
+        descripcioAnunciES: true,
+        descripcioAnunciEN: true,
+        descripcioAnunciFR: true,
         tipusVehicle: true,
         marcaCotxe: true,
         marcaMoto: true,
@@ -514,6 +530,7 @@ router.get('/:slug', async (req, res) => {
         cvMotorDarrere: true,
         kwMotorDarrere: true,
         venut: true,
+        reservat: true,
         preuAntic: true,
         versio: true,
         traccio: true,
@@ -784,7 +801,7 @@ function transformVehicleForFrontend(vehicle: any) {
   });
   
   // Asegurar que ciertos campos sean boolean si existen  
-  const booleanFields = ['anunciActiu', 'venut', 'vehicleFumador', 'climatitzacio'];
+  const booleanFields = ['anunciActiu', 'venut', 'reservat', 'vehicleFumador', 'climatitzacio'];
   booleanFields.forEach(field => {
     if (transformed[field] !== undefined && transformed[field] !== null) {
       transformed[field] = Boolean(transformed[field]);
@@ -840,7 +857,7 @@ router.post('/', async (req, res) => {
     const validFields = [
       'id', 'originalId', 'authorId', 'status', 'slug', 'titolAnunci', 'descripcioAnunci',
       'descripcioAnunciCA', 'descripcioAnunciEN', 'descripcioAnunciFR', 'descripcioAnunciES',
-      'anunciActiu', 'anunciDestacat', 'venut', 'diesCaducitat', 'tipusVehicle',
+      'anunciActiu', 'anunciDestacat', 'venut', 'reservat', 'diesCaducitat', 'tipusVehicle',
       'marquesAutocaravana', 'modelsAutocaravana', 'marcaCotxe', 'marcaMoto', 'modelsCotxe', 'modelsMoto',
       'estatVehicle', 'tipusPropulsor', 'tipusCombustible', 'tipusCanvi', 'carrosseriaCotxe',
       'carrosseriaMoto', 'carrosseriaCaravana', 'versio', 'any', 'quilometratge', 'cilindrada',
@@ -871,6 +888,10 @@ router.post('/', async (req, res) => {
       }
     }
 
+    // Debug logs
+    console.log('🔍 vehicleData.reservat raw:', vehicleData.reservat, typeof vehicleData.reservat);
+    console.log('🔍 Boolean(vehicleData.reservat):', Boolean(vehicleData.reservat));
+    
     // Convertir datos numéricos y booleans
     const processedData = {
       ...filteredData,
@@ -878,6 +899,7 @@ router.post('/', async (req, res) => {
       anunciDestacat: parseInt(vehicleData.anunciDestacat) || 0,
       anunciActiu: Boolean(vehicleData.anunciActiu),
       venut: Boolean(vehicleData.venut),
+      reservat: Boolean(vehicleData.reservat),
       dataCreacio: new Date(vehicleData.dataCreacio || new Date()),
       galeriaVehicleUrls: vehicleData.galeriaVehicleUrls || [],
       // Asegurar campo de descripción en catalán
@@ -889,11 +911,15 @@ router.post('/', async (req, res) => {
       data: processedData
     });
     
+    console.log('🔍 newVehicle.reservat after creation:', newVehicle.reservat);
     
     return res.status(201).json({
       success: true,
       message: 'Vehicle created successfully',
-      data: newVehicle,
+      data: {
+        ...newVehicle,
+        reservat: newVehicle.reservat, // Asegurar que el campo se incluya
+      },
       slug: newVehicle.slug
     });
     

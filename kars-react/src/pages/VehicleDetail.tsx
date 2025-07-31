@@ -3,7 +3,7 @@ import { useParams, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useVehicleContext } from "../context/VehicleContext";
 import { useVehicleTypes } from "../hooks/useVehicleTypes";
-import { useLanguage, getVehicleDescription } from "../context/LanguageContext";
+import { useLanguage } from "../context/LanguageContext";
 import { useLocalizedNavigation } from "../hooks/useLocalizedNavigation";
 import useVehicleTranslations from "../hooks/useVehicleTranslations";
 import useVehicleDisplay from "../hooks/useVehicleDisplay";
@@ -106,9 +106,22 @@ const VehicleDetail = ({ isSoldVehicle = false }: VehicleDetailProps) => {
   const { isFavorite, toggleFavorite } = useFavorites();
   const isFav = vehicle ? isFavorite(String(vehicle.id)) : false;
 
-  // Memoizar la descripción para evitar re-cálculos innecesarios
+  // Obtener descripción solo en el idioma seleccionado (sin fallback)
   const vehicleDescription = useMemo(() => {
-    return vehicle ? getVehicleDescription(vehicle, currentLanguage) : '';
+    if (!vehicle) return '';
+    
+    const descriptionFields = {
+      'ca': 'descripcioAnunciCA',
+      'es': 'descripcioAnunciES', 
+      'en': 'descripcioAnunciEN',
+      'fr': 'descripcioAnunciFR'
+    };
+    
+    const fieldName = descriptionFields[currentLanguage];
+    const description = vehicle[fieldName] as string;
+    
+    // Solo devolver si existe descripción en el idioma actual, sin fallback
+    return (description && description.trim() !== '') ? description : '';
   }, [vehicle, currentLanguage]);
 
   useEffect(() => {

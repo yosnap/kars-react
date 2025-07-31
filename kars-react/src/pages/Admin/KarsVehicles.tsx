@@ -28,6 +28,7 @@ import { axiosAdmin } from '../../api/axiosClient';
 import * as Popover from '@radix-ui/react-popover';
 import SearchableSelect, { SelectOption } from '../../components/ui/SearchableSelect';
 import { Switch } from '../../components/ui/switch';
+import { useBuscoCotxeSync } from '../../hooks/useBuscoCotxeSync';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,6 +60,7 @@ interface Vehicle {
   quilometratge: string;
   anunciActiu: boolean;
   venut: boolean;
+  reservat?: boolean;
   anunciDestacat: number;
   dataCreacio: string;
   imatgeDestacadaUrl?: string;
@@ -91,6 +93,7 @@ const getVehicleTypeLabel = (tipusVehicle: string): string => {
 const KarsVehicles = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { syncVehicle, syncMultipleVehicles, hasValidCredentials } = useBuscoCotxeSync();
   
   // Obtener pestaña activa desde URL, con fallback a 'vehicles'
   const activeTabFromUrl = useMemo((): 'vehicles' | 'brands-models' | 'installer' => {
@@ -120,11 +123,14 @@ const KarsVehicles = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [venutFilter, setVenutFilter] = useState('all');
+  const [reservatFilter, setReservatFilter] = useState('all');
   const [estatVehicleFilter, setEstatVehicleFilter] = useState('all');
   const [anunciActiuFilter, setAnunciActiuFilter] = useState('all');
   const [anunciDestacatFilter, setAnunciDestacatFilter] = useState('all');
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const headerRef = useRef<HTMLDivElement>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalVehicles, setTotalVehicles] = useState(0);
@@ -194,6 +200,10 @@ const KarsVehicles = () => {
         params.venut = venutFilter === 'true' ? 'true' : 'false';
       }
 
+      if (reservatFilter !== 'all') {
+        params.reservat = reservatFilter === 'true' ? 'true' : 'false';
+      }
+
       if (estatVehicleFilter !== 'all') {
         params['estat-vehicle'] = estatVehicleFilter;
       }
@@ -232,30 +242,87 @@ const KarsVehicles = () => {
 
 
   const toggleVehicleStatus = async (vehicleId: string, currentStatus: boolean) => {
+    const newValue = !currentStatus;
+    
+    // Actualizar estado local inmediatamente
+    setVehicles(prev => prev.map(vehicle => 
+      vehicle.id === vehicleId 
+        ? { ...vehicle, anunciActiu: newValue }
+        : vehicle
+    ));
+    
+    // Llamada al backend en background
     try {
-      const newValue = !currentStatus;
       await axiosAdmin.put(`/vehicles/${vehicleId}`, {
         'anunciActiu': newValue
       });
-      await loadVehicles(currentPage);
       toast.success(newValue ? 'Vehicle activat' : 'Vehicle desactivat');
     } catch (err) {
+      // Revertir el cambio si falla
+      setVehicles(prev => prev.map(vehicle => 
+        vehicle.id === vehicleId 
+          ? { ...vehicle, anunciActiu: currentStatus }
+          : vehicle
+      ));
       console.error('Error updating vehicle status:', err);
       toast.error('Error actualitzant l\'estat del vehicle');
     }
   };
 
   const toggleVehicleVenut = async (vehicleId: string, currentStatus: boolean) => {
+    const newValue = !currentStatus;
+    
+    // Actualizar estado local inmediatamente
+    setVehicles(prev => prev.map(vehicle => 
+      vehicle.id === vehicleId 
+        ? { ...vehicle, venut: newValue }
+        : vehicle
+    ));
+    
+    // Llamada al backend en background
     try {
-      const newValue = !currentStatus;
       await axiosAdmin.put(`/vehicles/${vehicleId}`, {
         'venut': newValue
       });
-      await loadVehicles(currentPage);
       toast.success(newValue ? 'Vehicle marcat com venut' : 'Vehicle marcat com disponible');
     } catch (err) {
+      // Revertir el cambio si falla
+      setVehicles(prev => prev.map(vehicle => 
+        vehicle.id === vehicleId 
+          ? { ...vehicle, venut: currentStatus }
+          : vehicle
+      ));
       console.error('Error updating vehicle sold status:', err);
       toast.error('Error actualitzant l\'estat de venda');
+    }
+  };
+
+  const toggleVehicleReservat = async (vehicleId: string, currentStatus: boolean) => {
+    const newValue = !currentStatus;
+    
+    // Actualizar estado local inmediatamente
+    setVehicles(prev => prev.map(vehicle => 
+      vehicle.id === vehicleId 
+        ? { ...vehicle, reservat: newValue }
+        : vehicle
+    ));
+    
+    // Llamada al backend en background
+    try {
+      await axiosAdmin.put(`/vehicles/${vehicleId}`, {
+        'reservat': newValue
+      });
+      toast.success(newValue ? 'Vehicle marcat com reservat' : 'Vehicle marcat com disponible');
+    } catch (err: any) {
+      // Revertir el cambio si falla
+      setVehicles(prev => prev.map(vehicle => 
+        vehicle.id === vehicleId 
+          ? { ...vehicle, reservat: currentStatus }
+          : vehicle
+      ));
+      console.error('Error updating vehicle reserved status:', err);
+      console.error('Error response:', err.response?.data);
+      toast.error('Error actualitzant l\'estat de reserva');
     }
   };
 
@@ -280,14 +347,28 @@ const KarsVehicles = () => {
   };
 
   const toggleVehicleDestacado = async (vehicleId: string, currentDestacado: string) => {
+    const newValue = parseInt(currentDestacado) === 1 ? 0 : 1;
+    
+    // Actualizar estado local inmediatamente
+    setVehicles(prev => prev.map(vehicle => 
+      vehicle.id === vehicleId 
+        ? { ...vehicle, anunciDestacat: newValue }
+        : vehicle
+    ));
+    
+    // Llamada al backend en background
     try {
-      const newValue = parseInt(currentDestacado) === 1 ? 0 : 1;
       await axiosAdmin.put(`/vehicles/${vehicleId}`, {
         'anunciDestacat': newValue
       });
-      await loadVehicles(currentPage);
       toast.success(`Vehicle ${newValue === 1 ? 'destacat' : 'no destacat'} correctament`);
     } catch (err) {
+      // Revertir el cambio si falla
+      setVehicles(prev => prev.map(vehicle => 
+        vehicle.id === vehicleId 
+          ? { ...vehicle, anunciDestacat: parseInt(currentDestacado) }
+          : vehicle
+      ));
       console.error('Error updating vehicle destacado status:', err);
       toast.error('Error actualitzant l\'estat destacat del vehicle');
     }
@@ -378,26 +459,33 @@ const KarsVehicles = () => {
   };
 
   const syncToBusco = async (vehicleId: string, vehicleTitle: string, isRemove: boolean = false) => {
+    // Verificar credenciales antes de intentar sincronizar
+    if (!hasValidCredentials()) {
+      toast.error('No se encontraron credenciales válidas para BuscoCotxe. Configúralas en Configuración > Sincronización Busco - Salida');
+      return;
+    }
+
     setSyncingVehicles(prev => ({ ...prev, [vehicleId]: 'busco' }));
     
     try {
-      const endpoint = isRemove ? `/vehicles/${vehicleId}/sync-to-busco/remove` : `/vehicles/${vehicleId}/sync-to-busco`;
-      const response = await axiosAdmin.post(endpoint);
+      const result = await syncVehicle(vehicleId, isRemove);
       
-      if (response.data.success) {
+      if (result.success) {
         await loadVehicles(currentPage);
         if (isRemove) {
           toast.success(`Vehicle "${vehicleTitle}" eliminat de Busco correctament`);
         } else {
-          toast.success(`Vehicle "${vehicleTitle}" sincronitzat amb Busco: ID ${response.data.data?.buscoVehicleId}`);
+          const buscoId = result.buscoVehicleId ? `: ID ${result.buscoVehicleId}` : '';
+          toast.success(`Vehicle "${vehicleTitle}" sincronitzat amb Busco${buscoId}`);
         }
       } else {
-        throw new Error(response.data.error || 'Error desconegut');
+        throw new Error(result.message || 'Error desconegut');
       }
     } catch (err: any) {
       console.error('Error syncing to Busco:', err);
       const action = isRemove ? 'eliminant de' : 'sincronitzant amb';
-      toast.error(`Error ${action} Busco: ${err.response?.data?.error || err.message}`);
+      const errorMessage = err instanceof Error ? err.message : 'Error desconegut';
+      toast.error(`Error ${action} Busco: ${errorMessage}`);
     } finally {
       setSyncingVehicles(prev => {
         const newState = { ...prev };
@@ -423,10 +511,14 @@ const KarsVehicles = () => {
     addSyncLog('info', `=== NOVA SESSIÓ DE SINCRONITZACIÓ MASSIVA ===`);
     
     try {
-      // Obtener todos los vehículos disponibles para sync
+      // Obtener todos los vehículos disponibles para sync según la plataforma
       const filteredVehicles = vehicles.filter(vehicle => {
-        // Only Motoraldia sync is implemented for now
-        return !vehicle.motorIdSync && vehicle.anunciActiu;
+        if (syncAllPlatform === 'motoraldia') {
+          return !vehicle.motorIdSync && vehicle.anunciActiu;
+        } else if (syncAllPlatform === 'busco') {
+          return !vehicle.syncedToBuscoAt && vehicle.anunciActiu;
+        }
+        return false;
       });
 
       addSyncLog('info', `Vehicles trobats per sincronitzar: ${filteredVehicles.length}`);
@@ -437,42 +529,68 @@ const KarsVehicles = () => {
         return;
       }
 
-      addSyncLog('info', `Iniciant sincronització de ${filteredVehicles.length} vehicles amb Motoraldia...`);
-      toast.success(`Iniciant sincronització de ${filteredVehicles.length} vehicles amb Motoraldia...`);
+      const platformName = syncAllPlatform === 'motoraldia' ? 'Motoraldia' : 'Busco';
+      addSyncLog('info', `Iniciant sincronització de ${filteredVehicles.length} vehicles amb ${platformName}...`);
+      toast.success(`Iniciant sincronització de ${filteredVehicles.length} vehicles amb ${platformName}...`);
 
       let successful = 0;
       let failed = 0;
 
-      // Sincronizar de 3 en 3 para evitar sobrecargar el servidor
-      for (let i = 0; i < filteredVehicles.length; i += 3) {
-        const batch = filteredVehicles.slice(i, i + 3);
-        const batchNumber = Math.floor(i / 3) + 1;
-        const totalBatches = Math.ceil(filteredVehicles.length / 3);
-        
-        addSyncLog('info', `Processant lot ${batchNumber}/${totalBatches} (${batch.length} vehicles)`);
-        
-        const promises = batch.map(async (vehicle) => {
-          try {
-            addSyncLog('info', `Sincronitzant vehicle: ${vehicle.titolAnunci}`, vehicle.titolAnunci);
-            // Only Motoraldia sync is implemented for now
-            await syncToMotoraldi(vehicle.id, vehicle.titolAnunci);
-            successful++;
-            addSyncLog('success', `Vehicle sincronitzat correctament`, vehicle.titolAnunci);
-          } catch (error) {
-            failed++;
-            addSyncLog('error', `Error sincronitzant vehicle: ${error}`, vehicle.titolAnunci, null, error);
-            console.error(`Error syncing vehicle ${vehicle.titolAnunci}:`, error);
-          }
-        });
+      if (syncAllPlatform === 'busco') {
+        // Para Busco, verificar credenciales primero
+        if (!hasValidCredentials()) {
+          addSyncLog('error', 'No se encontraron credenciales válidas para BuscoCotxe');
+          toast.error('No se encontraron credenciales válidas para BuscoCotxe. Configúralas en Configuración > Sincronización Busco - Salida');
+          return;
+        }
 
-        await Promise.allSettled(promises);
+        // Usar el hook para sincronización masiva
+        const vehicleIds = filteredVehicles.map(v => v.id);
+        addSyncLog('info', `Utilitzant API de BuscoCotxe per sincronitzar ${vehicleIds.length} vehicles...`);
         
-        addSyncLog('info', `Lot ${batchNumber}/${totalBatches} completat. Exitosos: ${successful}, Fallits: ${failed}`);
+        const result = await syncMultipleVehicles(vehicleIds);
         
-        // Pequeña pausa entre lotes
-        if (i + 3 < filteredVehicles.length) {
-          addSyncLog('info', 'Pausa d\'1 segon entre lots...');
-          await new Promise(resolve => setTimeout(resolve, 1000));
+        successful = result.successful;
+        failed = result.failed;
+        
+        // Registrar errores específicos
+        result.errors.forEach(error => {
+          const vehicle = filteredVehicles.find(v => v.id === error.id);
+          addSyncLog('error', `Error sincronitzant vehicle: ${error.error}`, vehicle?.titolAnunci || error.id);
+        });
+        
+      } else {
+        // Para Motoraldia, mantener la lógica original
+        // Sincronizar de 3 en 3 para evitar sobrecargar el servidor
+        for (let i = 0; i < filteredVehicles.length; i += 3) {
+          const batch = filteredVehicles.slice(i, i + 3);
+          const batchNumber = Math.floor(i / 3) + 1;
+          const totalBatches = Math.ceil(filteredVehicles.length / 3);
+          
+          addSyncLog('info', `Processant lot ${batchNumber}/${totalBatches} (${batch.length} vehicles)`);
+          
+          const promises = batch.map(async (vehicle) => {
+            try {
+              addSyncLog('info', `Sincronitzant vehicle: ${vehicle.titolAnunci}`, vehicle.titolAnunci);
+              await syncToMotoraldi(vehicle.id, vehicle.titolAnunci);
+              successful++;
+              addSyncLog('success', `Vehicle sincronitzat correctament`, vehicle.titolAnunci);
+            } catch (error) {
+              failed++;
+              addSyncLog('error', `Error sincronitzant vehicle: ${error}`, vehicle.titolAnunci, null, error);
+              console.error(`Error syncing vehicle ${vehicle.titolAnunci}:`, error);
+            }
+          });
+
+          await Promise.allSettled(promises);
+          
+          addSyncLog('info', `Lot ${batchNumber}/${totalBatches} completat. Exitosos: ${successful}, Fallits: ${failed}`);
+          
+          // Pequeña pausa entre lotes
+          if (i + 3 < filteredVehicles.length) {
+            addSyncLog('info', 'Pausa d\'1 segon entre lots...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
         }
       }
 
@@ -483,7 +601,7 @@ const KarsVehicles = () => {
       if (failed === 0) {
         addSyncLog('success', `=== SINCRONITZACIÓ COMPLETADA EXITOSAMENT ===`);
         addSyncLog('success', `Total vehicles sincronitzats: ${successful}`);
-        toast.success(`✅ Sincronització completada: ${successful} vehicles sincronitzats amb Motoraldia`);
+        toast.success(`✅ Sincronització completada: ${successful} vehicles sincronitzats amb ${platformName}`);
       } else {
         addSyncLog('warning', `=== SINCRONITZACIÓ COMPLETADA AMB ERRORS ===`);
         addSyncLog('warning', `Vehicles exitosos: ${successful}, Vehicles fallits: ${failed}`);
@@ -682,7 +800,30 @@ const KarsVehicles = () => {
     }, 300);
     
     return () => clearTimeout(timer);
-  }, [searchTerm, typeFilter, venutFilter, estatVehicleFilter, anunciActiuFilter, anunciDestacatFilter, sortBy, sortOrder]);
+  }, [searchTerm, typeFilter, venutFilter, reservatFilter, estatVehicleFilter, anunciActiuFilter, anunciDestacatFilter, sortBy, sortOrder]);
+
+  // Intersection Observer para detectar cuando el header sale del viewport
+  useEffect(() => {
+    if (!headerRef.current || vehicles.length === 0) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsHeaderVisible(entry.isIntersecting);
+      },
+      {
+        threshold: 0,
+        rootMargin: '0px'
+      }
+    );
+
+    observer.observe(headerRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [vehicles.length]);
 
   const formatPrice = (price: number | string) => {
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
@@ -805,6 +946,26 @@ const KarsVehicles = () => {
   };
 
   return (
+    <>
+      {/* Floating Header Menu - Shown when table header is not visible */}
+      {!isHeaderVisible && activeTab === 'vehicles' && vehicles.length > 0 && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-lg">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="grid grid-cols-12 gap-1 p-4 font-semibold text-gray-700 dark:text-gray-300 text-sm">
+              <div className="col-span-4 text-left">Vehicle</div>
+              <div className="col-span-1 text-center">Preu</div>
+              <div className="col-span-1 text-center">Motor</div>
+              <div className="col-span-1 text-center">Busco</div>
+              <div className="col-span-1 text-center">Dest</div>
+              <div className="col-span-1 text-center">Actiu</div>
+              <div className="col-span-1 text-center">Venut</div>
+              <div className="col-span-1 text-center">Reserv</div>
+              <div className="col-span-1 text-center">Accions</div>
+            </div>
+          </div>
+        </div>
+      )}
+
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
@@ -850,46 +1011,6 @@ const KarsVehicles = () => {
                 {importStatus === 'running' ? 'Important...' : 'Importar JSON'}
               </button>
               
-              {/* Sync All Buttons */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => openSyncAllModal('motoraldia')}
-                  disabled={syncAllInProgress}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                    syncAllInProgress
-                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                      : 'bg-blue-500 text-white hover:bg-blue-600'
-                  }`}
-                  title="Sincronitzar tots els vehicles actius amb Motoraldia"
-                >
-                  {syncAllInProgress ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Share2 className="w-4 h-4" />
-                  )}
-                  Sync Motoraldia
-                </button>
-                {/* Busco sync disabled until integration is implemented
-                <button
-                  onClick={() => openSyncAllModal('busco')}
-                  disabled={syncAllInProgress}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                    syncAllInProgress
-                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                      : 'bg-green-500 text-white hover:bg-green-600'
-                  }`}
-                  title="Sincronitzar tots els vehicles actius amb Busco"
-                >
-                  {syncAllInProgress ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Share2 className="w-4 h-4" />
-                  )}
-                  Sync Busco
-                </button>
-                */}
-              </div>
-              
               {/* Sync Logs Button */}
               {syncLogs.length > 0 && (
                 <button
@@ -911,6 +1032,65 @@ const KarsVehicles = () => {
             </div>
           )}
         </div>
+
+        {/* Sync Actions Row - Commented for future scalability */}
+        {/* {activeTab === 'vehicles' && (
+          <div className="bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                  <RefreshCw className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Sincronització Massiva
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Sincronitza tots els vehicles actius amb les APIs externes
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex gap-4">
+                <button
+                  onClick={() => openSyncAllModal('motoraldia')}
+                  disabled={syncAllInProgress}
+                  className={`flex items-center gap-3 px-6 py-3 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 ${
+                    syncAllInProgress
+                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed transform-none shadow-none'
+                      : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700'
+                  }`}
+                  title="Sincronitzar tots els vehicles actius amb Motoraldia"
+                >
+                  {syncAllInProgress ? (
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Share2 className="w-5 h-5" />
+                  )}
+                  <span className="font-medium">Sync Motoraldia</span>
+                </button>
+                
+                <button
+                  onClick={() => openSyncAllModal('busco')}
+                  disabled={syncAllInProgress}
+                  className={`flex items-center gap-3 px-6 py-3 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 ${
+                    syncAllInProgress
+                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed transform-none shadow-none'
+                      : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700'
+                  }`}
+                  title="Sincronitzar tots els vehicles actius amb Busco"
+                >
+                  {syncAllInProgress ? (
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Share2 className="w-5 h-5" />
+                  )}
+                  <span className="font-medium">Sync Busco</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )} */}
 
         {/* Tabs */}
         <div className="border-b border-gray-200 dark:border-gray-700">
@@ -997,7 +1177,7 @@ const KarsVehicles = () => {
               />
             </div>
 
-            {/* Second Row of Filters */}
+            {/* Filtros en una sola fila */}
             <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
               {/* Vehicle Type Filter */}
               <SearchableSelect
@@ -1025,6 +1205,20 @@ const KarsVehicles = () => {
                 value={venutFilter}
                 onValueChange={setVenutFilter}
                 placeholder="Selecciona estat de venda"
+                allowClear={false}
+                showSearch={false}
+              />
+
+              {/* Reservat Filter */}
+              <SearchableSelect
+                options={createSelectOptions('reservat', [
+                  { value: 'all', label: 'Reservat - Tots' },
+                  { value: 'false', label: 'No reservat' },
+                  { value: 'true', label: 'Reservat' }
+                ])}
+                value={reservatFilter}
+                onValueChange={setReservatFilter}
+                placeholder="Selecciona estat de reserva"
                 allowClear={false}
                 showSearch={false}
               />
@@ -1072,13 +1266,16 @@ const KarsVehicles = () => {
                 allowClear={false}
                 showSearch={false}
               />
+            </div>
 
-              {/* Clear Filters Button */}
+            {/* Clear Filters Button Row */}
+            <div className="flex justify-end">
               <button
                 onClick={() => {
                   setSearchTerm('');
                   setTypeFilter('all');
                   setVenutFilter('all');
+                  setReservatFilter('all');
                   setEstatVehicleFilter('all');
                   setAnunciActiuFilter('all');
                   setAnunciDestacatFilter('all');
@@ -1109,23 +1306,25 @@ const KarsVehicles = () => {
           ) : (
             <>
               {/* Table Header */}
-              <div className="grid grid-cols-11 gap-4 p-4 border-b border-gray-200 dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-300 text-sm">
-                <div className="col-span-3">Vehicle</div>
-                <div className="col-span-1">Preu</div>
-                <div className="col-span-2">Marca i Model</div>
-                <div className="col-span-1">Sync Motoraldia</div>
-                {/* <div className="col-span-1">Sync Busco</div> - Disabled until integration */}
-                <div className="col-span-1">Destacat</div>
-                <div className="col-span-1">Actiu</div>
-                <div className="col-span-1">Venut</div>
-                <div className="col-span-1">Accions</div>
+              <div ref={headerRef} className="grid grid-cols-12 gap-1 p-4 border-b border-gray-200 dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-300 text-sm">
+                <div className="col-span-4 text-left">Vehicle</div>
+                <div className="col-span-1 text-center">Preu</div>
+                <div className="col-span-1 text-center">Motor</div>
+                <div className="col-span-1 text-center">Busco</div>
+                <div className="col-span-1 text-center">Dest</div>
+                <div className="col-span-1 text-center">Actiu</div>
+                <div className="col-span-1 text-center">Venut</div>
+                <div className="col-span-1 text-center">Reserv</div>
+                <div className="col-span-1 text-center">Accions</div>
               </div>
 
               {/* Vehicle Rows */}
-              {vehicles.map((vehicle) => (
-                <div key={vehicle.id} className="grid grid-cols-11 gap-4 p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+              {vehicles.map((vehicle, index) => (
+                <div key={vehicle.id} className={`grid grid-cols-12 gap-1 p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                  index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-100/80 dark:bg-gray-700/80'
+                }`}>
                   {/* Vehicle Info */}
-                  <div className="col-span-3 flex gap-3">
+                  <div className="col-span-4 flex gap-3">
                     <div className="w-16 h-12 bg-gray-200 rounded overflow-hidden flex-shrink-0">
                       {vehicle.imatgeDestacadaUrl ? (
                         <img 
@@ -1140,7 +1339,7 @@ const KarsVehicles = () => {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-medium text-gray-900 dark:text-white truncate">
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
                         {decodeHtmlEntities(vehicle.titolAnunci)}
                       </h3>
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 mt-1">
@@ -1153,23 +1352,12 @@ const KarsVehicles = () => {
                   </div>
 
                   {/* Price */}
-                  <div className="col-span-1 flex items-center">
+                  <div className="col-span-1 flex items-center justify-center">
                     <span className="font-semibold text-gray-900 dark:text-white text-sm">
                       {formatPrice(vehicle.preu)}
                     </span>
                   </div>
 
-                  {/* Marca i Model */}
-                  <div className="col-span-2 flex items-center">
-                    <div>
-                      <p className="font-semibold text-gray-900 dark:text-white">
-                        {getBrandName(vehicle)}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {getModelName(vehicle)}
-                      </p>
-                    </div>
-                  </div>
 
                   {/* Sync Motoraldia */}
                   <div className="col-span-1 flex flex-col items-center justify-center gap-1">
@@ -1193,7 +1381,6 @@ const KarsVehicles = () => {
                     ) : (
                       <button
                         onClick={() => {
-                          // Clear logs before individual sync
                           clearSyncLogs();
                           syncToMotoraldi(vehicle.id, vehicle.titolAnunci);
                         }}
@@ -1205,7 +1392,7 @@ const KarsVehicles = () => {
                     )}
                   </div>
 
-                  {/* Sync Busco - Disabled until integration is implemented
+                  {/* Sync Busco */}
                   <div className="col-span-1 flex flex-col items-center justify-center gap-1">
                     {syncingVehicles[vehicle.id] === 'busco' ? (
                       <button disabled className="p-1.5 bg-gray-300 rounded flex items-center justify-center">
@@ -1234,7 +1421,6 @@ const KarsVehicles = () => {
                       </button>
                     )}
                   </div>
-                  */}
 
                   {/* Destacat */}
                   <div className="col-span-1 flex items-center justify-center">
@@ -1269,8 +1455,19 @@ const KarsVehicles = () => {
                     </div>
                   </div>
 
+                  {/* Reservat */}
+                  <div className="col-span-1 flex items-center justify-center">
+                    <div className="scale-75">
+                      <Switch
+                        checked={vehicle.reservat === true}
+                        onCheckedChange={() => toggleVehicleReservat(vehicle.id, vehicle.reservat || false)}
+                        className="data-[state=checked]:bg-orange-400 data-[state=unchecked]:bg-gray-300"
+                      />
+                    </div>
+                  </div>
+
                   {/* Actions */}
-                  <div className="col-span-1 flex items-center">
+                  <div className="col-span-1 flex items-center justify-center">
                     <div className="flex gap-1">
                       <a
                         href={`/vehicle/${vehicle.slug}`}
@@ -1586,6 +1783,7 @@ const KarsVehicles = () => {
         </DialogContent>
       </Dialog>
     </AdminLayout>
+    </>
   );
 };
 

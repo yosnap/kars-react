@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile menu z-index fix */
+body.mobile-menu-open * {
+  position: relative;
+  max-z-index: 60 !important;
+}
+
+body.mobile-menu-open .mobile-sidebar {
+  z-index: 70 !important;
+}
+
 /* Breadcrumb hover fix */
 .breadcrumb-container .breadcrumb-link a:hover {
   color: rgb(var(--primary)) !important;

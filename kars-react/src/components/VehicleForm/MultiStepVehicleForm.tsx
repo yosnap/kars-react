@@ -134,6 +134,7 @@ interface VehicleFormData {
   anunciActiu: boolean;
   anunciDestacat: number;
   venut: boolean;
+  reservat: boolean;
   
   // Internal Notes (not part of the 7 steps, but additional field)
   notesInternes?: string;
@@ -173,6 +174,7 @@ export default function MultiStepVehicleForm({
     anunciActiu: true,
     anunciDestacat: 0,
     venut: false,
+    reservat: false,
     extresCotxe: [],
     extresMoto: [],
     extresAutocaravana: [],
