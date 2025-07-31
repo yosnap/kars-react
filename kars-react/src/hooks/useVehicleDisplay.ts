@@ -87,6 +87,7 @@ export const useVehicleDisplay = () => {
     return translateDataValue(color, 'color');
   };
 
+
   /**
    * FUNCIÓN HELPER PARA FORMATEAR INFORMACIÓN COMPLETA DEL VEHÍCULO
    */

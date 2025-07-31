@@ -129,6 +129,12 @@ export const transmissionTypeValues: ValueMappings = {
     en: 'Automatic',
     fr: 'Automatique'
   },
+  'automatica': {
+    ca: 'Automàtica',
+    es: 'Automática',
+    en: 'Automatic',
+    fr: 'Automatique'
+  },
   'auto-sequencial': {
     ca: 'Auto-Seqüencial',
     es: 'Auto-Secuencial',
@@ -140,6 +146,30 @@ export const transmissionTypeValues: ValueMappings = {
     es: 'CVT',
     en: 'CVT',
     fr: 'CVT'
+  },
+  'semiautomatica': {
+    ca: 'Semiautomàtica',
+    es: 'Semiautomática',
+    en: 'Semi-automatic',
+    fr: 'Semi-automatique'
+  },
+  'sequencial': {
+    ca: 'Seqüencial',
+    es: 'Secuencial',
+    en: 'Sequential',
+    fr: 'Séquentielle'
+  },
+  'geartronic': {
+    ca: 'Geartronic',
+    es: 'Geartronic',
+    en: 'Geartronic',
+    fr: 'Geartronic'
+  },
+  'tiptronic': {
+    ca: 'Tiptronic',
+    es: 'Tiptronic',
+    en: 'Tiptronic',
+    fr: 'Tiptronic'
   }
 };
 
