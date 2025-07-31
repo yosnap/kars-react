@@ -611,11 +611,9 @@ router.get('/:slug', async (req, res) => {
 // Función para calcular facets
 async function calculateFacets(baseWhere: any) {
   try {
-    console.log('🔍 Starting facets calculation with baseWhere:', baseWhere);
     const [
       tipusVehicleFacets,
       venutFacets,
-      reservatFacets,
       estatVehicleFacets,
       anunciActiuFacets,
       anunciDestacatFacets,
@@ -636,12 +634,12 @@ async function calculateFacets(baseWhere: any) {
         where: baseWhere,
         _count: true
       }),
-      // Reservado
-      prisma.vehicle.groupBy({
-        by: ['reservat'],
-        where: baseWhere,
-        _count: true
-      }),
+      // Reservado - COMENTADO TEMPORALMENTE
+      // prisma.vehicle.groupBy({
+      //   by: ['reservat'],
+      //   where: { ...baseWhere, reservat: { not: null } },
+      //   _count: true
+      // }),
       // Estado del vehículo
       prisma.vehicle.groupBy({
         by: ['estatVehicle'],
@@ -686,15 +684,12 @@ async function calculateFacets(baseWhere: any) {
       })
     ]);
 
-    return {
+    const facetsResult = {
       'tipus-vehicle': Object.fromEntries(
         tipusVehicleFacets.map(f => [f.tipusVehicle, f._count])
       ),
       'venut': Object.fromEntries(
         venutFacets.map(f => [f.venut.toString(), f._count])
-      ),
-      'reservat': Object.fromEntries(
-        reservatFacets.map(f => [f.reservat.toString(), f._count])
       ),
       'estat-vehicle': Object.fromEntries(
         estatVehicleFacets.map(f => [f.estatVehicle!, f._count])
@@ -718,8 +713,27 @@ async function calculateFacets(baseWhere: any) {
         anyFabricacioFacets.map(f => [f.any, f._count])
       )
     };
+
+    // Calcular facets de reservat manualmente
+    try {
+      const [reservatTrue, reservatFalse] = await Promise.all([
+        prisma.vehicle.count({ where: { ...baseWhere, reservat: true } }),
+        prisma.vehicle.count({ where: { ...baseWhere, reservat: { not: true } } })
+      ]);
+      
+      facetsResult['reservat'] = {
+        'true': reservatTrue,
+        'false': reservatFalse
+      };
+    } catch (reservatError) {
+      console.error('❌ Error calculating reservat facets:', reservatError);
+    }
+
+    return facetsResult;
   } catch (error) {
-    console.error('Error calculating facets:', error);
+    console.error('❌ Error calculating facets:', error);
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack');
+    console.error('❌ Error details:', JSON.stringify(error, null, 2));
     return {};
   }
 }
