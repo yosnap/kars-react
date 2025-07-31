@@ -3423,6 +3423,18 @@ router.get('/vehicle-translations', async (req, res) => {
 
     const translations = await prisma.vehicleTranslation.findMany({
       where,
+      select: {
+        id: true,
+        key: true,
+        category: true,
+        ca: true,
+        es: true,
+        en: true,
+        fr: true,
+        description: true,
+        createdAt: true,
+        updatedAt: true
+      },
       orderBy: [
         { category: 'asc' },
         { key: 'asc' }
