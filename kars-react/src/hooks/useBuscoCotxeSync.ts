@@ -178,7 +178,7 @@ export const useBuscoCotxeSync = () => {
   };
 
   // Mapear datos del vehículo al formato esperado por BuscoCotxe
-  const mapVehicleToBuscoFormat = (vehicle: any, credentials: BuscoSyncCredentials) => {
+  const mapVehicleToBuscoFormat = (vehicle: any, credentials: BuscoSyncCredentials): any => {
     return {
       api_key: credentials.apiKey,
       id_usuari: credentials.userId,
