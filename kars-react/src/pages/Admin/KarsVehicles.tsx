@@ -1461,7 +1461,7 @@ const KarsVehicles = () => {
                       <Switch
                         checked={vehicle.reservat === true}
                         onCheckedChange={() => toggleVehicleReservat(vehicle.id, vehicle.reservat || false)}
-                        className="data-[state=checked]:bg-orange-400 data-[state=unchecked]:bg-gray-300"
+                        className="data-[state=checked]:bg-orange-600 data-[state=unchecked]:bg-gray-300"
                       />
                     </div>
                   </div>

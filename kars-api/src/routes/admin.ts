@@ -3412,12 +3412,12 @@ router.get('/vehicle-translations', async (req, res) => {
     // Filtrar por búsqueda si se especifica
     if (search) {
       where.OR = [
-        { key: { contains: search as string, mode: 'insensitive' } },
-        { ca: { contains: search as string, mode: 'insensitive' } },
-        { es: { contains: search as string, mode: 'insensitive' } },
-        { en: { contains: search as string, mode: 'insensitive' } },
-        { fr: { contains: search as string, mode: 'insensitive' } },
-        { description: { contains: search as string, mode: 'insensitive' } }
+        { key: { contains: search as string } },
+        { ca: { contains: search as string } },
+        { es: { contains: search as string } },
+        { en: { contains: search as string } },
+        { fr: { contains: search as string } },
+        { description: { contains: search as string } }
       ];
     }
 

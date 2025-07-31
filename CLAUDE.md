@@ -18,6 +18,9 @@
 ## Code Organization
 - Si un archivo tiene más de 1000 líneas de código hay que fraccionarlo y meter los archivos en una carpeta nueva
 
+## Version Management
+- Cuando subimos versión y pido actualizar documentación, tienes siempre que actualizar el changelog, "SIEMPRE"
+
 ## Recent Updates (v0.3.7 - 2025-07-31)
 
 ### Vehicle Propulsion Type Field Implementation (NEW)
