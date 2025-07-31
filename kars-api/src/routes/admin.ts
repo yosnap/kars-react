@@ -11,8 +11,8 @@ const prisma = new PrismaClient();
 // Middleware de autenticación básica para admin
 const authenticateAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.log('🔐 Auth middleware called');
-  console.log('Expected username:', process.env.ADMIN_USERNAME);
-  console.log('Expected password:', process.env.ADMIN_PASSWORD);
+  console.log('Expected super admin:', process.env.SUPER_ADMIN_USER);
+  console.log('Expected admin:', process.env.ADMIN_USER);
   
   const authHeader = req.headers.authorization;
   console.log('Auth header:', authHeader);
@@ -27,19 +27,26 @@ const authenticateAdmin = (req: express.Request, res: express.Response, next: ex
   
   console.log('Received username:', username);
   console.log('Received password:', password);
-  console.log('Username match:', username === process.env.ADMIN_USERNAME);
-  console.log('Password match:', password === process.env.ADMIN_PASSWORD);
 
-  // Temporal fix para el problema del escape del !
-  const expectedPassword = process.env.ADMIN_PASSWORD;
-  const passwordsMatch = password === expectedPassword || password === expectedPassword?.replace('!', '\\!');
+  // Verificar credenciales para super admin
+  const isSuperAdmin = username === process.env.SUPER_ADMIN_USER && password === process.env.SUPER_ADMIN_PASS;
   
-  if (username !== process.env.ADMIN_USERNAME || !passwordsMatch) {
+  // Verificar credenciales para admin regular
+  const isAdmin = username === process.env.ADMIN_USER && password === process.env.ADMIN_PASS;
+  
+  console.log('Super admin match:', isSuperAdmin);
+  console.log('Admin match:', isAdmin);
+  
+  if (!isSuperAdmin && !isAdmin) {
     console.log('❌ Invalid credentials');
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
-  console.log('✅ Authentication successful');
+  // Agregar información del rol al request para uso posterior
+  (req as any).userRole = isSuperAdmin ? 'super_admin' : 'admin';
+  (req as any).username = username;
+
+  console.log('✅ Authentication successful as:', (req as any).userRole);
   return next();
 };
 

@@ -18,7 +18,11 @@ const authenticateAdmin = (req: express.Request, res: express.Response, next: ex
   const credentials = Buffer.from(authHeader.slice(6), 'base64').toString('ascii');
   const [username, password] = credentials.split(':');
 
-  if (username !== process.env.ADMIN_USERNAME || password !== process.env.ADMIN_PASSWORD) {
+  // Verificar si es super admin o admin regular
+  const isSuperAdmin = username === process.env.SUPER_ADMIN_USER && password === process.env.SUPER_ADMIN_PASS;
+  const isAdmin = username === process.env.ADMIN_USER && password === process.env.ADMIN_PASS;
+  
+  if (!isSuperAdmin && !isAdmin) {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 

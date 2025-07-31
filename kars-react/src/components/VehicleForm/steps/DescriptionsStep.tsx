@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import WysiwygEditor from '../WysiwygEditor';
+import ProtectedSection from '../../ui/ProtectedSection';
 
 interface DescriptionsStepProps {
   formData: any;
@@ -137,30 +138,32 @@ const DescriptionsStep: React.FC<DescriptionsStepProps> = ({ formData, updateFor
         })}
       </div>
 
-      {/* Internal Notes Section */}
-      <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800 shadow-sm p-6 mt-8">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-amber-100 dark:bg-amber-800 rounded-full flex items-center justify-center">
-            <span className="text-amber-600 dark:text-amber-400 text-lg">📝</span>
+      {/* Internal Notes Section - Only for Super Admin */}
+      <ProtectedSection requireSuperAdmin>
+        <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800 shadow-sm p-6 mt-8">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-amber-100 dark:bg-amber-800 rounded-full flex items-center justify-center">
+              <span className="text-amber-600 dark:text-amber-400 text-lg">📝</span>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-amber-900 dark:text-amber-100">
+                Notes Internes
+              </h3>
+              <p className="text-sm text-amber-700 dark:text-amber-300">
+                Informació interna per al seguiment del vehicle (no es mostra públicament)
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-amber-900 dark:text-amber-100">
-              Notes Internes
-            </h3>
-            <p className="text-sm text-amber-700 dark:text-amber-300">
-              Informació interna per al seguiment del vehicle (no es mostra públicament)
-            </p>
-          </div>
+          
+          <WysiwygEditor
+            content={formData.notesInternes || ''}
+            onChange={(content) => updateFormData({ notesInternes: content })}
+            placeholder="Escriu notes internes sobre el vehicle, seguiment de tasques, etc..."
+            id="notes-internes"
+            showDateButton={true}
+          />
         </div>
-        
-        <WysiwygEditor
-          content={formData.notesInternes || ''}
-          onChange={(content) => updateFormData({ notesInternes: content })}
-          placeholder="Escriu notes internes sobre el vehicle, seguiment de tasques, etc..."
-          id="notes-internes"
-          showDateButton={true}
-        />
-      </div>
+      </ProtectedSection>
     </div>
   );
 };

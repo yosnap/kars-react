@@ -3,6 +3,8 @@ import { Cpu, Database, HardDrive, RefreshCw, Server, Monitor, Activity, Car, Ch
 import AdminLayout from '../../components/Admin/AdminLayout';
 import { VERSION_INFO } from '../../config/version';
 import { axiosAdmin } from '../../api/axiosClient';
+import { useAuth } from '../../context/AuthContext';
+import ProtectedSection from '../../components/ui/ProtectedSection';
 
 interface SystemData {
   version: string;
@@ -34,6 +36,7 @@ interface SystemData {
 }
 
 const SystemInfo = () => {
+  const { isSuperAdmin } = useAuth();
   const [systemData, setSystemData] = useState<SystemData>({
     version: VERSION_INFO.version,
     environment: VERSION_INFO.environment,
@@ -452,24 +455,26 @@ const SystemInfo = () => {
             </div>
 
             {/* Technologies */}
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Tecnologies i Dependències
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {systemData.technologies.map((tech, index) => (
-                  <div key={index} className="text-center">
-                    <div className="text-2xl mb-2">{tech.icon}</div>
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {tech.name}
+            <ProtectedSection requireSuperAdmin>
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                  Tecnologies i Dependències
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {systemData.technologies.map((tech, index) => (
+                    <div key={index} className="text-center">
+                      <div className="text-2xl mb-2">{tech.icon}</div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        {tech.name}
+                      </div>
+                      <div className="text-lg font-bold text-gray-900 dark:text-white">
+                        {tech.version}
+                      </div>
                     </div>
-                    <div className="text-lg font-bold text-gray-900 dark:text-white">
-                      {tech.version}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            </ProtectedSection>
           </div>
         )}
 

@@ -5,6 +5,194 @@ Todos los cambios notables de este proyecto se documentarán en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-es/1.0.0/),
 y este proyecto adhiere al [Versionado Semántico](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-07-31
+
+### 🔐 Sistema de Control de Acceso Basado en Roles (RBAC)
+
+### ✅ Añadido
+
+#### Sistema de Autenticación Multi-usuario
+- **Dos niveles de usuario**: Super Admin y Admin Regular con permisos diferenciados
+- **Variables de entorno separadas**: Credenciales independientes para cada tipo de usuario
+- **Detección automática de rol**: El sistema identifica el tipo de usuario al hacer login
+- **Backend actualizado**: Middleware de autenticación soporta múltiples usuarios y roles
+
+#### Componente ProtectedSection
+- **Nuevo componente reutilizable**: `ProtectedSection` para proteger elementos de UI
+- **Control granular**: Permite restringir secciones completas o elementos individuales
+- **Soporte para múltiples roles**: Configurable para requerir roles específicos
+- **Fallback personalizable**: Opción de mostrar contenido alternativo para usuarios sin permisos
+
+#### Restricciones para Admin Regular
+- **Configuración limitada**: Solo acceso a pestaña "WhatsApp" en Configuración
+- **Sin acceso a sincronización**: Pestañas de sincronización ocultas (Motor, Busco)
+- **Sin gestión de traducciones**: Pestañas de traducciones restringidas
+- **Importación/Exportación bloqueada**: Botones de import/export ocultos
+- **Brands/Models restringido**: Pestaña de gestión de marcas/modelos solo para super admin
+- **Sistema de información limitado**: Sección "Tecnologies i Dependències" oculta
+- **Campo notas internes oculto**: En formulario de vehículos, solo super admin puede ver/editar
+
+#### Mejoras de Seguridad
+- **Autenticación robusta**: Validación de credenciales en cada request
+- **Roles en contexto**: AuthContext actualizado con información de rol del usuario
+- **Helpers de rol**: Funciones `isSuperAdmin()` y `isAdmin()` para verificación rápida
+
+### 🔧 Modificado
+
+#### AuthContext Mejorado
+- **Detección de rol integrada**: `detectUserRole()` identifica el tipo de usuario
+- **Estado de rol persistente**: Se mantiene el rol durante toda la sesión
+- **Login actualizado**: Proceso de login ahora incluye detección y almacenamiento de rol
+
+#### Variables de Entorno Reorganizadas
+- **Frontend**: `VITE_API_SUPER_ADMIN_USER/PASS` y `VITE_API_ADMIN_USER/PASS`
+- **Backend**: `SUPER_ADMIN_USER/PASS` y `ADMIN_USER/PASS`
+- **Consistencia**: Nombres de variables alineados entre frontend y backend
+
+#### Middleware de Autenticación
+- **Soporte multi-usuario**: Valida contra múltiples conjuntos de credenciales
+- **Asignación de rol**: Añade `userRole` al request para uso posterior
+- **Logs mejorados**: Información detallada sobre el tipo de autenticación
+
+### 🐛 Corregido
+
+#### Errores de Autenticación
+- **Variables undefined**: Corregido problema de variables de entorno no cargadas
+- **Sincronización de credenciales**: Frontend y backend ahora usan las mismas variables
+- **Validación robusta**: Manejo mejorado de casos edge en autenticación
+
+#### Errores de JSX
+- **Estructura HTML**: Corregidos múltiples errores de divs sin cerrar
+- **Comentarios JSX**: Convertidos comentarios JS a formato JSX válido
+- **Anidamiento**: Arreglada estructura de componentes ProtectedSection
+
+### 📚 Documentación
+
+#### Archivo .env.example
+- **Creado para referencia**: Documenta todas las variables de entorno necesarias
+- **Separación clara**: Variables de super admin vs admin regular
+- **Comentarios explicativos**: Descripción del propósito de cada variable
+
+#### Sistema de Roles
+- **Super Admin**: Acceso completo a todas las funcionalidades
+- **Admin Regular**: Acceso restringido a funciones básicas y operativas
+- **Extensibilidad**: Arquitectura preparada para añadir más roles en el futuro
+
+### 💡 Notas de Implementación
+
+- El sistema está diseñado para ser extensible a más roles si es necesario
+- Las restricciones se aplican tanto en UI como en API para máxima seguridad
+- Los componentes protegidos simplemente no se renderizan para usuarios sin permisos
+- El campo de notas internas mantiene la información sensible solo para super admins
+
+## [0.3.7] - 2025-07-31
+
+### 🚗 Campo "Reservat" y Correcciones de Producción
+
+### ✅ Añadido
+
+#### Campo "Reservat" (Reservado)
+- **Nuevo campo booleano**: Added `reservat` field to vehicle schema and forms
+- **UI en formulario**: Switch naranja en paso 7, agrupado con Venut, Destacat y Actiu
+- **Tabla admin**: Nueva columna con toggle optimista y filtro funcional
+- **Facets manuales**: Cálculo especial para manejar valores null en MongoDB
+- **Persistencia completa**: Campo guardado correctamente en base de datos
+
+### 🔧 Modificado
+
+#### Endpoint de Detalle de Vehículo
+- **Campos multiidioma añadidos**: `descripcioAnunciCA/ES/EN/FR` en respuesta
+- **Sin fallback**: Frontend muestra solo descripción del idioma actual
+- **Sección condicional**: Se oculta completamente si no hay descripción disponible
+
+### 🐛 Corregido
+
+#### Mobile Menu Z-Index
+- **Problema**: Flechas del slider aparecían sobre el menú móvil
+- **Solución**: Sidebar z-index: 70, overlay z-index: 60
+- **Mejora**: Gestión de clases CSS para estado del menú
+
+#### Traducciones de Extras en Producción
+- **MongoDB compatibility**: Eliminado `mode: 'insensitive'` no soportado
+- **Inicialización completa**: Script actualizado con 153 traducciones
+- **Nombres de campo**: Corregidos de camelCase a snake_case
+
+#### Toggle de Reservat
+- **Lógica corregida**: Manejo de undefined con Boolean() conversion
+- **Estado visual**: Switch muestra estado correcto desde API
+- **Conteo de filtros**: Facets calculados manualmente para precisión
+
+## [0.3.6] - 2025-07-31
+
+### 🎯 Mejoras de Rendimiento y UX
+
+### ✅ Añadido
+- **Carga optimizada de modelos**: Los modelos se cargan solo cuando se selecciona una marca
+- **Validación de marca**: Se verifica que la marca existe antes de intentar cargar modelos (previene errores 404)
+
+### 🔧 Modificado
+- **Comportamiento del selector de tipo de vehículo**: Al cambiar entre coche/moto se limpian marca y modelo para evitar inconsistencias
+- **Gestión de estado mejorada**: Mejor sincronización entre los selectores de marca/modelo
+
+### 🐛 Corregido
+- **Error 404 en modelos**: Se previene la llamada a la API cuando no hay marca seleccionada
+- **Limpieza de formulario**: Los campos incompatibles se limpian al cambiar el tipo de vehículo
+
+## [0.3.5] - 2025-07-30
+
+### 🍪 Sistema de Cookies y Páginas Legales
+
+### ✅ Añadido
+
+#### Sistema Completo de Gestión de Cookies
+- **Componente CookieBanner**: Banner flotante con diseño moderno y responsive
+- **Categorías de cookies**: Necesarias, Analíticas, Marketing (solo necesarias activadas por defecto)
+- **CookieProvider**: Context API para gestión global del estado de cookies
+- **Persistencia**: Preferencias guardadas en localStorage con expiración de 365 días
+- **Hook useCookies**: Para acceso fácil al estado y funciones de cookies
+
+#### Modal de Configuración de Cookies
+- **Diseño a pantalla completa**: Modal moderno con backdrop oscuro
+- **Switches interactivos**: Control individual por categoría de cookies
+- **Descripciones detalladas**: Explicación clara de cada tipo de cookie
+- **Tabla de cookies**: Listado completo con nombre, tipo, duración y descripción
+
+#### Páginas Legales Completas
+- **Política de Privacidad**: `/politica-privacitat` con contenido legal completo
+- **Política de Cookies**: `/politica-cookies` con información detallada GDPR
+- **Aviso Legal**: `/avis-legal` con información de la empresa
+- **Términos y Condiciones**: `/termes-condicions` con términos de uso
+
+#### Footer Mejorado
+- **Sección legal**: Enlaces a todas las páginas legales
+- **Gestión de cookies**: Botón para reabrir configuración de cookies
+- **Diseño responsive**: Layout optimizado para móvil y desktop
+- **Integración con CookieProvider**: Botón funcional para gestionar preferencias
+
+### 🔧 Modificado
+
+#### Estructura del Footer
+- **Reorganización**: Nueva sección "Legal" con todos los enlaces legales
+- **Componente PrivacyLinks**: Extraído para reutilización
+- **Estilo mejorado**: Mejor espaciado y organización visual
+
+#### Sistema de Rutas
+- **Nuevas rutas**: Añadidas todas las rutas de páginas legales
+- **URLs limpias**: Formato kebab-case consistente
+
+### 🎨 Características de Diseño
+
+#### Cookie Banner
+- **Posición**: Fijo en esquina inferior derecha
+- **Animación**: Aparece con transición suave
+- **Colores**: Fondo blanco con bordes grises, botones azules
+- **Responsive**: Se adapta a móvil con ancho completo
+
+#### Modal de Cookies
+- **Backdrop**: Fondo oscuro con opacidad para focus
+- **Scrollable**: Contenido con scroll si es necesario
+- **Accesibilidad**: Cierre con tecla ESC y click fuera
+
 ## [0.3.4] - 2025-07-30
 
 ### 🌐 Sistema de Idiomas Completo y Especificaciones Eléctricas

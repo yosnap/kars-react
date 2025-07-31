@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { MessageCircle, Save, Phone, User, MessageSquare, RefreshCw, Database, Clock, CheckCircle, AlertCircle, Image, Settings, TestTube, Play, Users, Filter, Trash2, Eye, Calendar, Languages, Globe, Zap, Edit3, Plus, Search, Type } from 'lucide-react';
 import AdminLayout from '../../components/Admin/AdminLayout';
 import VehicleTranslationForm from '../../components/Admin/VehicleTranslationForm';
+import ProtectedSection from '../../components/ui/ProtectedSection';
 import toast from 'react-hot-toast';
 
 interface WhatsAppConfig {
@@ -952,71 +953,81 @@ export default function AdminSettings() {
                 WhatsApp
               </div>
             </button>
-            <button
-              onClick={() => handleTabChange('api-sync')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'api-sync'
-                  ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <RefreshCw className="w-4 h-4" />
-                Sincronización Motor - Entrada
-              </div>
-            </button>
-            <button
-              onClick={() => handleTabChange('motor-sync-out')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'motor-sync-out'
-                  ? 'border-cyan-600 text-cyan-600 dark:border-cyan-400 dark:text-cyan-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <RefreshCw className="w-4 h-4" />
-                Sincronización Motor - Salida
-              </div>
-            </button>
-            <button
-              onClick={() => handleTabChange('busco-sync-out')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'busco-sync-out'
-                  ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <RefreshCw className="w-4 h-4" />
-                Sincronización Busco - Salida
-              </div>
-            </button>
-            <button
-              onClick={() => handleTabChange('translations')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'translations'
-                  ? 'border-purple-600 text-purple-600 dark:border-purple-400 dark:text-purple-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Languages className="w-4 h-4" />
-                Traduccions
-              </div>
-            </button>
-            <button
-              onClick={() => handleTabChange('vehicle-translations')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'vehicle-translations'
-                  ? 'border-orange-600 text-orange-600 dark:border-orange-400 dark:text-orange-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Globe className="w-4 h-4" />
-                Traduccions Vehicles
-              </div>
-            </button>
+            <ProtectedSection requireSuperAdmin>
+              <button
+                onClick={() => handleTabChange('api-sync')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'api-sync'
+                    ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4" />
+                  Sincronización Motor - Entrada
+                </div>
+              </button>
+            </ProtectedSection>
+            <ProtectedSection requireSuperAdmin>
+              <button
+                onClick={() => handleTabChange('motor-sync-out')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'motor-sync-out'
+                    ? 'border-cyan-600 text-cyan-600 dark:border-cyan-400 dark:text-cyan-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4" />
+                  Sincronización Motor - Salida
+                </div>
+              </button>
+            </ProtectedSection>
+            <ProtectedSection requireSuperAdmin>
+              <button
+                onClick={() => handleTabChange('busco-sync-out')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'busco-sync-out'
+                    ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4" />
+                  Sincronización Busco - Salida
+                </div>
+              </button>
+            </ProtectedSection>
+            <ProtectedSection requireSuperAdmin>
+              <button
+                onClick={() => handleTabChange('translations')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'translations'
+                    ? 'border-purple-600 text-purple-600 dark:border-purple-400 dark:text-purple-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Languages className="w-4 h-4" />
+                  Traduccions
+                </div>
+              </button>
+            </ProtectedSection>
+            <ProtectedSection requireSuperAdmin>
+              <button
+                onClick={() => handleTabChange('vehicle-translations')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'vehicle-translations'
+                    ? 'border-orange-600 text-orange-600 dark:border-orange-400 dark:text-orange-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4" />
+                  Traduccions Vehicles
+                </div>
+              </button>
+            </ProtectedSection>
           </nav>
         </div>
       </div>
@@ -1151,23 +1162,24 @@ export default function AdminSettings() {
       )}
 
       {activeTab === 'api-sync' && (
-        // API Synchronization Section
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-              <RefreshCw className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
+        <ProtectedSection requireSuperAdmin>
+        {/* API Synchronization Section */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                <RefreshCw className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
               <h2 className="text-lg font-medium text-gray-900 dark:text-white">
                 Sincronización Motor - Entrada
               </h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Configura la importación automática de vehículos desde Motoraldia
               </p>
-            </div>
-            {apiSyncConfig.connectionStatus !== 'idle' && (
-              <div className="ml-auto">
+              </div>
+              {apiSyncConfig.connectionStatus !== 'idle' && (
+                <div className="ml-auto">
                 {apiSyncConfig.connectionStatus === 'testing' && (
                   <div className="flex items-center gap-2 text-yellow-600">
                     <Clock className="w-4 h-4 animate-spin" />
@@ -1186,12 +1198,12 @@ export default function AdminSettings() {
                     <span className="text-sm">Error</span>
                   </div>
                 )}
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
-        <div className="p-6 space-y-8">
+          <div className="p-6 space-y-8">
           {/* Connection Configuration */}
           <div>
             <h3 className="flex items-center gap-2 text-md font-medium text-gray-900 dark:text-white mb-4">
@@ -1630,12 +1642,14 @@ export default function AdminSettings() {
               )}
             </div>
           </div>
+          </div>
         </div>
-        </div>
+        </ProtectedSection>
       )}
 
       {activeTab === 'translations' && (
-        // Translation Configuration Section
+        <ProtectedSection requireSuperAdmin>
+        {/* Translation Configuration Section */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3">
@@ -1904,10 +1918,12 @@ export default function AdminSettings() {
             </div>
           </div>
         </div>
+        </ProtectedSection>
       )}
 
       {activeTab === 'motor-sync-out' && (
-        // Motor Sync Out Section
+        <ProtectedSection requireSuperAdmin>
+        {/* Motor Sync Out Section */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3">
@@ -2080,10 +2096,12 @@ Introdueix l'URL base de l'API (per exemple: https://api.motoraldia.com)
             </div>
           </div>
         </div>
+        </ProtectedSection>
       )}
 
       {activeTab === 'busco-sync-out' && (
-        // Busco Sync Out Section
+        <ProtectedSection requireSuperAdmin>
+        {/* Busco Sync Out Section */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3">
@@ -2283,10 +2301,12 @@ Introdueix l'URL base de l'API (per exemple: https://api.motoraldia.com)
             </div>
           </div>
         </div>
+        </ProtectedSection>
       )}
 
       {activeTab === 'vehicle-translations' && (
-        // Vehicle Translations Management Section
+        <ProtectedSection requireSuperAdmin>
+        {/* Vehicle Translations Management Section */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
@@ -2493,6 +2513,7 @@ Introdueix l'URL base de l'API (per exemple: https://api.motoraldia.com)
             </div>
           </div>
         </div>
+        </ProtectedSection>
       )}
 
       {/* Translation Form Modal */}

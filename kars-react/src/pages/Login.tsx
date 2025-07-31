@@ -7,6 +7,8 @@ export default function Login() {
   const { login, user } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -15,9 +17,21 @@ export default function Login() {
     }
   }, [user, navigate]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    login(username, password);
+    setError("");
+    setIsLoading(true);
+    
+    try {
+      const success = login(username, password);
+      if (!success) {
+        setError("Credenciales incorrectas. Verifica tu usuario y contraseña.");
+      }
+    } catch (err) {
+      setError("Error al iniciar sesión. Inténtalo de nuevo.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -67,11 +81,18 @@ export default function Login() {
                 />
               </div>
               
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+              
               <button 
-                className="w-full bg-primary text-white px-4 py-3 rounded-lg hover:bg-black hover:border-white border border-transparent transition-all font-medium focus:ring-2 focus:ring-primary focus:ring-offset-2" 
+                className="w-full bg-primary text-white px-4 py-3 rounded-lg hover:bg-black hover:border-white border border-transparent transition-all font-medium focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed" 
                 type="submit"
+                disabled={isLoading}
               >
-                Iniciar sessió
+                {isLoading ? "Iniciant sessió..." : "Iniciar sessió"}
               </button>
             </form>
             

@@ -25,6 +25,8 @@ import AdminLayout from '../../components/Admin/AdminLayout';
 import BrandsModelsManager from '../../components/Admin/BrandsModelsManager';
 import SystemInstaller from '../../components/Admin/SystemInstaller';
 import { axiosAdmin } from '../../api/axiosClient';
+import { useAuth } from '../../context/AuthContext';
+import ProtectedSection from '../../components/ui/ProtectedSection';
 import * as Popover from '@radix-ui/react-popover';
 import SearchableSelect, { SelectOption } from '../../components/ui/SearchableSelect';
 import { Switch } from '../../components/ui/switch';
@@ -94,19 +96,26 @@ const KarsVehicles = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { syncVehicle, syncMultipleVehicles, hasValidCredentials } = useBuscoCotxeSync();
+  const { isSuperAdmin } = useAuth();
   
   // Obtener pestaña activa desde URL, con fallback a 'vehicles'
   const activeTabFromUrl = useMemo((): 'vehicles' | 'brands-models' | 'installer' => {
     const tab = searchParams.get('tab');
-    if (tab === 'brands-models') return 'brands-models';
-    if (tab === 'installer') return 'installer';
+    // Solo permitir acceso a tabs especiales si es super admin
+    if (tab === 'brands-models' && isSuperAdmin()) return 'brands-models';
+    if (tab === 'installer' && isSuperAdmin()) return 'installer';
     return 'vehicles';
-  }, [searchParams]);
+  }, [searchParams, isSuperAdmin]);
   
   const [activeTab, setActiveTab] = useState<'vehicles' | 'brands-models' | 'installer'>('vehicles');
   
   // Función para cambiar de pestaña y actualizar URL
   const changeTab = (newTab: 'vehicles' | 'brands-models' | 'installer') => {
+    // Solo permitir cambio a tabs especiales si es super admin
+    if ((newTab === 'brands-models' || newTab === 'installer') && !isSuperAdmin()) {
+      return; // No hacer nada si no tiene permisos
+    }
+    
     setActiveTab(newTab);
     const newSearchParams = new URLSearchParams(searchParams);
     if (newTab === 'vehicles') {
@@ -989,29 +998,31 @@ const KarsVehicles = () => {
           </div>
           {activeTab === 'vehicles' && (
             <div className="flex gap-3">
-              <button
-                onClick={handleDownloadJson}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-              >
-                <FileText className="w-4 h-4" />
-                Descarregar JSON
-              </button>
-              <button
-                onClick={handleImportJson}
-                disabled={importStatus === 'running'}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                  importStatus === 'running'
-                    ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                    : 'bg-green-600 text-white hover:bg-green-700'
-                }`}
-              >
-                {importStatus === 'running' ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Upload className="w-4 h-4" />
-                )}
-                {importStatus === 'running' ? 'Important...' : 'Importar JSON'}
-              </button>
+              <ProtectedSection requireSuperAdmin>
+                <button
+                  onClick={handleDownloadJson}
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  <FileText className="w-4 h-4" />
+                  Descarregar JSON
+                </button>
+                <button
+                  onClick={handleImportJson}
+                  disabled={importStatus === 'running'}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                    importStatus === 'running'
+                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                      : 'bg-green-600 text-white hover:bg-green-700'
+                  }`}
+                >
+                  {importStatus === 'running' ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4" />
+                  )}
+                  {importStatus === 'running' ? 'Important...' : 'Importar JSON'}
+                </button>
+              </ProtectedSection>
               
               {/* Sync Logs Button */}
               {syncLogs.length > 0 && (
@@ -1110,19 +1121,21 @@ const KarsVehicles = () => {
                 Vehicles ({totalVehicles.toLocaleString()})
               </div>
             </button>
-            <button
-              onClick={() => changeTab('brands-models')}
-              className={`py-2 px-4 border-b-2 font-medium text-sm ${
-                activeTab === 'brands-models'
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4" />
-                Marcas/Modelos
-              </div>
-            </button>
+            <ProtectedSection requireSuperAdmin>
+              <button
+                onClick={() => changeTab('brands-models')}
+                className={`py-2 px-4 border-b-2 font-medium text-sm ${
+                  activeTab === 'brands-models'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Filter className="w-4 h-4" />
+                  Marcas/Modelos
+                </div>
+              </button>
+            </ProtectedSection>
           </nav>
         </div>
         {/* Content based on active tab */}
@@ -1538,7 +1551,16 @@ const KarsVehicles = () => {
         )}
 
         {/* Brands and Models Tab */}
-        {activeTab === 'brands-models' && <BrandsModelsManager />}
+        {activeTab === 'brands-models' && (
+          <ProtectedSection requireSuperAdmin fallback={
+            <div className="text-center py-8 text-gray-500">
+              <Filter className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+              <p>No tienes permisos para acceder a esta sección</p>
+            </div>
+          }>
+            <BrandsModelsManager />
+          </ProtectedSection>
+        )}
       </div>
       
       {/* Delete Confirmation Modal */}
