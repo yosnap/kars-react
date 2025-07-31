@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Globe, ChevronDown } from 'lucide-react';
-import { useLanguage, Language } from '../context/LanguageContext';
+import { useNavigate } from 'react-router-dom';
+import { useLanguage, Language, getLocalizedPath, getPathWithoutLanguage } from '../context/LanguageContext';
 
 interface LanguageSelectorProps {
   variant?: 'header' | 'sidebar' | 'mobile-carousel';
@@ -8,6 +9,7 @@ interface LanguageSelectorProps {
 
 const LanguageSelector: React.FC<LanguageSelectorProps> = ({ variant = 'header' }) => {
   const { currentLanguage, setLanguage } = useLanguage();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
 
   const languages = [
@@ -20,8 +22,18 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ variant = 'header' 
   const currentLangInfo = languages.find(lang => lang.code === currentLanguage);
 
   const handleLanguageChange = (langCode: Language) => {
+    // Primero actualizamos el idioma en el contexto
     setLanguage(langCode);
     setIsOpen(false);
+    
+    // Luego navegamos a la nueva URL localizada
+    const currentPathWithoutLang = getPathWithoutLanguage(window.location.pathname);
+    const currentSearch = window.location.search;
+    const newPath = getLocalizedPath(currentPathWithoutLang, langCode);
+    const newUrl = `${newPath}${currentSearch}`;
+    
+    // Navegar sin recargar la página
+    navigate(newUrl);
   };
 
   // Desktop: mostrar todas las banderas directamente

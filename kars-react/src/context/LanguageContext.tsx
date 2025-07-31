@@ -601,24 +601,11 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
     document.documentElement.lang = currentLanguage;
   }, [currentLanguage]);
 
-  // Función para cambiar idioma
+  // Función para cambiar idioma - simplificada
   const setLanguage = (language: Language) => {
     setCurrentLanguage(language);
     localStorage.setItem('selectedLanguage', language);
-    
-    // Actualizar atributo lang del HTML para que el navegador detecte el idioma
     document.documentElement.lang = language;
-    
-    // Obtener el path actual sin prefijo de idioma y convertirlo a la ruta base
-    const currentPathWithoutLang = getPathWithoutLanguage(window.location.pathname);
-    const currentSearch = window.location.search;
-    
-    // Generar nueva URL localizada
-    const newPath = getLocalizedPath(currentPathWithoutLang, language);
-    const newUrl = `${newPath}${currentSearch}`;
-    
-    // Navegar a la nueva URL en lugar de solo actualizar el historial
-    window.location.href = newUrl;
   };
 
   // Función de traducción
@@ -836,3 +823,4 @@ export const getLanguageFromPath = (path: string): Language => {
   
   return 'ca'; // Default
 };
+
